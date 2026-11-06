@@ -36,4 +36,5 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 - The picture no longer flashes black for a frame when the game changes its resolution to keep up, as it often did right after arriving in a world.
 - In the Lagoon and the Crystal Sea, the girl no longer gets stuck at the edge of deep water.
 - The girl no longer walks into the treasure capsule; she stops at its pedestal.
+- On phones, help, the settings and the other dialogs fit the screen and scroll with a finger; before, they ran off the bottom of the screen.
 - At the start of a ride the ship no longer darts toward the mouse pointer, which still rests on the button that started the ride: the mouse steers once it is moved during the ride, or clicked on the game.
