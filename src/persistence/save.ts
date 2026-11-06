@@ -3,11 +3,51 @@ import type { HoleTier } from '../core/holes'
 import type { Reward } from '../core/rewards'
 import type { WorldId } from '../core/worlds'
 import { DEFAULT_SETTINGS, QUALITIES, type Settings } from '../game/settings'
+import { ACTIONS, type Action, KEY_SLOTS, PAD_SLOTS } from '../input/bindings'
+import { DEAD_ZONE_SHAPES } from '../input/stick'
 import { SaveQueue } from './queue'
 import type { KeyValueStore } from './store'
 
 const KEY = 'save'
 export const SAVE_VERSION = 1
+
+const stickSchema = (fallback: Settings['sticks']['move']) =>
+  z
+    .object({
+      deadZone: z.number().min(0).max(0.5).catch(fallback.deadZone),
+      shape: z.enum(DEAD_ZONE_SHAPES).catch(fallback.shape),
+      sensitivity: z.number().min(0.25).max(3).catch(fallback.sensitivity),
+    })
+    .catch(fallback)
+
+const sticksSchema = z
+  .object({
+    move: stickSchema(DEFAULT_SETTINGS.sticks.move),
+    look: stickSchema(DEFAULT_SETTINGS.sticks.look),
+    swap: z.boolean().catch(DEFAULT_SETTINGS.sticks.swap),
+  })
+  .catch(DEFAULT_SETTINGS.sticks)
+
+/** One table of bindings, each action falling back to its defaults on its own. */
+function tableSchema<T extends string | number>(
+  entry: z.ZodType<T>,
+  slots: number,
+  fallback: Readonly<Record<Action, readonly T[]>>,
+): z.ZodType<Readonly<Record<Action, readonly T[]>>> {
+  const shape = Object.fromEntries(
+    ACTIONS.map((action) => [action, z.array(entry).max(slots).readonly().catch(fallback[action])]),
+  )
+  return z.object(shape).catch(fallback) as unknown as z.ZodType<
+    Readonly<Record<Action, readonly T[]>>
+  >
+}
+
+const bindingsSchema = z
+  .object({
+    keys: tableSchema(z.string().min(1).max(40), KEY_SLOTS, DEFAULT_SETTINGS.bindings.keys),
+    pad: tableSchema(z.number().int().min(0).max(31), PAD_SLOTS, DEFAULT_SETTINGS.bindings.pad),
+  })
+  .catch(DEFAULT_SETTINGS.bindings)
 
 const settingsSchema = z.object({
   sound: z.number().min(0).max(1).catch(DEFAULT_SETTINGS.sound),
@@ -16,8 +56,11 @@ const settingsSchema = z.object({
   gyro: z.boolean().catch(DEFAULT_SETTINGS.gyro),
   gyroRange: z.number().min(8).max(45).catch(DEFAULT_SETTINGS.gyroRange),
   invertY: z.boolean().catch(DEFAULT_SETTINGS.invertY),
+  invertLookY: z.boolean().catch(DEFAULT_SETTINGS.invertLookY),
   mouseSteer: z.boolean().catch(DEFAULT_SETTINGS.mouseSteer),
   lookSpeed: z.number().min(0.3).max(2.5).catch(DEFAULT_SETTINGS.lookSpeed),
+  sticks: sticksSchema,
+  bindings: bindingsSchema,
   reducedMotion: z.boolean().catch(DEFAULT_SETTINGS.reducedMotion),
   vibration: z.boolean().catch(DEFAULT_SETTINGS.vibration),
   showFps: z.boolean().catch(DEFAULT_SETTINGS.showFps),

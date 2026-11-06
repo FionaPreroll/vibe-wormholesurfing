@@ -899,6 +899,10 @@ button.round.jump-button {
   user-select: text;
 }
 
+.modal.wide {
+  width: min(780px, 100%);
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -942,6 +946,11 @@ button.round.jump-button {
   gap: 12px;
 }
 
+/* A wide child, as the table of keys, scrolls on its own instead of widening the column. */
+.settings > * {
+  min-width: 0;
+}
+
 .field {
   display: grid;
   gap: 4px;
@@ -983,6 +992,116 @@ select {
   display: grid;
   gap: 4px;
   font-weight: 700;
+}
+
+/* Controller and keys */
+
+.field-group {
+  display: grid;
+  gap: 8px;
+}
+
+.field-group h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.stick-fields {
+  display: grid;
+  grid-template-columns: 1fr 110px;
+  gap: 14px;
+  align-items: center;
+}
+
+.stick-sliders {
+  display: grid;
+  gap: 10px;
+}
+
+.stick-test {
+  width: 110px;
+  height: 110px;
+}
+
+.stick-test .travel {
+  fill: rgba(255, 255, 255, 0.05);
+  stroke: var(--edge);
+  stroke-width: 1.5;
+}
+
+.stick-test .dead {
+  fill: rgba(255, 107, 138, 0.18);
+  stroke: rgba(255, 107, 138, 0.6);
+  stroke-width: 1;
+}
+
+.stick-test .raw {
+  fill: var(--ink-quiet);
+  opacity: 0.6;
+}
+
+.stick-test .out {
+  fill: var(--aqua);
+  filter: drop-shadow(0 0 4px var(--aqua));
+}
+
+.bindings-scroll {
+  overflow-x: auto;
+  touch-action: pan-x pan-y;
+}
+
+.bindings {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 4px;
+  font-size: 0.9rem;
+}
+
+.bindings th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--ink-quiet);
+}
+
+.bindings tbody th {
+  color: var(--ink);
+  font-weight: 500;
+  padding-right: 6px;
+}
+
+.bindings .slot {
+  width: 100%;
+  min-width: 4.2em;
+  padding: 0.35em 0.5em;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.bindings .slot.empty {
+  color: var(--ink-quiet);
+}
+
+.bindings .slot.waiting {
+  border-color: var(--pink);
+  box-shadow: 0 0 0 2px var(--pink);
+  animation: waiting 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes waiting {
+  to {
+    box-shadow: 0 0 0 4px rgba(255, 143, 208, 0.35);
+  }
+}
+
+@media (max-width: 520px) {
+  .stick-fields {
+    grid-template-columns: 1fr 84px;
+  }
+
+  .stick-test {
+    width: 84px;
+    height: 84px;
+  }
 }
 
 .note {

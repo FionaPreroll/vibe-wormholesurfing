@@ -8,6 +8,8 @@ interface Props {
   readonly title: string
   readonly onClose: () => void
   readonly children: ComponentChildren
+  /** Room for a table, as the keys and buttons have. */
+  readonly wide?: boolean
 }
 
 /**
@@ -15,7 +17,7 @@ interface Props {
  * backdrop around it closes it. The focus moves into it when it opens and returns to where it was
  * when it closes.
  */
-export function Modal({ id, title, onClose, children }: Props) {
+export function Modal({ id, title, onClose, children, wide = false }: Props) {
   const close = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     const opener = document.activeElement
@@ -36,7 +38,12 @@ export function Modal({ id, title, onClose, children }: Props) {
 
   return (
     <div class="modal-backdrop" {...backdrop}>
-      <div class="modal" role="dialog" aria-modal="true" aria-labelledby={`${id}-title`}>
+      <div
+        class={wide ? 'modal wide' : 'modal'}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`${id}-title`}
+      >
         <header class="modal-header">
           <h2 id={`${id}-title`}>{title}</h2>
           <button type="button" ref={close} onClick={onClose}>

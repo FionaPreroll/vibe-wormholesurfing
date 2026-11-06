@@ -1,4 +1,10 @@
 import { signal } from '@preact/signals-core'
+import {
+  type Bindings,
+  DEFAULT_BINDINGS,
+  DEFAULT_STICKS,
+  type StickSettings,
+} from '../input/bindings'
 
 export const QUALITIES = ['auto', 'low', 'medium', 'high', 'ultra'] as const
 export type Quality = (typeof QUALITIES)[number]
@@ -15,10 +21,16 @@ export interface Settings {
   readonly gyroRange: number
   /** Up and down swapped while flying. */
   readonly invertY: boolean
+  /** Up and down swapped for the camera. */
+  readonly invertLookY: boolean
   /** The mouse pointer steers the ship. */
   readonly mouseSteer: boolean
   /** How fast the camera turns, 0.4 to 2. */
   readonly lookSpeed: number
+  /** The controller's sticks: dead zones, how strongly they answer, and which steers. */
+  readonly sticks: StickSettings
+  /** Which keys and controller buttons do what. */
+  readonly bindings: Bindings
   /** Less camera shake, no speed blur and gentler flashes. */
   readonly reducedMotion: boolean
   readonly vibration: boolean
@@ -40,8 +52,11 @@ export const DEFAULT_SETTINGS: Settings = {
   gyro: false,
   gyroRange: 24,
   invertY: false,
+  invertLookY: false,
   mouseSteer: true,
   lookSpeed: 1,
+  sticks: DEFAULT_STICKS,
+  bindings: DEFAULT_BINDINGS,
   reducedMotion: prefersLessMotion(),
   vibration: true,
   showFps: false,

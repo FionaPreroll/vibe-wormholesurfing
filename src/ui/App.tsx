@@ -24,9 +24,20 @@ import type { Director } from '../view/director'
 import { AboutScreen } from './AboutScreen'
 import { offerUpdatesOnStart } from './appUpdates'
 import { CollectionScreen, type Flight } from './CollectionScreen'
+import { ControlsDialog } from './ControlsDialog'
+import { learnKeyboardLayout } from './controlNames'
 import { HelpDialog, PauseMenu, SettingsDialog } from './dialogs'
 import { enterFullScreen } from './FullScreen'
-import { arrival, found, graphicsFailed, loading, overlay, paused, screen } from './flow'
+import {
+  arrival,
+  closeOverlay,
+  found,
+  graphicsFailed,
+  loading,
+  overlay,
+  paused,
+  screen,
+} from './flow'
 import { RideHud, WorldHud } from './Hud'
 import { LoadingIndicator } from './LoadingIndicator'
 import { loadWithProgress } from './loading'
@@ -176,8 +187,11 @@ export function App({ store }: Props) {
       effect(() => {
         const current = settings.value
         input.settings.invertY = current.invertY
+        input.settings.invertLookY = current.invertLookY
         input.settings.mouseSteer = current.mouseSteer
         input.settings.lookSpeed = current.lookSpeed
+        input.settings.sticks = current.sticks
+        input.settings.bindings = current.bindings
         input.gyro.range = current.gyroRange
         haptics.enabled = current.vibration
         synth.setVolumes(current.sound, current.music)
@@ -191,6 +205,9 @@ export function App({ store }: Props) {
     if (!root.current) return
     return input.attach(root.current)
   }, [input])
+
+  // Key names as the keyboard prints them, where the browser tells.
+  useEffect(() => learnKeyboardLayout(), [])
 
   // Sounds and buzzes for everything that happens.
   useEffect(
@@ -491,7 +508,7 @@ export function App({ store }: Props) {
           overlay.value !== undefined ||
           card,
         () => {
-          if (overlay.value) overlay.value = undefined
+          if (overlay.value) closeOverlay()
           else if (paused.value) resume()
           else if (screen.value === 'collection' || screen.value === 'about') showTitle()
         },
@@ -506,7 +523,7 @@ export function App({ store }: Props) {
       onBackButton(() => {
         const update = document.querySelector<HTMLElement>('.modal.update .buttons button')
         if (update) update.click()
-        else if (overlay.value) overlay.value = undefined
+        else if (overlay.value) closeOverlay()
         else if (paused.value) resume()
         else if (document.querySelector('[role="dialog"]'))
           window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
@@ -675,13 +692,25 @@ export function App({ store }: Props) {
           onChange={changeSettings}
           onGyro={toggleGyro}
           onReset={() => void bookRef.current?.reset().then(refresh)}
+          onControls={() => {
+            overlay.value = 'controls'
+          }}
           onClose={() => {
             overlay.value = undefined
           }}
         />
       )}
+      {overlay.value === 'controls' && (
+        <ControlsDialog
+          settings={settings.value}
+          padStyle={input.padStyle.value}
+          onChange={changeSettings}
+          onClose={closeOverlay}
+        />
+      )}
       {overlay.value === 'help' && (
         <HelpDialog
+          padStyle={input.padStyle.value}
           onClose={() => {
             overlay.value = undefined
           }}

@@ -32,6 +32,10 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 - While the 3D engine loads, a bar shows how much has arrived, how fast, how long it took and how long it should still take.
 - On foot, the arrow keys turn the camera; WASD walks.
 - The frame counter in the settings also shows the time per frame, the resolution and the draw calls. It sits in the top left corner, clear of the panels.
+- Change every key and controller button: Settings → Controller and keys gives each action two keys and two buttons. Choose a slot and press the key or button for it; it moves from wherever it was. Back to the defaults is one button away.
+- Tune the controller's sticks: how strongly each answers, how large its dead zone is, and its shape: round, cross (each axis on its own, for straight lines) or square (the slightest push along an axis counts). A picture shows what the stick does as you lean it. The sticks can also be swapped.
+- Invert the camera's up and down, for the stick, the keys, the mouse and fingers alike, apart from inverting the ship's.
+- The game names the buttons as your controller prints them: ✕ ○ □ △, L1 and R2 on a PlayStation controller, the swapped letters of a Nintendo one, and the letters of others. Keys are named as your keyboard's layout prints them, where the browser tells. The hints in a ride and in a world, and the help, name the keys and buttons as you bound them.
 
 ### Changed
 

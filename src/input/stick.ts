@@ -13,15 +13,67 @@ export function clampUnit(x: number, y: number): Vec2 {
 }
 
 /**
- * A stick reading with a round dead zone: small leans count as none, and the rest is stretched
- * so that the stick still reaches full lean at its edge. `curve` above 1 gives finer control
- * near the middle.
+ * The shape of a stick's dead zone. Round ignores small leans in every direction alike; cross
+ * ignores each axis on its own, so a lean that is nearly straight comes out straight; square
+ * ignores a lean only while both axes are small, so the slightest push along one axis counts.
  */
-export function shapeStick(x: number, y: number, deadZone = 0.15, curve = 1.3): Vec2 {
-  const length = Math.hypot(x, y)
-  if (length <= deadZone) return ZERO
-  const lean = Math.min(1, (length - deadZone) / (1 - deadZone)) ** curve
-  return { x: (x / length) * lean, y: (y / length) * lean }
+export const DEAD_ZONE_SHAPES = ['round', 'cross', 'square'] as const
+export type DeadZoneShape = (typeof DEAD_ZONE_SHAPES)[number]
+
+/** How a player tuned a stick: its dead zone, the shape of it, and how strongly it answers. */
+export interface StickTuning {
+  /** The share of the stick's travel that counts as resting, 0 to 0.5. */
+  readonly deadZone: number
+  readonly shape: DeadZoneShape
+  /** How strongly the stick answers: 1 as made, 2 twice as much. */
+  readonly sensitivity: number
+}
+
+/** Takes a dead zone off a value from 0 to 1 and stretches the rest back to 0 to 1. */
+function beyond(value: number, deadZone: number): number {
+  return Math.max(0, Math.min(1, (value - deadZone) / (1 - deadZone)))
+}
+
+/**
+ * A stick reading without its dead zone: small leans count as none, and the rest is stretched so
+ * that the stick still reaches full lean at its edge. `curve` above 1 gives finer control near
+ * the middle.
+ */
+export function shapeStick(
+  x: number,
+  y: number,
+  deadZone = 0.15,
+  curve = 1.3,
+  shape: DeadZoneShape = 'round',
+): Vec2 {
+  let dx = x
+  let dy = y
+  if (shape === 'cross') {
+    dx = Math.sign(x) * beyond(Math.abs(x), deadZone)
+    dy = Math.sign(y) * beyond(Math.abs(y), deadZone)
+  } else {
+    // Round measures the lean by its length, square by its larger axis.
+    const size = shape === 'round' ? Math.hypot(x, y) : Math.max(Math.abs(x), Math.abs(y))
+    if (size <= deadZone) return ZERO
+    const scale = beyond(size, deadZone) / size
+    dx = x * scale
+    dy = y * scale
+  }
+  const length = Math.hypot(dx, dy)
+  if (length === 0) return ZERO
+  const lean = Math.min(1, length) ** curve
+  return { x: (dx / length) * lean, y: (dy / length) * lean }
+}
+
+/**
+ * A stick as a player tuned it. A stick that steers stops at full lean, sooner the more sensitive
+ * it is; one that turns the camera turns faster.
+ */
+export function tuneStick(raw: Vec2, tuning: StickTuning, curve: number, clamp: boolean): Vec2 {
+  const shaped = shapeStick(raw.x, raw.y, tuning.deadZone, curve, tuning.shape)
+  const x = shaped.x * tuning.sensitivity
+  const y = shaped.y * tuning.sensitivity
+  return clamp ? clampUnit(x, y) : { x, y }
 }
 
 /** Arrow keys or WASD as a direction, diagonals no faster than straight lines. */

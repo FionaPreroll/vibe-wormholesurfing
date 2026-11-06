@@ -2,7 +2,7 @@ import { signal } from '@preact/signals'
 import type { Arrival, Found } from '../game/hud'
 
 export type Screen = 'title' | 'ride' | 'world' | 'collection' | 'about'
-export type Overlay = 'settings' | 'help' | undefined
+export type Overlay = 'settings' | 'controls' | 'help' | undefined
 
 /** Which part of the game shows. */
 export const screen = signal<Screen>('title')
@@ -10,6 +10,11 @@ export const screen = signal<Screen>('title')
 export const paused = signal(false)
 /** A dialog over everything else. */
 export const overlay = signal<Overlay>(undefined)
+
+/** Closes the dialog on top: the controls go back to the settings, others close. */
+export function closeOverlay(): void {
+  overlay.value = overlay.value === 'controls' ? 'settings' : undefined
+}
 /** Where the last ride led. */
 export const arrival = signal<Arrival | undefined>(undefined)
 /** What the last treasure held, once revealed. */

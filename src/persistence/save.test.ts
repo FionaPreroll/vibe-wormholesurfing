@@ -20,6 +20,39 @@ describe('migrate', () => {
     expect(kept.collection).toEqual({})
   })
 
+  it('reads saves from before the controls could be changed', () => {
+    const {
+      sticks: _sticks,
+      bindings: _bindings,
+      invertLookY: _invert,
+      ...older
+    } = DEFAULT_SETTINGS
+    const read = migrate({ ...freshSave(), settings: older })
+    expect(read.settings.bindings).toEqual(DEFAULT_SETTINGS.bindings)
+    expect(read.settings.sticks).toEqual(DEFAULT_SETTINGS.sticks)
+    expect(read.settings.invertLookY).toBe(false)
+  })
+
+  it('keeps the bindings that read, and puts the defaults in for each one that does not', () => {
+    const bindings = {
+      keys: { ...DEFAULT_SETTINGS.bindings.keys, confirm: ['KeyJ'], pause: 'Escape' },
+      pad: { ...DEFAULT_SETTINGS.bindings.pad, confirm: [7, 0, 1] },
+    }
+    const sticks = {
+      ...DEFAULT_SETTINGS.sticks,
+      move: { deadZone: 2, shape: 'cross', sensitivity: 1.5 },
+    }
+    const read = migrate({ ...freshSave(), settings: { ...DEFAULT_SETTINGS, bindings, sticks } })
+    expect(read.settings.bindings.keys.confirm).toEqual(['KeyJ'])
+    expect(read.settings.bindings.keys.pause).toEqual(DEFAULT_SETTINGS.bindings.keys.pause)
+    expect(read.settings.bindings.pad.confirm).toEqual(DEFAULT_SETTINGS.bindings.pad.confirm)
+    expect(read.settings.sticks.move).toEqual({
+      deadZone: DEFAULT_SETTINGS.sticks.move.deadZone,
+      shape: 'cross',
+      sensitivity: 1.5,
+    })
+  })
+
   it('fixes single broken settings with their defaults', () => {
     const save = { ...freshSave(), settings: { ...DEFAULT_SETTINGS, quality: 'insane', sound: 7 } }
     const read = migrate(save)

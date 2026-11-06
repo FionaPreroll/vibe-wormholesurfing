@@ -1,7 +1,24 @@
 import { signal } from '@preact/signals-core'
-import { PAD, Pads } from './gamepad'
+import {
+  type Action,
+  actionsForKey,
+  type Bindings,
+  boundKeys,
+  DEFAULT_BINDINGS,
+  DEFAULT_STICKS,
+  type StickSettings,
+} from './bindings'
+import { type PadStyle, Pads } from './gamepad'
 import { Gyro } from './gyro'
-import { FloatingStick, keysToVector, pointerSteer, type Vec2, ZERO } from './stick'
+import {
+  clampUnit,
+  FloatingStick,
+  keysToVector,
+  pointerSteer,
+  tuneStick,
+  type Vec2,
+  ZERO,
+} from './stick'
 
 /** What the controls drive: the menus, the ship in the wormhole, or the girl on foot. */
 export type InputMode = 'menu' | 'ride' | 'world'
@@ -12,8 +29,14 @@ export interface InputSettings {
   mouseSteer: boolean
   /** Up and down swapped while flying, as a pilot's stick has them. */
   invertY: boolean
+  /** Up and down swapped for the camera, for sticks, keys, the mouse and fingers alike. */
+  invertLookY: boolean
   /** How fast dragging and the right stick turn the camera. */
   lookSpeed: number
+  /** How the controller's sticks are tuned, and which steers. */
+  sticks: StickSettings
+  /** Which keys and buttons do what. */
+  bindings: Bindings
 }
 
 /** The controls as one frame sees them. */
@@ -45,45 +68,12 @@ export interface TouchView {
 
 type Button = 'confirm' | 'interact' | 'pause' | 'recenter'
 
-const KEYS = {
-  up: ['KeyW'],
-  down: ['KeyS'],
-  left: ['KeyA'],
-  right: ['KeyD'],
-  arrowUp: ['ArrowUp'],
-  arrowDown: ['ArrowDown'],
-  arrowLeft: ['ArrowLeft'],
-  arrowRight: ['ArrowRight'],
-  lookLeft: ['KeyJ'],
-  lookRight: ['KeyL'],
-  lookUp: ['KeyI'],
-  lookDown: ['KeyK'],
-} as const
+const BUTTONS: readonly Button[] = ['confirm', 'interact', 'pause', 'recenter']
+const isButton = (action: Action): action is Button =>
+  (BUTTONS as readonly Action[]).includes(action)
 
-const BUTTON_KEYS: Readonly<Record<string, Button>> = {
-  Space: 'confirm',
-  KeyE: 'interact',
-  Enter: 'interact',
-  NumpadEnter: 'interact',
-  Escape: 'pause',
-  KeyP: 'pause',
-  KeyC: 'recenter',
-}
-
-const MOVE_CODES: ReadonlySet<string> = new Set([
-  ...KEYS.up,
-  ...KEYS.down,
-  ...KEYS.left,
-  ...KEYS.right,
-  ...KEYS.arrowUp,
-  ...KEYS.arrowDown,
-  ...KEYS.arrowLeft,
-  ...KEYS.arrowRight,
-  ...KEYS.lookLeft,
-  ...KEYS.lookRight,
-  ...KEYS.lookUp,
-  ...KEYS.lookDown,
-])
+/** The keypad's Enter is the same key as the main Enter, as players expect. */
+const sameKey = (code: string) => (code === 'NumpadEnter' ? 'Enter' : code)
 
 /** How far, in pixels, the pointer must move before a resting mouse steers again. */
 const MOUSE_WAKE = 40
@@ -113,11 +103,20 @@ export class Input {
     this.#mode = next
     this.#ignoreMouse()
   }
-  readonly settings: InputSettings = { mouseSteer: true, invertY: false, lookSpeed: 1 }
+  readonly settings: InputSettings = {
+    mouseSteer: true,
+    invertY: false,
+    invertLookY: false,
+    lookSpeed: 1,
+    sticks: DEFAULT_STICKS,
+    bindings: DEFAULT_BINDINGS,
+  }
   readonly gyro = new Gyro()
   readonly source = signal<Source>('keyboard')
   readonly touches = signal<readonly TouchView[]>([])
   readonly padConnected = signal(false)
+  /** The make of the controller in use, for the names of its buttons. */
+  readonly padStyle = signal<PadStyle>('xbox')
 
   readonly #pads = new Pads()
   readonly #held = new Set<string>()
@@ -200,14 +199,23 @@ export class Input {
     this.padConnected.value = pad.connected
     if (pad.active) this.#mark('gamepad', now)
 
-    const held = (codes: readonly string[]) => codes.some((code) => this.#held.has(code))
-    // Flying, the arrows steer like WASD; on foot they turn the camera, as IJKL do.
-    const arrowsLook = this.mode === 'world'
+    if (pad.connected && this.padStyle.value !== pad.style) this.padStyle.value = pad.style
+
+    const { bindings, sticks } = this.settings
+    // What the keys held do now; a key that steers and turns the camera does the camera's on foot.
+    const keyActions = new Set<Action>()
+    if (this.mode !== 'menu')
+      for (const code of this.#held)
+        for (const action of actionsForKey(bindings, code, this.mode)) keyActions.add(action)
+    const padHeld = (action: Action) => bindings.pad[action].some((button) => pad.held.has(button))
+    const padPressed = (action: Action) =>
+      bindings.pad[action].some((button) => pad.pressed.has(button))
+    const holding = (action: Action) => keyActions.has(action)
     const keys = keysToVector(
-      held(KEYS.up) || (!arrowsLook && held(KEYS.arrowUp)),
-      held(KEYS.down) || (!arrowsLook && held(KEYS.arrowDown)),
-      held(KEYS.left) || (!arrowsLook && held(KEYS.arrowLeft)),
-      held(KEYS.right) || (!arrowsLook && held(KEYS.arrowRight)),
+      holding('moveUp'),
+      holding('moveDown'),
+      holding('moveLeft'),
+      holding('moveRight'),
     )
     if (keys.x !== 0 || keys.y !== 0) this.#mark('keyboard', now)
 
@@ -219,9 +227,20 @@ export class Input {
     for (const finger of this.#fingers.values())
       if (finger.kind === 'move' && finger.stick) touchMove = finger.stick.value
 
+    // The sticks as tuned, and the buttons bound to steering, such as the D-pad.
+    const moveStick = tuneStick(sticks.swap ? pad.right : pad.left, sticks.move, 1.3, true)
+    const lookStick = tuneStick(sticks.swap ? pad.left : pad.right, sticks.look, 1.6, false)
+    const padButtons = keysToVector(
+      padHeld('moveUp'),
+      padHeld('moveDown'),
+      padHeld('moveLeft'),
+      padHeld('moveRight'),
+    )
+    const padMove = clampUnit(moveStick.x + padButtons.x, moveStick.y + padButtons.y)
+
     const vectors: Record<Source, Vec2> = {
       keyboard: keys,
-      gamepad: pad.move,
+      gamepad: padMove,
       touch: touchMove,
       gyro: this.mode === 'ride' ? gyro.read() : ZERO,
       mouse: this.#mouseSteer(),
@@ -234,21 +253,18 @@ export class Input {
     if (this.mode === 'ride' && this.settings.invertY) move = { x: move.x, y: -move.y }
 
     const turn = 2.4 * dt * this.settings.lookSpeed
-    const lookRight = held(KEYS.lookRight) || (arrowsLook && held(KEYS.arrowRight))
-    const lookLeft = held(KEYS.lookLeft) || (arrowsLook && held(KEYS.arrowLeft))
-    const lookUp = held(KEYS.lookUp) || (arrowsLook && held(KEYS.arrowUp))
-    const lookDown = held(KEYS.lookDown) || (arrowsLook && held(KEYS.arrowDown))
-    const keyLookX = (lookRight ? 1 : 0) - (lookLeft ? 1 : 0)
+    const either = (action: Action) => holding(action) || padHeld(action)
+    const turnX = (either('lookRight') ? 1 : 0) - (either('lookLeft') ? 1 : 0)
     // Looking up lowers the camera, which tilts the view up.
-    const keyLookY = (lookDown ? 1 : 0) - (lookUp ? 1 : 0)
+    const turnY = (either('lookDown') ? 1 : 0) - (either('lookUp') ? 1 : 0)
+    const flipY = this.settings.invertLookY ? -1 : 1
     const look = {
-      x: this.#lookX + (pad.look.x + keyLookX) * turn * 1.2,
-      y: this.#lookY + (pad.look.y + keyLookY) * turn,
+      x: this.#lookX + (lookStick.x + turnX) * turn * 1.2,
+      y: (this.#lookY + (lookStick.y + turnY) * turn) * flipY,
     }
     this.#lookX = 0
     this.#lookY = 0
-    const zoom =
-      this.#zoom + ((pad.held.has(PAD.rb) ? 1 : 0) - (pad.held.has(PAD.lb) ? 1 : 0)) * dt * 4
+    const zoom = this.#zoom + ((either('zoomOut') ? 1 : 0) - (either('zoomIn') ? 1 : 0)) * dt * 4
     this.#zoom = 0
 
     const pressed = this.#pressed
@@ -257,10 +273,10 @@ export class Input {
       move,
       look,
       zoom,
-      confirm: pressed.has('confirm') || pad.pressed.has(PAD.a),
-      interact: pressed.has('interact') || pad.pressed.has(PAD.x),
-      pause: pressed.has('pause') || pad.pressed.has(PAD.start),
-      recenter: pressed.has('recenter') || pad.pressed.has(PAD.y),
+      confirm: pressed.has('confirm') || padPressed('confirm'),
+      interact: pressed.has('interact') || padPressed('interact'),
+      pause: pressed.has('pause') || padPressed('pause'),
+      recenter: pressed.has('recenter') || padPressed('recenter'),
       source,
     }
   }
@@ -276,13 +292,28 @@ export class Input {
     return pointerSteer(this.#mouse.x, this.#mouse.y, width, height)
   }
 
+  #boundFor: Bindings | undefined
+  #bound: ReadonlySet<string> = new Set()
+
+  /** Every key that does something, worked out again only when the bindings change. */
+  #boundKeys(): ReadonlySet<string> {
+    const { bindings } = this.settings
+    if (this.#boundFor !== bindings) {
+      this.#boundFor = bindings
+      this.#bound = boundKeys(bindings)
+    }
+    return this.#bound
+  }
+
   readonly #onKeyDown = (event: KeyboardEvent) => {
     if (typingInto(event.target) || event.ctrlKey || event.metaKey || event.altKey) return
     if (this.mode === 'menu') return
-    const button = BUTTON_KEYS[event.code]
-    if (button && !event.repeat) this.#pressed.add(button)
-    this.#held.add(event.code)
-    if (MOVE_CODES.has(event.code) || button) {
+    const code = sameKey(event.code)
+    if (!event.repeat)
+      for (const action of actionsForKey(this.settings.bindings, code, this.mode))
+        if (isButton(action)) this.#pressed.add(action)
+    this.#held.add(code)
+    if (this.#boundKeys().has(code)) {
       this.#mark('keyboard')
       // Space and the arrows would scroll the page otherwise.
       event.preventDefault()
@@ -290,7 +321,7 @@ export class Input {
   }
 
   readonly #onKeyUp = (event: KeyboardEvent) => {
-    this.#held.delete(event.code)
+    this.#held.delete(sameKey(event.code))
   }
 
   readonly #onBlur = () => this.release()

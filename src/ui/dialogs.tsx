@@ -2,11 +2,14 @@ import { useState } from 'preact/hooks'
 import type { DebugReport } from '../game/debugLog'
 import { QUALITIES, type Quality, type Settings } from '../game/settings'
 import { type MessageKey, t } from '../i18n'
+import { PAD, type PadStyle } from '../input/gamepad'
 import type { GyroState } from '../input/gyro'
 import type { StoredLog } from '../persistence/logs'
 import type { Save } from '../persistence/save'
 import { checkForUpdate, offer } from './appUpdates'
+import { padButtonName } from './controlNames'
 import { DebugTools, SaveTools } from './DataTools'
+import { Slider, Toggle } from './fields'
 import { LanguageSwitch } from './LanguageSwitch'
 import { Modal } from './Modal'
 import { isApp } from './native'
@@ -39,58 +42,9 @@ interface SettingsProps {
   readonly onChange: (settings: Settings) => void
   readonly onGyro: (on: boolean) => void
   readonly onReset: () => void
+  /** Opens the controller's sticks and the keys and buttons. */
+  readonly onControls: () => void
   readonly onClose: () => void
-}
-
-function Slider({
-  label,
-  value,
-  min,
-  max,
-  step,
-  onInput,
-}: {
-  readonly label: string
-  readonly value: number
-  readonly min: number
-  readonly max: number
-  readonly step: number
-  readonly onInput: (value: number) => void
-}) {
-  return (
-    <label class="field">
-      <span>{label}</span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onInput={(event) => onInput(Number(event.currentTarget.value))}
-      />
-    </label>
-  )
-}
-
-function Toggle({
-  label,
-  checked,
-  onChange,
-}: {
-  readonly label: string
-  readonly checked: boolean
-  readonly onChange: (on: boolean) => void
-}) {
-  return (
-    <label class="field toggle">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.currentTarget.checked)}
-      />
-      <span>{label}</span>
-    </label>
-  )
 }
 
 /**
@@ -153,6 +107,7 @@ export function SettingsDialog({
   onChange,
   onGyro,
   onReset,
+  onControls,
   onClose,
 }: SettingsProps) {
   const set = (patch: Partial<Settings>) => onChange({ ...settings, ...patch })
@@ -212,6 +167,11 @@ export function SettingsDialog({
           checked={settings.invertY}
           onChange={(invertY) => set({ invertY })}
         />
+        <Toggle
+          label={t('invertLookY')}
+          checked={settings.invertLookY}
+          onChange={(invertLookY) => set({ invertLookY })}
+        />
         <Slider
           label={t('lookSpeed')}
           value={settings.lookSpeed}
@@ -220,6 +180,9 @@ export function SettingsDialog({
           step={0.1}
           onInput={(lookSpeed) => set({ lookSpeed })}
         />
+        <button type="button" onClick={onControls}>
+          {t('controlsButton')}
+        </button>
         <Toggle
           label={t('vibration')}
           checked={settings.vibration}
@@ -264,7 +227,14 @@ export function SettingsDialog({
   )
 }
 
-export function HelpDialog({ onClose }: { readonly onClose: () => void }) {
+export function HelpDialog({
+  padStyle,
+  onClose,
+}: {
+  readonly padStyle: PadStyle
+  readonly onClose: () => void
+}) {
+  const name = (button: number) => padButtonName(button, padStyle)
   return (
     <Modal id="help" title={t('helpTitle')} onClose={onClose}>
       <div class="help">
@@ -281,11 +251,21 @@ export function HelpDialog({ onClose }: { readonly onClose: () => void }) {
         <h3>{t('helpKeyboard')}</h3>
         <p>{t('helpKeyboardText')}</p>
         <h3>{t('helpPad')}</h3>
-        <p>{t('helpPadText')}</p>
+        <p>
+          {t('helpPadText', {
+            a: name(PAD.a),
+            b: name(PAD.b),
+            y: name(PAD.y),
+            lb: name(PAD.lb),
+            rb: name(PAD.rb),
+            start: name(PAD.start),
+          })}
+        </p>
         <h3>{t('helpTouch')}</h3>
         <p>{t('helpTouchText')}</p>
         <h3>{t('helpGyro')}</h3>
         <p>{t('helpGyroText')}</p>
+        <p class="note">{t('helpRemap')}</p>
       </div>
     </Modal>
   )

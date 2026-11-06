@@ -6,6 +6,7 @@ import { rideHud, worldHud } from '../game/hud'
 import { settings } from '../game/settings'
 import { t, worldName } from '../i18n'
 import type { Input } from '../input/input'
+import { buttonsFor, directionKeys, keysFor } from './controlNames'
 import { Lcd } from './lcd'
 import { touchScreen } from './pointer'
 
@@ -179,13 +180,14 @@ export function RideHud({ input, best, onPause, onRecenter, hint, onHintSeen }: 
   const pull = hud.captured ? 1 : hud.pull
   const gyro = settings.value.gyro && input.gyro.state.value === 'on'
   const source = input.source.value
+  const { bindings, sticks } = settings.value
   const how = gyro
     ? t('rideHintGyro')
     : source === 'gamepad'
-      ? t('rideHintPad')
+      ? t(sticks.swap ? 'rightStick' : 'leftStick')
       : touchScreen.value
         ? t('rideHintTouch')
-        : t('rideHintKeys')
+        : t('rideHintKeys', { keys: directionKeys(bindings, 'move') })
   return (
     <div class={`hud ride-hud${hud.warping ? ' warping' : ''}`}>
       <div class="distance" aria-live="off">
@@ -290,6 +292,12 @@ export function WorldHud({ input, world, tier, distance, onPause, hint, onHintSe
   const touch = touchScreen.value
   const pad = input.source.value === 'gamepad'
   const exploring = hud.phase === 'exploring'
+  const { bindings, sticks } = settings.value
+  const style = input.padStyle.value
+  // Opening takes the interact button, or the jump button near the treasure.
+  const openWith = pad
+    ? buttonsFor(bindings, 'interact', style) || buttonsFor(bindings, 'confirm', style)
+    : keysFor(bindings, 'interact') || keysFor(bindings, 'confirm')
   return (
     <div class="hud world-hud">
       <div class={`banner${banner ? '' : ' gone'}`}>
@@ -315,7 +323,7 @@ export function WorldHud({ input, world, tier, distance, onPause, hint, onHintSe
       {hud.canOpen && (
         <button type="button" class="primary open-button" onClick={() => input.press('interact')}>
           {t('openTreasure')}
-          {!touch && <kbd>{pad ? 'A' : t('openKey')}</kbd>}
+          {!touch && openWith && <kbd>{openWith}</kbd>}
         </button>
       )}
       {!banner && (
@@ -361,13 +369,18 @@ export function WorldHud({ input, world, tier, distance, onPause, hint, onHintSe
         <div class="hint-card small-card" role="status">
           <p>
             {pad
-              ? t('worldHintPad')
+              ? t('worldHintPad', {
+                  walk: t(sticks.swap ? 'rightStick' : 'leftStick'),
+                  look: t(sticks.swap ? 'leftStick' : 'rightStick'),
+                  jump: buttonsFor(bindings, 'confirm', style),
+                  open: buttonsFor(bindings, 'interact', style),
+                })
               : touch
                 ? t('worldHintTouch')
                 : t('worldHint', {
-                    walk: t('worldHintKeys'),
-                    look: t('worldHintLook'),
-                    jump: t('worldHintSpace'),
+                    walk: directionKeys(bindings, 'move'),
+                    look: t('worldHintLook', { keys: directionKeys(bindings, 'look') }),
+                    jump: keysFor(bindings, 'confirm'),
                   })}
           </p>
           <button type="button" class="ghost small" onClick={onHintSeen}>

@@ -101,6 +101,17 @@ export function adjustControl(element: Element | null, direction: 'left' | 'righ
   return false
 }
 
+let held = false
+
+/**
+ * Keeps the controller out of the menus for a while, as when the next button pressed is to be
+ * bound to an action. The menus keep reading the controller meanwhile, so the button that ends
+ * the wait does not count as a press once they take over again.
+ */
+export function holdMenuPad(on: boolean): void {
+  held = on
+}
+
 /** The topmost dialog, or the page, as far as the menus are concerned. */
 function scope(): ParentNode {
   const dialogs = document.querySelectorAll<HTMLElement>('[role="dialog"]')
@@ -135,7 +146,7 @@ export function watchMenuPad(enabled: () => boolean, onBack: () => void): () => 
   let lastDirection: Direction | undefined
   const poll = (now: number) => {
     const pad = pads.poll()
-    if (enabled() && pad.connected) {
+    if (enabled() && pad.connected && !held) {
       const { x, y } = pad.move
       const direction: Direction | undefined =
         Math.abs(x) < 0.5 && Math.abs(y) < 0.5

@@ -5,14 +5,14 @@ import { openGame } from './game'
 test.use({ locale: 'en-US' })
 
 /** A controller in the standard layout, whose buttons the test presses. */
-async function plugInController(page: Page): Promise<void> {
-  await page.addInitScript(() => {
+async function plugInController(page: Page, id = 'Test controller'): Promise<void> {
+  await page.addInitScript((padId) => {
     const pad = { buttons: new Array<number>(17).fill(0), axes: [0, 0, 0, 0] }
     ;(window as unknown as { pad: typeof pad }).pad = pad
     navigator.getGamepads = () =>
       [
         {
-          id: 'Test controller',
+          id: padId,
           index: 0,
           connected: true,
           mapping: 'standard',
@@ -26,7 +26,7 @@ async function plugInController(page: Page): Promise<void> {
           vibrationActuator: null,
         },
       ] as unknown as (Gamepad | null)[]
-  })
+  }, id)
 }
 
 /**
@@ -49,6 +49,9 @@ async function press(page: Page, button: number): Promise<void> {
   )
 }
 
+const A = 0
+const B = 1
+const R2 = 7
 const DOWN = 13
 const LEFT = 14
 const RIGHT = 15
@@ -113,4 +116,46 @@ test('a controller reaches every setting and changes sliders and lists', async (
   const volume = Number(await sound.inputValue())
   await press(page, LEFT)
   expect(Number(await sound.inputValue())).toBeLessThan(volume)
+})
+
+test('keys and controller buttons can be bound anew, named as the controller prints them', async ({
+  page,
+}) => {
+  test.slow()
+  await plugInController(page, 'DualSense Wireless Controller (STANDARD GAMEPAD Vendor: 054c)')
+  await openGame(page)
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await page.getByRole('button', { name: 'Controller and keys' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Controller and keys' })
+  // The dialog puts the focus on its Close button first.
+  await expect(dialog.getByRole('button', { name: 'Close', exact: true })).toBeFocused()
+
+  // A PlayStation controller jumps with its cross.
+  const jumpPad = dialog.getByRole('button', { name: /^Jump, open: Controller 1/ })
+  await expect(jumpPad).toHaveText('✕')
+
+  // Choosing the slot with the controller waits for the next button, and R2 goes in.
+  await jumpPad.focus()
+  await press(page, A)
+  await expect(jumpPad).toHaveText('Press a button …')
+  await press(page, R2)
+  await expect(jumpPad).toHaveText('R2')
+  // The menus have the controller back: B goes back to the settings.
+  await press(page, B)
+  await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible()
+
+  // A key moves from the camera to jumping.
+  await page.getByRole('button', { name: 'Controller and keys' }).click()
+  const jumpKey = dialog.getByRole('button', { name: /^Jump, open: Keyboard 2/ })
+  await jumpKey.click()
+  await expect(jumpKey).toHaveText('Press a key …')
+  await page.keyboard.press('KeyJ')
+  await expect(jumpKey).toHaveText('J')
+  await expect(dialog.getByRole('button', { name: /^Camera left: Keyboard 1/ })).toHaveText('←')
+  await expect(dialog.getByRole('button', { name: /^Jump, open: Controller 1/ })).toHaveText('R2')
+
+  // Back to the defaults.
+  await dialog.getByRole('button', { name: 'Back to the defaults' }).click()
+  await expect(jumpKey).toHaveText('—')
+  await expect(dialog.getByRole('button', { name: /^Jump, open: Controller 1/ })).toHaveText('✕')
 })
