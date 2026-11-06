@@ -57,11 +57,15 @@ const RIGHT = 15
 const NAME = `(element) => element.getAttribute('aria-label') || element.closest('label')?.textContent?.trim() || element.textContent?.trim() || element.tagName`
 
 test('a controller reaches every setting and changes sliders and lists', async ({ page }) => {
+  // Every press waits for two frames of the title screen, which draws 3D in software.
+  test.slow()
   await plugInController(page)
   await openGame(page)
   await page.getByRole('button', { name: 'Settings' }).click()
   const dialog = page.getByRole('dialog', { name: 'Settings' })
   await expect(dialog.getByRole('slider', { name: 'Sound effects' })).toBeVisible()
+  // The dialog puts the focus on its Close button, where the walk starts.
+  await expect(dialog.getByRole('button', { name: 'Close' })).toBeFocused()
 
   const controls = await dialog.evaluate((root, name) => {
     const label = new Function(`return ${name}`)() as (element: Element) => string
