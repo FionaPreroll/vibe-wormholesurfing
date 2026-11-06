@@ -51,4 +51,5 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 - In the Lagoon and the Crystal Sea, the girl no longer gets stuck at the edge of deep water.
 - The girl no longer walks into the treasure capsule; she stops at its pedestal.
 - On phones, help, the settings and the other dialogs fit the screen and scroll with a finger; before, they ran off the bottom of the screen.
+- With a controller, every setting can be reached: the D-pad and the left stick go down row by row without skipping tick boxes or rows, left and right go along a row of buttons, and move sliders and switch lists such as the graphics quality and the language. The right stick scrolls long dialogs.
 - At the start of a ride the ship no longer darts toward the mouse pointer, which still rests on the button that started the ride: the mouse steers once it is moved during the ride, or clicked on the game.
