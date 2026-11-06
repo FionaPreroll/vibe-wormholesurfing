@@ -33,94 +33,132 @@ function loadImage(src: string): Promise<HTMLImageElement | undefined> {
   })
 }
 
+/** The picture's size, as link previews like it, and the least margin around its content. */
+export const PICTURE = { width: 1200, height: 630, margin: 48 } as const
+
+/**
+ * The grid of treasures, a row per world and a column per rarity, at the right edge, and the
+ * margin of the whole picture: the grid's distance to the top, the bottom and the right edge,
+ * which the left column keeps to the left edge too.
+ */
+export function pictureGrid(rows: number, columns: number) {
+  const { width, height } = PICTURE
+  const gap = 8
+  // As large as the height allows within the least margin, whole pixels.
+  const cell = Math.floor((height - 2 * PICTURE.margin - (rows - 1) * gap) / rows)
+  const gridWidth = columns * cell + (columns - 1) * gap
+  const gridHeight = rows * cell + (rows - 1) * gap
+  const margin = Math.floor((height - gridHeight) / 2)
+  return { cell, gap, margin, left: width - margin - gridWidth, top: margin }
+}
+
+/** Sets the font, smaller if the text would be wider than `room`. */
+function fit(
+  g: CanvasRenderingContext2D,
+  text: string,
+  weight: number,
+  size: number,
+  room: number,
+): void {
+  let px = size
+  do {
+    g.font = `${weight} ${px}px ${PICTURE_FONT}`
+    px -= 1
+  } while (px > 8 && g.measureText(text).width > room)
+}
+
+const PICTURE_FONT = 'system-ui, sans-serif'
+
 /**
  * A card picture of the collection, 1200 × 630 as link previews like them: the title, the
- * numbers, and a grid of every world's five treasures, found ones with their pictures.
+ * numbers and the address on the left, and on the right a grid of every world's five treasures,
+ * found ones with their pictures, with the same margin to every edge.
  */
 export async function collectionPicture(
   save: Save,
   thumbnail: (id: string, shiny: boolean) => string,
 ): Promise<Blob | undefined> {
+  const { width, height } = PICTURE
   const canvas = document.createElement('canvas')
-  canvas.width = 1200
-  canvas.height = 630
+  canvas.width = width
+  canvas.height = height
   const g = canvas.getContext('2d')
   if (!g) return undefined
-  const background = g.createLinearGradient(0, 0, 1200, 630)
+  const background = g.createLinearGradient(0, 0, width, height)
   background.addColorStop(0, '#1b0f45')
   background.addColorStop(0.55, '#0c0726')
   background.addColorStop(1, '#2a0f3a')
   g.fillStyle = background
-  g.fillRect(0, 0, 1200, 630)
+  g.fillRect(0, 0, width, height)
   // A few stars.
   for (let index = 0; index < 140; index++) {
     g.fillStyle = `rgba(255, 255, 255, ${0.2 + ((index * 37) % 10) / 20})`
-    g.fillRect((index * 397) % 1200, (index * 211) % 630, 2, 2)
+    g.fillRect((index * 397) % width, (index * 211) % height, 2, 2)
   }
+
+  // The grid's world names stand right before it; the left column keeps clear of the longest.
+  const grid = pictureGrid(WORLD_IDS.length, RARITIES.length)
+  const margin = grid.margin
+  const labelRight = grid.left - 14
+  g.font = `700 15px ${PICTURE_FONT}`
+  const labelWidth = Math.max(...WORLD_IDS.map((world) => g.measureText(worldName(world)).width))
+  const room = labelRight - Math.min(labelWidth, 190) - 28 - margin
+
   const numbers = brag(save)
-  const title = g.createLinearGradient(60, 0, 560, 0)
+  g.textBaseline = 'alphabetic'
+  const title = g.createLinearGradient(margin, 0, margin + room, 0)
   title.addColorStop(0, '#ffb8e6')
   title.addColorStop(0.5, '#c9a8ff')
   title.addColorStop(1, '#8ff4ff')
   g.fillStyle = title
-  g.font = '900 64px system-ui, sans-serif'
-  g.fillText('WORMHOLE', 60, 130)
-  g.fillText('SURFING', 60, 200)
-  g.fillStyle = '#f4f1ff'
-  g.font = '800 54px system-ui, sans-serif'
-  g.fillText(`${numbers.found} / ${numbers.total}`, 60, 300)
-  g.font = '600 26px system-ui, sans-serif'
+  fit(g, 'WORMHOLE', 900, 64, room)
+  // Capitals 0.72 of the size high: their tops touch the margin.
+  g.fillText('WORMHOLE', margin, margin + 46)
+  g.fillText('SURFING', margin, margin + 116)
+  const stat = (value: string, label: string, color: string, size: number, baseline: number) => {
+    g.fillStyle = color
+    fit(g, value, 800, size, room)
+    g.fillText(value, margin, baseline)
+    g.fillStyle = '#b9b2dc'
+    fit(g, label, 600, 26, room)
+    g.fillText(label, margin, baseline + 34)
+  }
+  stat(`${numbers.found} / ${numbers.total}`, t('shareTreasures'), '#f4f1ff', 54, 262)
+  stat(`✦ ${numbers.shiny}`, t('shareShiny'), '#ffd36b', 40, 370)
+  stat(`${numbers.distance} ly`, t('shareFarthest'), '#8ff4ff', 40, 476)
+  // The address's baseline on the bottom margin, as the title's capitals on the top one.
+  const address = WEB_URL.replace('https://', '')
   g.fillStyle = '#b9b2dc'
-  g.fillText(t('shareTreasures'), 60, 336)
-  g.fillStyle = '#ffd36b'
-  g.font = '800 40px system-ui, sans-serif'
-  g.fillText(`✦ ${numbers.shiny}`, 60, 410)
-  g.fillStyle = '#b9b2dc'
-  g.font = '600 26px system-ui, sans-serif'
-  g.fillText(t('shareShiny'), 60, 444)
-  g.fillStyle = '#8ff4ff'
-  g.font = '800 40px system-ui, sans-serif'
-  g.fillText(`${numbers.distance} ly`, 60, 518)
-  g.fillStyle = '#b9b2dc'
-  g.font = '600 26px system-ui, sans-serif'
-  g.fillText(t('shareFarthest'), 60, 552)
-  g.font = '600 20px system-ui, sans-serif'
-  g.fillText(WEB_URL.replace('https://', ''), 60, 600)
+  fit(g, address, 600, 20, room)
+  g.fillText(address, margin, height - margin)
 
-  // The grid: a row per world, a column per rarity.
-  const left = 600
-  const top = 40
-  const cell = 66
-  const gap = 8
-  g.font = '700 15px system-ui, sans-serif'
   for (const [row, world] of WORLD_IDS.entries()) {
-    const y = top + row * (cell + gap)
+    const y = grid.top + row * (grid.cell + grid.gap)
     g.fillStyle = '#b9b2dc'
     g.textAlign = 'right'
-    g.fillText(worldName(world), left - 12, y + cell / 2 + 5)
-    g.textAlign = 'left'
+    g.textBaseline = 'middle'
+    fit(g, worldName(world), 700, 15, 190)
+    g.fillText(worldName(world), labelRight, y + grid.cell / 2)
     for (const [column, rarity] of RARITIES.entries()) {
       const item = ITEMS.find((entry) => entry.world === world && entry.rarity === rarity)
       if (!item) continue
-      const x = left + column * (cell + gap)
+      const x = grid.left + column * (grid.cell + grid.gap)
       const find = save.collection[item.id]
       g.fillStyle = find ? 'rgba(40, 26, 90, 0.9)' : 'rgba(30, 20, 60, 0.6)'
       g.strokeStyle = find ? (RARITY_CSS[column] ?? '#fff') : 'rgba(190, 170, 255, 0.25)'
       g.lineWidth = find ? 3 : 1.5
       g.beginPath()
-      g.roundRect(x, y, cell, cell, 12)
+      g.roundRect(x, y, grid.cell, grid.cell, 12)
       g.fill()
       g.stroke()
       if (find) {
         const image = await loadImage(thumbnail(item.id, find.shiny > 0))
-        if (image) g.drawImage(image, x + 4, y + 4, cell - 8, cell - 8)
+        if (image) g.drawImage(image, x + 4, y + 4, grid.cell - 8, grid.cell - 8)
       } else {
         g.fillStyle = 'rgba(255, 255, 255, 0.25)'
-        g.font = '800 28px system-ui, sans-serif'
+        g.font = `800 26px ${PICTURE_FONT}`
         g.textAlign = 'center'
-        g.fillText('?', x + cell / 2, y + cell / 2 + 10)
-        g.textAlign = 'left'
-        g.font = '700 15px system-ui, sans-serif'
+        g.fillText('?', x + grid.cell / 2, y + grid.cell / 2 + 1)
       }
     }
   }
