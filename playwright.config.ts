@@ -7,6 +7,8 @@ const executablePath = process.env.CHROMIUM_PATH
 export default defineConfig({
   testDir: 'tests/e2e',
   forbidOnly: Boolean(process.env.CI),
+  // Each test draws 3D in software; two at once on a CI runner starve each other.
+  workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: `http://localhost:${port}/`,
@@ -20,6 +22,8 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
+        // A smaller picture draws faster in software.
+        viewport: { width: 960, height: 540 },
         // WebGL without a graphics card: SwiftShader, which headless Chromium may not pick alone.
         launchOptions: {
           args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],

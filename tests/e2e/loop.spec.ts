@@ -5,7 +5,7 @@ test.use({ locale: 'en-US' })
 
 test('rides into a hole, finds the treasure and keeps it in the collection', async ({ page }) => {
   // A whole ride and a world, drawn in software: this takes a while.
-  test.setTimeout(240_000)
+  test.setTimeout(360_000)
   await openGame(page)
   await page.getByRole('button', { name: 'Fly!' }).click()
   await page.getByRole('button', { name: 'Got it' }).click()
@@ -21,7 +21,7 @@ test('rides into a hole, finds the treasure and keeps it in the collection', asy
   await page.keyboard.press('KeyE')
 
   const card = page.getByRole('dialog')
-  await expect(card.getByRole('button', { name: 'Fly again' })).toBeVisible({ timeout: 45_000 })
+  await expect(card.getByRole('button', { name: 'Fly again' })).toBeVisible({ timeout: 120_000 })
   await expect(card.getByText('New!')).toBeVisible()
   const name = await card.getByRole('heading').textContent()
 
