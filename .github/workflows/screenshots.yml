@@ -1,0 +1,41 @@
+name: Screenshots
+
+# Run by hand from the Actions tab: takes the README's screenshots again and opens a pull
+# request with them, for review. Nothing changes on main until that pull request is merged.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: screenshots
+  cancel-in-progress: true
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm screenshots
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/update_screenshots
+          delete-branch: true
+          add-paths: docs/screenshots/*.png
+          commit-message: Update the README screenshots
+          title: Update the README screenshots
+          body: |
+            The screenshots in `docs/screenshots/`, taken again from `main` by the Screenshots workflow ([run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})).
+
+            Look at them under **Files changed** and merge if they look right.
+          assignees: ${{ github.actor }}
+          reviewers: ${{ github.actor }}

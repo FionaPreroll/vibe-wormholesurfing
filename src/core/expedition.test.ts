@@ -1,0 +1,65 @@
+import { describe, expect, it } from 'vitest'
+import { Expedition, OPEN_TIME, REACH } from './expedition'
+import { length2 } from './math'
+import { STAND } from './walker'
+import { WORLD_IDS } from './worlds'
+
+describe('Expedition', () => {
+  it.each(WORLD_IDS)('puts the treasure of %s where the player can walk', (world) => {
+    for (const seed of [1, 2, 3]) {
+      const visit = new Expedition({ world, seed, tier: 2, distance: 1000, found: new Set() })
+      const { treasure, walker, land } = visit
+      expect(land.walkable(treasure.x, treasure.z)).toBe(true)
+      expect(length2(treasure.x, treasure.z)).toBeGreaterThan(15)
+      expect(land.walkable(walker.x, walker.z)).toBe(true)
+      for (const blocker of visit.blockers)
+        expect(length2(treasure.x - blocker.x, treasure.z - blocker.z)).toBeGreaterThan(
+          blocker.radius,
+        )
+    }
+  })
+
+  it('is the same world for the same seed', () => {
+    const a = new Expedition({ world: 'canyon', seed: 8, tier: 1, distance: 0, found: new Set() })
+    const b = new Expedition({ world: 'canyon', seed: 8, tier: 1, distance: 0, found: new Set() })
+    expect(a.treasure).toEqual(b.treasure)
+    expect(a.props.length).toBe(b.props.length)
+    expect(a.reward).toEqual(b.reward)
+  })
+
+  it('walks to the treasure, opens it and reveals the reward', () => {
+    const visit = new Expedition({
+      world: 'cliffs',
+      seed: 4,
+      tier: 3,
+      distance: 0,
+      found: new Set(),
+    })
+    // Carry the player next to the treasure, as a walk there would.
+    visit.walker.x = visit.treasure.x + REACH / 2
+    visit.walker.z = visit.treasure.z
+    visit.walker.y = visit.land.heightAt(visit.walker.x, visit.walker.z)
+    expect(visit.canOpen).toBe(true)
+    const opened = visit.step(1 / 60, STAND, true)
+    expect(opened).toEqual([{ type: 'open' }])
+    expect(visit.phase).toBe('opening')
+    const events = []
+    for (let time = 0; time < OPEN_TIME + 0.2; time += 1 / 60)
+      events.push(...visit.step(1 / 60, STAND, false))
+    expect(events).toContainEqual({ type: 'reveal', reward: visit.reward })
+    expect(visit.phase).toBe('revealed')
+  })
+
+  it('does not open from afar', () => {
+    const visit = new Expedition({
+      world: 'lagoon',
+      seed: 4,
+      tier: 1,
+      distance: 0,
+      found: new Set(),
+    })
+    expect(visit.canOpen).toBe(false)
+    expect(visit.step(1 / 60, STAND, true)).toEqual([])
+    expect(visit.phase).toBe('exploring')
+  })
+})

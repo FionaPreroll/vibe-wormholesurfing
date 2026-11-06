@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Wormhole Surfing</title>
+  <defs>
+    <radialGradient id="hole" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.3" stop-color="#9ff3ff"/>
+      <stop offset="0.62" stop-color="#3b6bff"/>
+      <stop offset="0.86" stop-color="#140b3a"/>
+      <stop offset="1" stop-color="#140b3a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1b0f45"/>
+      <stop offset="1" stop-color="#0a0618"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#sky)"/>
+  <circle cx="34" cy="28" r="20" fill="url(#hole)"/>
+  <circle cx="34" cy="28" r="17" fill="none" stroke="#ffc65c" stroke-width="2" opacity="0.9"/>
+  <path d="M12 50 q10 -9 20 -4 q6 3 12 -1 q-3 9 -14 9 q-10 0 -18 -4z" fill="#f4f0ff"/>
+  <path d="M27 45 q5 -6 10 -2" fill="none" stroke="#ff8fc8" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="20" cy="49" r="2" fill="#ffd36b"/>
+</svg>

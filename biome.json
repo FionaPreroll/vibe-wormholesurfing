@@ -1,0 +1,77 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": ["**", "!pnpm-lock.yaml"]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "asNeeded"
+    }
+  },
+  "linter": {
+    "rules": {
+      "preset": "recommended"
+    }
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["src/core/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "three",
+                      "three/**",
+                      "preact",
+                      "preact/**",
+                      "@preact/**",
+                      "**/audio",
+                      "**/audio/**",
+                      "**/game",
+                      "**/game/**",
+                      "**/i18n",
+                      "**/i18n/**",
+                      "**/input",
+                      "**/input/**",
+                      "**/persistence",
+                      "**/persistence/**",
+                      "**/ui",
+                      "**/ui/**",
+                      "**/view",
+                      "**/view/**"
+                    ],
+                    "message": "src/core holds the pure game rules: no three.js, no Preact and no imports from other src/ folders."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
