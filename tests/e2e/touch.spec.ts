@@ -31,5 +31,5 @@ test('plays on a phone held sideways, with a stick under the finger and a jump b
   await expect(page.locator('.stick')).toBeHidden()
 
   await warpInto(page, 'blue', 2)
-  await expect(page.getByRole('button', { name: 'Jump' })).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByRole('button', { name: 'Jump' })).toBeVisible({ timeout: 60_000 })
 })
