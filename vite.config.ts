@@ -14,7 +14,7 @@ export default defineConfig({
     sourcemap: Boolean(process.env.COVERAGE),
   },
   test: {
-    include: ['src/**/*.test.{ts,tsx}', 'tools/**/*.test.ts'],
+    include: ['src/**/*.test.{ts,tsx}', 'tools/**/*.test.ts', 'tests/soak/**/*.test.ts'],
     coverage: {
       provider: 'v8',
       // Every source file, so files without tests count as uncovered instead of missing.

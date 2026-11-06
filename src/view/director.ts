@@ -120,6 +120,10 @@ export function createDirector(
         devicePixelRatio: window.devicePixelRatio,
         canvas: `${canvas.width}×${canvas.height}`,
         screen: engine.label,
+        // What the GPU holds: counts that grow from scene to scene would be a leak.
+        geometries: engine.renderer.info.memory.geometries,
+        textures: engine.renderer.info.memory.textures,
+        programs: engine.renderer.info.programs?.length ?? 0,
       }
     },
     setPaused(paused) {

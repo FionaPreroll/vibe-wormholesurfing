@@ -1,0 +1,59 @@
+name: Soak
+
+# The soak test (tests/soak/soak.spec.ts): plays round after round for a long while and fails on
+# errors, a lost WebGL context, or memory and GPU resources that keep growing. Every Monday, and
+# by hand from the Actions tab, for as long as asked. The summary shows every round's
+# measurements; the report, with the game's debug log, is kept as the run's artifact.
+
+on:
+  schedule:
+    # Mondays at 04:23 UTC.
+    - cron: "23 4 * * 1"
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: How long to play, in minutes
+        default: "30"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: soak
+  cancel-in-progress: false
+
+jobs:
+  soak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      SOAK_MINUTES: ${{ inputs.minutes || '30' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright test -c playwright.soak.config.ts
+      - name: Summary
+        if: always()
+        run: |
+          if [ -f soak-report/summary.md ]; then
+            cat soak-report/summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "The soak test stopped before it could write its report: see the log above." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: soak-report
+          path: |
+            soak-report
+            test-results/soak
+          retention-days: 30
+          if-no-files-found: ignore

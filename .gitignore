@@ -3,5 +3,6 @@ dist/
 playwright-report/
 test-results/
 coverage/
+soak-report/
 *.log
 .DS_Store

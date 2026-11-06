@@ -424,6 +424,7 @@ export function App({ store }: Props) {
             play,
             holeRadius,
             input,
+            debugLog,
           }
       })
       .catch((error) => {
