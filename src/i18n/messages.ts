@@ -234,6 +234,16 @@ export const en = {
   itemFindLine: '{distance} ly · {world}',
   itemShinyMark: 'shiny',
   itemDetails: 'Details',
+  shareCollection: 'Share',
+  shareTitle: 'My Wormhole Surfing collection',
+  shareText:
+    'I found {found} of {total} treasures in Wormhole Surfing, {shiny} of them shiny, and flew up to {distance} light-years!',
+  shareDone: 'Shared!',
+  shareSaved: 'The picture was saved and the text copied, ready to post.',
+  shareFailed: 'Sharing did not work here.',
+  shareTreasures: 'treasures',
+  shareShiny: 'shiny',
+  shareFarthest: 'farthest ride',
   desc_emberPebble:
     'A pebble from the cliff paths that stays warm long after sunset. Nice to hold on a cold ride.',
   desc_windFeather: 'Shed by something that never lands. Let it go, and it drifts upward.',
@@ -537,6 +547,16 @@ export const de: Record<MessageKey, string> = {
   itemFindLine: '{distance} Lj · {world}',
   itemShinyMark: 'schillernd',
   itemDetails: 'Details',
+  shareCollection: 'Teilen',
+  shareTitle: 'Meine Wormhole-Surfing-Sammlung',
+  shareText:
+    'Ich habe in Wormhole Surfing {found} von {total} Schätzen gefunden, {shiny} davon schillernd, und bin bis zu {distance} Lichtjahre weit geflogen!',
+  shareDone: 'Geteilt!',
+  shareSaved: 'Das Bild ist gespeichert und der Text kopiert, bereit zum Posten.',
+  shareFailed: 'Teilen hat hier nicht geklappt.',
+  shareTreasures: 'Schätze',
+  shareShiny: 'schillernd',
+  shareFarthest: 'weitester Flug',
   desc_emberPebble:
     'Ein Kiesel von den Klippenpfaden, der noch lange nach Sonnenuntergang warm bleibt. Schön zum Festhalten auf kalten Flügen.',
   desc_windFeather: 'Verloren von etwas, das nie landet. Lässt man sie los, schwebt sie nach oben.',

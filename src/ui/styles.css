@@ -1465,3 +1465,48 @@ button.round svg {
 .find-tier {
   color: var(--gold);
 }
+
+/* New treasures arriving in the collection */
+
+.flyer {
+  position: fixed;
+  z-index: 100;
+  pointer-events: none;
+  filter: drop-shadow(0 0 16px rgba(255, 220, 140, 0.9));
+}
+
+.slot.awaiting .slot-picture {
+  visibility: hidden;
+}
+
+.slot.arrived {
+  animation: arrive 0.9s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+  box-shadow:
+    0 0 0 2px var(--gold),
+    0 0 28px rgba(255, 211, 107, 0.65);
+}
+
+@keyframes arrive {
+  0% {
+    transform: scale(0.85);
+  }
+  45% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.share-button {
+  margin-left: auto;
+}
+
+.title-menu .count-badge {
+  margin-left: 0.5em;
+  padding: 0 0.5em;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #3a2200;
+  font-size: 0.8em;
+}

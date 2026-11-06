@@ -9,6 +9,8 @@ interface Props {
   readonly ready: boolean
   readonly onPlay: () => void
   readonly onCollection: () => void
+  /** New treasures not yet seen in the collection. */
+  readonly unseen?: number
   readonly onHelp: () => void
   readonly onSettings: () => void
   readonly onAbout: () => void
@@ -19,6 +21,7 @@ export function TitleScreen({
   ready,
   onPlay,
   onCollection,
+  unseen = 0,
   onHelp,
   onSettings,
   onAbout,
@@ -44,6 +47,7 @@ export function TitleScreen({
         )}
         <button type="button" onClick={onCollection}>
           {t('collection')}
+          {unseen > 0 && <span class="count-badge">+{unseen}</span>}
         </button>
         <button type="button" onClick={onHelp}>
           {t('help')}

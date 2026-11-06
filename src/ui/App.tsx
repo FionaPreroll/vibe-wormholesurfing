@@ -21,7 +21,7 @@ import { type Save, SaveBook } from '../persistence/save'
 import { browserStore, type KeyValueStore, memoryStore } from '../persistence/store'
 import type { Director } from '../view/director'
 import { AboutScreen } from './AboutScreen'
-import { CollectionScreen } from './CollectionScreen'
+import { CollectionScreen, type Flight } from './CollectionScreen'
 import { HelpDialog, PauseMenu, SettingsDialog } from './dialogs'
 import { enterFullScreen } from './FullScreen'
 import { arrival, found, graphicsFailed, loading, overlay, paused, screen } from './flow'
@@ -30,6 +30,7 @@ import { LoadingIndicator } from './LoadingIndicator'
 import { loadWithProgress } from './loading'
 import { touchScreen } from './pointer'
 import { RewardCard } from './RewardCard'
+import { shareCollection } from './share'
 import { TitleScreen } from './TitleScreen'
 import { UpdateNotice } from './UpdateNotice'
 
@@ -105,6 +106,10 @@ export function App({ store }: Props) {
   const [blocked, setBlocked] = useState(false)
   const [director, setDirector] = useState<Director>()
   const [card, setCard] = useState(false)
+  /** Treasures found new since the collection was last opened, and one flying into it. */
+  const [unseen, setUnseen] = useState<readonly string[]>([])
+  const [flight, setFlight] = useState<Flight>()
+  const [shareMessage, setShareMessage] = useState<string>()
   const [picture, setPicture] = useState<string>()
   const [fps, setFps] = useState('')
   const root = useRef<HTMLDivElement>(null)
@@ -245,7 +250,36 @@ export function App({ store }: Props) {
     },
     [setMood],
   )
-  const openCollection = useCallback(() => openPanel('collection'), [openPanel])
+  const openCollection = useCallback(() => {
+    setShareMessage(undefined)
+    openPanel('collection')
+  }, [openPanel])
+
+  /** From the reward card, a new treasure flies from the card into its place. */
+  const openCollectionFromCard = useCallback(() => {
+    const result = found.value
+    const from = document.querySelector('.reward-picture')?.getBoundingClientRect()
+    if (result?.fresh && picture && from) setFlight({ id: result.reward.item.id, picture, from })
+    openCollection()
+  }, [openCollection, picture])
+
+  const share = useCallback(() => {
+    const save = bookRef.current?.current
+    const director = directorRef.current
+    if (!save || !director) return
+    void shareCollection(save, (id, shiny) => director.thumbnail(id, shiny)).then((result) => {
+      debugLog.log('info', `Collection shared: ${result}`)
+      setShareMessage(
+        result === 'shared'
+          ? t('shareDone')
+          : result === 'saved'
+            ? t('shareSaved')
+            : result === 'failed'
+              ? t('shareFailed')
+              : undefined,
+      )
+    })
+  }, [])
 
   /** The debug log with what the game knows now, as a file's text. */
   const debugReport = useCallback(() => {
@@ -309,6 +343,7 @@ export function App({ store }: Props) {
             fresh,
             count,
           }
+          if (fresh) setUnseen((before) => [...before, reward.item.id])
           refresh()
         })
       setTimeout(() => {
@@ -435,6 +470,7 @@ export function App({ store }: Props) {
       {save && current === 'title' && (
         <TitleScreen
           save={save}
+          unseen={unseen.length}
           ready={director !== undefined}
           onPlay={play}
           onCollection={openCollection}
@@ -474,7 +510,7 @@ export function App({ store }: Props) {
           found={result}
           picture={picture}
           onFlyAgain={play}
-          onCollection={openCollection}
+          onCollection={openCollectionFromCard}
           onTitle={showTitle}
         />
       )}
@@ -483,6 +519,15 @@ export function App({ store }: Props) {
           collection={save.collection}
           thumbnail={director ? (id, shiny) => director.thumbnail(id, shiny) : undefined}
           onBack={showTitle}
+          arriving={unseen}
+          flight={flight}
+          reducedMotion={settings.value.reducedMotion}
+          onArrived={() => {
+            setUnseen([])
+            setFlight(undefined)
+          }}
+          onShare={share}
+          shareMessage={shareMessage}
         />
       )}
       {paused.value && !overlay.value && (
