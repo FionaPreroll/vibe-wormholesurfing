@@ -18,8 +18,6 @@ permissions:
 jobs:
   apk:
     runs-on: ubuntu-latest
-    outputs:
-      signed: ${{ steps.key.outputs.signed }}
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -34,34 +32,15 @@ jobs:
           cache: gradle
       - run: pnpm install --frozen-lockfile
       - run: pnpm android:sync
-      # The project's signing key, from the repository's secrets (see "The Android app" in the
-      # README). Every published build must be signed with it, so that one installs over another.
-      - name: Write the signing key
-        id: key
-        env:
-          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: |
-          if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret: this APK is signed with the runner's own debug key, kept as an artifact and not published."
-            echo "signed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/wormhole-surfing.keystore"
-            echo "ANDROID_KEYSTORE=$RUNNER_TEMP/wormhole-surfing.keystore" >> "$GITHUB_ENV"
-            echo "signed=true" >> "$GITHUB_OUTPUT"
-          fi
       - name: Build the APK
         working-directory: android
         env:
           VERSION_CODE: ${{ github.run_number }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'wormholesurfing' }}
         # The version, the build number and the commit, as Android shows the app's version.
         run: |
           VERSION_NAME="$(node -p "require('../package.json').version")-${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" \
             ./gradlew assembleRelease --no-daemon
       - run: mv android/app/build/outputs/apk/release/app-release.apk wormhole-surfing.apk
-      - run: rm -f "$RUNNER_TEMP/wormhole-surfing.keystore"
       - uses: actions/upload-artifact@v4
         with:
           name: wormhole-surfing-apk
@@ -70,9 +49,8 @@ jobs:
           if-no-files-found: error
 
   release:
-    # Builds of main only, signed with the project's key: pull requests, runs on other branches
-    # and builds without the key publish nothing.
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.apk.outputs.signed == 'true'
+    # Builds of main only: pull requests and runs on other branches publish nothing.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: apk
     runs-on: ubuntu-latest
     permissions:
@@ -114,7 +92,7 @@ jobs:
 
           **Installing:** download \`wormhole-surfing.apk\` below and open it on the phone; Android asks once to allow installing apps from that source. A newer APK installs over an older one and keeps your treasures and settings, and the app can look for a newer build and install it itself (Settings → App updates).
 
-          Every build is signed with the project's own key, so a new one installs over the old one. The app is not on the Play Store.
+          Every build is signed with the project's own key, which is in the repository so that every build signs alike: it proves only that the APK comes from a build of this project. The app is not on the Play Store.
           NOTES
           # What the app compares with its own build number to find updates (@fionapreroll/app-updates).
           printf '{"build":%s,"commit":"%s","size":%s}\n' "$GITHUB_RUN_NUMBER" "$GITHUB_SHA" "$(stat -c %s wormhole-surfing.apk)" > version.json

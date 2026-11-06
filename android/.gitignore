@@ -53,9 +53,10 @@ captures/
 .idea/navEditor.xml
 
 # Keystore files
-# Signing keys stay out of the repository: CI takes the project's from its secrets (README).
+# Keystores stay out, except the project's own, which every build signs with (app/build.gradle).
 *.jks
 *.keystore
+!app/wormhole-surfing.keystore
 
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild

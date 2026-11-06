@@ -19,23 +19,23 @@ android {
         }
     }
     signingConfigs {
-        // The project's key, from the environment: CI writes it from the repository's secrets
-        // (android.yml). Android installs an update only if it is signed with the same key as
-        // the app installed, so every published build must be signed with it. Without it, as on
-        // a computer of one's own, release builds take this computer's debug key.
-        def keystore = System.getenv("ANDROID_KEYSTORE")
-        if (keystore) {
-            project {
-                storeFile file(keystore)
-                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
-                keyAlias System.getenv("ANDROID_KEY_ALIAS")
-                keyPassword System.getenv("ANDROID_KEY_PASSWORD")
-            }
+        // The project's key, in the repository on purpose: every build, on any computer or CI
+        // runner, then signs alike, so a new APK installs over the old one, as in-app updates
+        // need, keeping the player's save. It is public, so it proves only that an APK comes
+        // from a build of this project; a Play Store release would need a secret key of its own.
+        project {
+            storeFile file("wormhole-surfing.keystore")
+            storePassword "wormholesurfing"
+            keyAlias "wormholesurfing"
+            keyPassword "wormholesurfing"
         }
     }
     buildTypes {
+        debug {
+            signingConfig signingConfigs.project
+        }
         release {
-            signingConfig System.getenv("ANDROID_KEYSTORE") ? signingConfigs.project : signingConfigs.debug
+            signingConfig signingConfigs.project
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
