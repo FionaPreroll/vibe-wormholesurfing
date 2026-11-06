@@ -13,7 +13,7 @@ import { defaultLook, type Look } from '../post'
 import type { QualityLevel } from '../quality'
 import { uniform } from '../uniforms'
 import { bendAt, bendFor } from './bend'
-import { Ghost } from './ghost'
+import { Ghost, LIGHT_ORDER } from './ghost'
 import { Bursts, buildDust, buildStreaks } from './particles'
 import { Shards } from './shards'
 import { HOLE_LIGHT, HoleView, ThingKit } from './things'
@@ -110,6 +110,8 @@ export class RideStage implements Stage {
     scene.add(this.#shards.mesh)
     this.#bursts = new Bursts(900)
     this.#bursts.setPixelRatio(renderer.getPixelRatio())
+    // Bursts of light around the ship draw after it, see-through or not.
+    this.#bursts.points.renderOrder = LIGHT_ORDER
     scene.add(this.#bursts.points)
 
     scene.add(new THREE.HemisphereLight(0x9fb4ff, 0x40205f, 0.8))
@@ -141,7 +143,11 @@ export class RideStage implements Stage {
       new Trail(22, 0.035, new THREE.Color(0.45, 0.9, 1.0)),
       new Trail(22, 0.035, new THREE.Color(1.0, 0.55, 0.9)),
     ]
-    for (const trail of this.#trails) scene.add(trail.mesh)
+    // The wing tips' light trails stream toward the camera, over the ship: they draw after it.
+    for (const trail of this.#trails) {
+      trail.mesh.renderOrder = LIGHT_ORDER
+      scene.add(trail.mesh)
+    }
 
     this.camera.position.set(0, 2, 7)
     this.camera.userData.baseFov = 58

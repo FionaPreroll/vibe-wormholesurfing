@@ -49,6 +49,7 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 
 ### Fixed
 
+- The ship and the girl no longer glitch on the title screen and while flying: since the ship became see-through in rides, it drew over its own engine flames and the light trails of its wing tips, which flickered as it turned, and on Macs its hull could flicker too. On the title screen it draws whole again, as before; in a ride, flames, trails and bursts of light draw over it.
 - On Windows, the first title screen no longer freezes for over two seconds while its shaders compile, and starting a ride or going back to the title screen no longer stutters for a tenth of a second: each stage compiles its shaders alongside the frames before it shows, and keeps those of the stage before instead of building them again. The first orb, spark and rare warp hole of a ride no longer stutter either.
 - The guard that blacks out broken pixels before the glow works on Windows too: Direct3D's shader compiler had dropped its test for them.
 - Entering a world no longer freezes the picture for up to two seconds while its shaders compile: the world is made ready during the warp, its shaders compile alongside the frames, and the rest of its setup happens while the warp's light holds the screen white. Starting a ride and going back to the title screen no longer stall either: every stage that went away took the girl's outline shader with it, to be compiled again by the next.
