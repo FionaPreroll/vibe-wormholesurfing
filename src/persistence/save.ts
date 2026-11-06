@@ -23,11 +23,25 @@ const settingsSchema = z.object({
   showFps: z.boolean().catch(DEFAULT_SETTINGS.showFps),
 })
 
+/** One time a treasure was found: when, whether shiny, and where the ride led. */
+const findEventSchema = z.object({
+  at: z.number(),
+  shiny: z.boolean(),
+  world: z.string().optional(),
+  tier: z.number().int().min(1).max(4).optional(),
+  distance: z.number().min(0).optional(),
+})
+
+/** How many finds of each treasure the save remembers in detail. */
+export const HISTORY_LIMIT = 50
+
 const findSchema = z.object({
   count: z.number().int().min(0),
   shiny: z.number().int().min(0),
   /** When it was first found, in ms since 1970. */
   first: z.number(),
+  /** The latest finds, oldest first. Saves from before it was kept have none. */
+  history: z.array(findEventSchema).max(HISTORY_LIMIT).optional(),
 })
 
 const statsSchema = z.object({
@@ -77,6 +91,7 @@ export function importSave(text: string): Save | undefined {
   return result.success ? result.data : undefined
 }
 export type Find = z.infer<typeof findSchema>
+export type FindEvent = z.infer<typeof findEventSchema>
 
 export function freshSave(): Save {
   return {
@@ -157,12 +172,18 @@ export class SaveBook {
   }
 
   /** Adds a treasure to the collection and tells how often it has been found now. */
-  async addFind(reward: Reward, now = Date.now()): Promise<{ fresh: boolean; count: number }> {
+  async addFind(
+    reward: Reward,
+    now = Date.now(),
+    where: { world?: WorldId; tier?: HoleTier; distance?: number } = {},
+  ): Promise<{ fresh: boolean; count: number }> {
     const before = this.#save.collection[reward.item.id]
+    const event: FindEvent = { at: now, shiny: reward.shiny, ...where }
     const find: Find = {
       count: (before?.count ?? 0) + 1,
       shiny: (before?.shiny ?? 0) + (reward.shiny ? 1 : 0),
       first: before?.first ?? now,
+      history: [...(before?.history ?? []), event].slice(-HISTORY_LIMIT),
     }
     await this.update((save) => ({
       ...save,

@@ -3,6 +3,7 @@ import { ITEMS, itemsOf, RARITIES } from '../core/rewards'
 import { WORLD_IDS } from '../core/worlds'
 import { itemName, rarityName, t, worldName } from '../i18n'
 import type { Save } from '../persistence/save'
+import { ItemDialog } from './ItemDialog'
 
 interface Props {
   readonly collection: Save['collection']
@@ -14,6 +15,8 @@ interface Props {
 export function CollectionScreen({ collection, thumbnail, onBack }: Props) {
   const found = Object.keys(collection).length
   const [pictures, setPictures] = useState<Record<string, string>>({})
+  const [open, setOpen] = useState<string>()
+  const openFind = open === undefined ? undefined : collection[open]
   useEffect(() => {
     if (!thumbnail) return
     // Pictures come one per frame, so the screen opens at once.
@@ -51,24 +54,35 @@ export function CollectionScreen({ collection, thumbnail, onBack }: Props) {
                   <li
                     key={item.id}
                     class={`slot rarity-${item.rarity}${find ? ' known' : ''}${find && find.shiny > 0 ? ' shiny' : ''}`}
+                    data-item={item.id}
                   >
-                    <div class="slot-picture">
-                      {find && pictures[item.id] ? (
-                        <img src={pictures[item.id]} alt="" />
-                      ) : (
-                        <span aria-hidden="true">{find ? '…' : '?'}</span>
-                      )}
-                    </div>
-                    <span class="slot-name">{find ? itemName(item.id) : t('unknownItem')}</span>
-                    <span class="slot-rarity">
-                      {'★'.repeat(rarity + 1)} {rarityName(item.rarity)}
-                    </span>
-                    {find && (
-                      <span class="slot-count">
-                        {t('timesFound', { count: find.count })}
-                        {find.shiny > 0 && <> · {t('shinyFound')}</>}
+                    <button
+                      type="button"
+                      class="slot-button"
+                      disabled={!find}
+                      onClick={() => setOpen(item.id)}
+                      aria-label={
+                        find ? `${itemName(item.id)}, ${t('itemDetails')}` : t('unknownItem')
+                      }
+                    >
+                      <span class="slot-picture">
+                        {find && pictures[item.id] ? (
+                          <img src={pictures[item.id]} alt="" />
+                        ) : (
+                          <span aria-hidden="true">{find ? '…' : '?'}</span>
+                        )}
                       </span>
-                    )}
+                      <span class="slot-name">{find ? itemName(item.id) : t('unknownItem')}</span>
+                      <span class="slot-rarity">
+                        {'★'.repeat(rarity + 1)} {rarityName(item.rarity)}
+                      </span>
+                      {find && (
+                        <span class="slot-count">
+                          {t('timesFound', { count: find.count })}
+                          {find.shiny > 0 && <> · {t('shinyFound')}</>}
+                        </span>
+                      )}
+                    </button>
                   </li>
                 )
               })}
@@ -76,6 +90,14 @@ export function CollectionScreen({ collection, thumbnail, onBack }: Props) {
           </section>
         ))}
       </div>
+      {open && openFind && (
+        <ItemDialog
+          id={open}
+          find={openFind}
+          picture={thumbnail?.(open, openFind.shiny > 0)}
+          onClose={() => setOpen(undefined)}
+        />
+      )}
     </section>
   )
 }

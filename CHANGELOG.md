@@ -17,6 +17,7 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 - The game installs as an app and plays offline.
 
 - A cockpit panel shows the ship's speed on a rainbow gauge, with the pull of holes on an inner arc, and the orbs, sparks, time and your farthest ride on glowing seven-segment LCDs; in a world, where you are, how far you flew and how near the treasure is. The light-years at the top are an LCD too.
+- Every treasure has a short description. Tap or click a found treasure in the collection to see it up close, with its rarity, world, how often it was found, how many were shiny, and a list of every find with its date, distance, world and hole.
 - The girl wears swimming shoes: deep water no longer stops her, she swims across it with her head above the surface, and ripples ring around her in water.
 - An about page with what the game is, how it is made, your data, the debug log and every change, in place of the small about box.
 - Export your save as a file and import it again, to keep a backup or to carry your treasures to another browser or device. Both are on the about page and in the settings.

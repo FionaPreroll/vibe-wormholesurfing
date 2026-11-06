@@ -225,6 +225,77 @@ export const en = {
   item_nebulaOrb: 'Nebula Orb',
   item_riftCrystal: 'Rift Crystal',
   item_auroraStar: 'Aurora Star',
+  itemFinds: 'Every find',
+  itemFoundTimes: 'Found {count} times',
+  itemFoundOnce: 'Found once',
+  itemShinyTimes: '{count} of them shiny',
+  itemFirstFound: 'First found on {date}',
+  itemEarlierFinds: 'Earlier finds without records: {count}',
+  itemFindLine: '{distance} ly · {world}',
+  itemShinyMark: 'shiny',
+  itemDetails: 'Details',
+  desc_emberPebble:
+    'A pebble from the cliff paths that stays warm long after sunset. Nice to hold on a cold ride.',
+  desc_windFeather: 'Shed by something that never lands. Let it go, and it drifts upward.',
+  desc_sunsetShard:
+    'A splinter of red crystal that holds the last light of the evening and glows faintly at night.',
+  desc_cometEgg:
+    'Warm, speckled and humming softly. Nobody knows what would hatch from it, or when.',
+  desc_highwindCrown:
+    'A golden crown worn smooth by the winds above the mesas. It whistles when the air moves.',
+  desc_spiralShell:
+    'A shell from the lagoon shore. Hold it to your ear and you hear a very small sea.',
+  desc_tidePearl:
+    'A pearl that turns from white to blue and back with the tides of a faraway ocean.',
+  desc_mistLily:
+    'A flower that blooms only in morning mist. Its petals stay cool and a little damp.',
+  desc_coralStar: 'A star of pink coral, grown in the shallows over hundreds of quiet years.',
+  desc_deepHeart:
+    'A sapphire as blue as the deepest water, with a slow pulse of light inside, like a heartbeat under the waves.',
+  desc_mossAgate: 'A green-veined stone from the canyon floor. Moss grows on it even in a pocket.',
+  desc_jadeLeaf: 'A leaf turned to jade. It still rustles, ever so faintly, in the wind.',
+  desc_echoCrystal:
+    'Speak to it, and it answers a moment later in your own voice, a little more kindly.',
+  desc_ancientSeed: 'A seed older than the canyon. Plant it, and who knows what would grow.',
+  desc_verdantCrown:
+    'A crown of living green. Small shoots sprout from its points when it is happy.',
+  desc_glowMushroom:
+    'A mushroom whose cap glows soft gold. It lights the way through the darkest cave.',
+  desc_amberDrop: 'A drop of amber with a tiny glowing spore caught inside, still shining.',
+  desc_geodeHeart: 'A plain stone outside, a violet sky of crystals inside.',
+  desc_sunstoneCluster:
+    'Crystals that soaked up sunlight long ago, though the caves have never seen the sun.',
+  desc_emberCoreStar:
+    'A star of molten glow from the heart of the caverns. It is warm, but it never burns.',
+  desc_prismSand:
+    'A pinch of sand from the crystal sea. Each grain splits light into all its colors.',
+  desc_glassShell: 'A shell as clear as glass. The sea looks through it a little bluer than it is.',
+  desc_refractionOrb: 'Look through it, and everything is upside down and a little prettier.',
+  desc_moonCrystal: 'A pale crystal that brightens as the moon rises, wherever you are.',
+  desc_lightTear:
+    'A single drop of pure light, shed by the crystal sea at dawn. It weighs nothing at all.',
+  desc_stardustPebble: 'A pebble of the star dunes, sprinkled with dust that fell from the sky.',
+  desc_meteorShard: 'A piece of a meteor, still faintly warm from its fall.',
+  desc_desertRose: 'Sand and starlight grown together into the shape of a rose.',
+  desc_cometFeather:
+    'A feather from the tail of a comet. Wave it, and it leaves a trail of sparkles.',
+  desc_fallenStar: 'A real star that fell into the dunes and was too tired to climb back up.',
+  desc_skyPetal: 'A petal from the floating gardens. It never touches the ground.',
+  desc_cloudSeed: 'Light as a cloud and just as soft. In the right weather it might grow into one.',
+  desc_floatLeaf:
+    'A leaf that floats a hand’s width above anything. Just right for a very small raft.',
+  desc_rainbowBloom:
+    'A flower with every color of the rainbow, one on each petal, and they swap places at noon.',
+  desc_gardenCrown:
+    'A wreath of blossoms that never wilt, woven by the wind of the floating gardens.',
+  desc_voidPebble:
+    'A pebble of something darker than night. Holding it feels like holding a small piece of quiet.',
+  desc_auroraFeather:
+    'A feather that glows in shifting greens and blues, like the sky over the void.',
+  desc_nebulaOrb: 'A whole little nebula, swirling inside a sphere of glass.',
+  desc_riftCrystal: 'A crystal cut from the very edge of space. Light bends strangely around it.',
+  desc_auroraStar:
+    'The brightest light of the aurora, caught and kept. It hums a melody no one has written yet.',
 } as const satisfies Record<string, string>
 
 export type MessageKey = keyof typeof en
@@ -457,4 +528,83 @@ export const de: Record<MessageKey, string> = {
   item_nebulaOrb: 'Nebelsphäre',
   item_riftCrystal: 'Risskristall',
   item_auroraStar: 'Polarlichtstern',
+  itemFinds: 'Alle Funde',
+  itemFoundTimes: '{count}-mal gefunden',
+  itemFoundOnce: 'Einmal gefunden',
+  itemShinyTimes: 'davon {count} schillernd',
+  itemFirstFound: 'Zuerst gefunden am {date}',
+  itemEarlierFinds: 'Frühere Funde ohne Aufzeichnung: {count}',
+  itemFindLine: '{distance} Lj · {world}',
+  itemShinyMark: 'schillernd',
+  itemDetails: 'Details',
+  desc_emberPebble:
+    'Ein Kiesel von den Klippenpfaden, der noch lange nach Sonnenuntergang warm bleibt. Schön zum Festhalten auf kalten Flügen.',
+  desc_windFeather: 'Verloren von etwas, das nie landet. Lässt man sie los, schwebt sie nach oben.',
+  desc_sunsetShard:
+    'Ein Splitter roten Kristalls, der das letzte Abendlicht festhält und nachts sanft glimmt.',
+  desc_cometEgg:
+    'Warm, gesprenkelt und leise summend. Niemand weiß, was daraus schlüpfen würde, oder wann.',
+  desc_highwindCrown:
+    'Eine goldene Krone, glatt geschliffen von den Winden über den Tafelbergen. Sie pfeift, wenn die Luft sich regt.',
+  desc_spiralShell:
+    'Eine Muschel vom Ufer der Lagune. Hält man sie ans Ohr, hört man ein sehr kleines Meer.',
+  desc_tidePearl:
+    'Eine Perle, die mit den Gezeiten eines fernen Ozeans von Weiß zu Blau und zurück wechselt.',
+  desc_mistLily:
+    'Eine Blume, die nur im Morgennebel blüht. Ihre Blätter bleiben kühl und ein wenig feucht.',
+  desc_coralStar:
+    'Ein Stern aus rosa Koralle, gewachsen im flachen Wasser über Hunderte stiller Jahre.',
+  desc_deepHeart:
+    'Ein Saphir, blau wie das tiefste Wasser, mit einem langsamen Lichtpuls im Inneren, wie ein Herzschlag unter den Wellen.',
+  desc_mossAgate:
+    'Ein grün geäderter Stein vom Grund des Canyons. Moos wächst darauf, sogar in der Hosentasche.',
+  desc_jadeLeaf: 'Ein Blatt, das zu Jade wurde. Im Wind raschelt es noch immer, ganz leise.',
+  desc_echoCrystal:
+    'Sprich mit ihm, und es antwortet einen Moment später mit deiner eigenen Stimme, nur etwas freundlicher.',
+  desc_ancientSeed: 'Ein Samen, älter als der Canyon. Pflanz ihn, und wer weiß, was wachsen würde.',
+  desc_verdantCrown:
+    'Eine Krone aus lebendigem Grün. Wenn sie glücklich ist, sprießen kleine Triebe aus ihren Zacken.',
+  desc_glowMushroom:
+    'Ein Pilz, dessen Hut sanft golden leuchtet. Er zeigt den Weg durch die dunkelste Höhle.',
+  desc_amberDrop:
+    'Ein Tropfen Bernstein mit einer winzigen leuchtenden Spore darin, die noch immer scheint.',
+  desc_geodeHeart: 'Außen ein schlichter Stein, innen ein violetter Himmel aus Kristallen.',
+  desc_sunstoneCluster:
+    'Kristalle, die vor langer Zeit Sonnenlicht aufgesogen haben, obwohl die Höhlen nie die Sonne gesehen haben.',
+  desc_emberCoreStar:
+    'Ein Stern aus glühendem Licht aus dem Herzen der Höhlen. Er ist warm, aber er brennt nie.',
+  desc_prismSand:
+    'Eine Prise Sand aus dem Kristallmeer. Jedes Korn zerlegt das Licht in alle seine Farben.',
+  desc_glassShell:
+    'Eine Muschel, klar wie Glas. Durch sie sieht das Meer ein wenig blauer aus, als es ist.',
+  desc_refractionOrb: 'Schau hindurch, und alles steht kopf und ist ein bisschen hübscher.',
+  desc_moonCrystal:
+    'Ein blasser Kristall, der heller wird, wenn der Mond aufgeht, wo immer du bist.',
+  desc_lightTear:
+    'Ein einziger Tropfen reinen Lichts, vergossen vom Kristallmeer im Morgengrauen. Er wiegt gar nichts.',
+  desc_stardustPebble: 'Ein Kiesel der Sternendünen, bestäubt mit Staub, der vom Himmel fiel.',
+  desc_meteorShard: 'Ein Stück eines Meteors, noch ganz leicht warm von seinem Fall.',
+  desc_desertRose: 'Sand und Sternenlicht, zusammengewachsen in der Form einer Rose.',
+  desc_cometFeather:
+    'Eine Feder aus dem Schweif eines Kometen. Schwenkt man sie, hinterlässt sie eine Spur aus Funken.',
+  desc_fallenStar:
+    'Ein echter Stern, der in die Dünen fiel und zu müde war, um wieder hinaufzuklettern.',
+  desc_skyPetal: 'Ein Blütenblatt aus den Schwebenden Gärten. Es berührt nie den Boden.',
+  desc_cloudSeed:
+    'Leicht wie eine Wolke und genauso weich. Bei passendem Wetter wird vielleicht eine daraus.',
+  desc_floatLeaf:
+    'Ein Blatt, das eine Handbreit über allem schwebt. Genau richtig für ein sehr kleines Floß.',
+  desc_rainbowBloom:
+    'Eine Blume mit allen Farben des Regenbogens, eine auf jedem Blatt, und mittags tauschen sie die Plätze.',
+  desc_gardenCrown:
+    'Ein Kranz aus Blüten, die nie welken, geflochten vom Wind der Schwebenden Gärten.',
+  desc_voidPebble:
+    'Ein Kiesel aus etwas, das dunkler ist als die Nacht. Ihn zu halten fühlt sich an, als hielte man ein kleines Stück Stille.',
+  desc_auroraFeather:
+    'Eine Feder, die in wechselnden Grün- und Blautönen leuchtet, wie der Himmel über der Leere.',
+  desc_nebulaOrb: 'Ein ganzer kleiner Nebel, der in einer Kugel aus Glas wirbelt.',
+  desc_riftCrystal:
+    'Ein Kristall, geschnitten vom äußersten Rand des Raums. Das Licht biegt sich seltsam um ihn herum.',
+  desc_auroraStar:
+    'Das hellste Licht des Polarlichts, eingefangen und aufbewahrt. Es summt eine Melodie, die noch niemand geschrieben hat.',
 }

@@ -42,7 +42,10 @@ describe('message catalogs', () => {
   })
 
   it('names every treasure, world and rarity', () => {
-    for (const item of ITEMS) expect(Object.hasOwn(en, `item_${item.id}`)).toBe(true)
+    for (const item of ITEMS) {
+      expect(Object.hasOwn(en, `item_${item.id}`)).toBe(true)
+      expect(Object.hasOwn(en, `desc_${item.id}`)).toBe(true)
+    }
     for (const world of WORLD_IDS) expect(Object.hasOwn(en, `world_${world}`)).toBe(true)
     for (const rarity of RARITIES) expect(Object.hasOwn(en, `rarity_${rarity}`)).toBe(true)
   })

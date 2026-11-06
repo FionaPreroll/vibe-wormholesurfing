@@ -58,3 +58,17 @@ export function worldName(world: WorldId): string {
 export function rarityName(rarity: Rarity): string {
   return t(`rarity_${rarity}`)
 }
+
+/** A treasure's short description. */
+export function itemDescription(id: string): string {
+  const key = `desc_${id}`
+  return key in en ? t(key as MessageKey) : ''
+}
+
+/** A date and time in the current language, as for a list of finds. */
+export function dateTime(ms: number): string {
+  return new Intl.DateTimeFormat(locale.value === 'de' ? 'de-DE' : 'en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(ms))
+}

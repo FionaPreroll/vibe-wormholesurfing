@@ -294,17 +294,23 @@ export function App({ store }: Props) {
       const where = arrival.value
       const saveBook = bookRef.current
       if (!where || !saveBook) return
-      void saveBook.addFind(reward).then(({ fresh, count }) => {
-        found.value = {
-          reward,
+      void saveBook
+        .addFind(reward, Date.now(), {
           world: where.world,
           tier: where.tier,
           distance: where.distance,
-          fresh,
-          count,
-        }
-        refresh()
-      })
+        })
+        .then(({ fresh, count }) => {
+          found.value = {
+            reward,
+            world: where.world,
+            tier: where.tier,
+            distance: where.distance,
+            fresh,
+            count,
+          }
+          refresh()
+        })
       setTimeout(() => {
         setPicture(directorRef.current?.thumbnail(reward.item.id, reward.shiny, 200))
         setCard(true)

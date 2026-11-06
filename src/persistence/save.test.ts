@@ -34,7 +34,7 @@ describe('SaveBook', () => {
     const book = await SaveBook.open(store)
     expect(await book.addFind({ item: pearl, shiny: false }, 1)).toEqual({ fresh: true, count: 1 })
     expect(await book.addFind({ item: pearl, shiny: true }, 2)).toEqual({ fresh: false, count: 2 })
-    expect(book.current.collection.tidePearl).toEqual({ count: 2, shiny: 1, first: 1 })
+    expect(book.current.collection.tidePearl).toMatchObject({ count: 2, shiny: 1, first: 1 })
     expect(book.found.has('tidePearl')).toBe(true)
     const again = await SaveBook.open(store)
     expect(again.current.collection.tidePearl?.count).toBe(2)
@@ -92,5 +92,36 @@ describe('exportSave and importSave', () => {
     const other = { ...freshSave(), collection: { tidePearl: { count: 3, shiny: 0, first: 1 } } }
     await book.replace(other)
     expect(book.current.collection.tidePearl?.count).toBe(3)
+  })
+})
+
+describe('find history', () => {
+  it('records each find with where it was made, keeping the latest', async () => {
+    const book = await SaveBook.open(memoryStore())
+    await book.addFind({ item: pearl, shiny: false }, 10, {
+      world: 'lagoon',
+      tier: 2,
+      distance: 800,
+    })
+    await book.addFind({ item: pearl, shiny: true }, 20, {
+      world: 'lagoon',
+      tier: 4,
+      distance: 4100,
+    })
+    expect(book.current.collection.tidePearl?.history).toEqual([
+      { at: 10, shiny: false, world: 'lagoon', tier: 2, distance: 800 },
+      { at: 20, shiny: true, world: 'lagoon', tier: 4, distance: 4100 },
+    ])
+    for (let index = 0; index < 60; index++)
+      await book.addFind({ item: pearl, shiny: false }, 100 + index)
+    const history = book.current.collection.tidePearl?.history ?? []
+    expect(history).toHaveLength(50)
+    expect(history.at(-1)?.at).toBe(159)
+    expect(book.current.collection.tidePearl?.count).toBe(62)
+  })
+
+  it('reads saves from before the history', () => {
+    const old = { ...freshSave(), collection: { tidePearl: { count: 3, shiny: 0, first: 5 } } }
+    expect(migrate(old).collection.tidePearl).toEqual({ count: 3, shiny: 0, first: 5 })
   })
 })
