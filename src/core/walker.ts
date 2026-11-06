@@ -17,8 +17,9 @@ export const WALK = {
   steep: 1.1,
   wall: 2.6,
   radius: 0.45,
-  /** Water slows the walk to this share. */
-  wade: 0.78,
+  /** Water slows the walk to this share, and swimming a little more. */
+  wade: 0.8,
+  swim: 0.7,
 } as const
 
 export interface WalkInput {
@@ -52,6 +53,8 @@ export class Walker {
   pace = 0
   /** Whether it stands in water, for splashes. */
   wading = false
+  /** Whether the water is too deep to stand in, so it swims. */
+  swimming = false
 
   constructor(
     readonly land: Land,
@@ -62,7 +65,7 @@ export class Walker {
   ) {
     this.x = x
     this.z = z
-    this.y = land.heightAt(x, z)
+    this.y = land.floorAt(x, z)
     this.yaw = yaw
   }
 
@@ -77,7 +80,8 @@ export class Walker {
     }
     const water = land.shape.water
     this.wading = water !== undefined && this.y < water - 0.05
-    const top = WALK.speed * (this.wading ? WALK.wade : 1)
+    this.swimming = land.swimming(this.x, this.z) && this.grounded
+    const top = WALK.speed * (this.swimming ? WALK.swim : this.wading ? WALK.wade : 1)
     const grip = damp(this.grounded ? WALK.grip : WALK.airGrip, dt)
     this.vx += (wantX * top - this.vx) * grip
     this.vz += (wantZ * top - this.vz) * grip
@@ -88,7 +92,7 @@ export class Walker {
     }
 
     let jumped = false
-    if (input.jump && this.grounded) {
+    if (input.jump && this.grounded && !this.swimming) {
       this.vy = WALK.jump
       this.grounded = false
       jumped = true
@@ -98,7 +102,7 @@ export class Walker {
     // always possible: the shore under water is never a wall.
     let nextX = this.x + this.vx * dt
     let nextZ = this.z + this.vz * dt
-    const rise = land.heightAt(nextX, nextZ) - land.heightAt(this.x, this.z)
+    const rise = land.floorAt(nextX, nextZ) - land.floorAt(this.x, this.z)
     const run = length2(nextX - this.x, nextZ - this.z)
     if (run > 1e-6 && this.grounded && !this.wading) {
       const slope = rise / run
@@ -119,7 +123,7 @@ export class Walker {
 
     this.vy -= WALK.gravity * dt
     this.y += this.vy * dt
-    const ground = land.heightAt(this.x, this.z)
+    const ground = land.floorAt(this.x, this.z)
     let landed = false
     if (this.y <= ground) {
       landed = !this.grounded

@@ -1,10 +1,12 @@
+import type { ComponentChildren } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
 import { RIDE } from '../core/ride'
 import type { WorldId } from '../core/worlds'
 import { rideHud, worldHud } from '../game/hud'
 import { settings } from '../game/settings'
-import { number, t, worldName } from '../i18n'
+import { t, worldName } from '../i18n'
 import type { Input } from '../input/input'
+import { Lcd } from './lcd'
 import { touchScreen } from './pointer'
 
 function PauseButton({ onPause }: { readonly onPause: () => void }) {
@@ -58,17 +60,105 @@ function clock(seconds: number): string {
   return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`
 }
 
-/** A small table of numbers in a corner of the screen. */
-function InfoPanel({ rows }: { readonly rows: readonly (readonly [string, string])[] }) {
+/** A labelled readout of the cockpit panel. */
+function Readout({
+  label,
+  children,
+}: {
+  readonly label: string
+  readonly children: ComponentChildren
+}) {
   return (
-    <dl class="info-panel">
-      {rows.map(([label, value]) => (
-        <div key={label}>
-          <dt>{label}</dt>
-          <dd>{value}</dd>
-        </div>
-      ))}
-    </dl>
+    <div class="readout">
+      <span class="readout-label">{label}</span>
+      <span class="readout-value">{children}</span>
+    </div>
+  )
+}
+
+const GAUGE = { cx: 60, cy: 58, r: 46, from: 150, sweep: 240 }
+
+function arcPoint(angle: number, radius = GAUGE.r): [number, number] {
+  const rad = (angle * Math.PI) / 180
+  return [GAUGE.cx + Math.cos(rad) * radius, GAUGE.cy + Math.sin(rad) * radius]
+}
+
+function arcPath(radius: number): string {
+  const [x1, y1] = arcPoint(GAUGE.from, radius)
+  const [x2, y2] = arcPoint(GAUGE.from + GAUGE.sweep, radius)
+  return `M ${x1} ${y1} A ${radius} ${radius} 0 1 1 ${x2} ${y2}`
+}
+
+/**
+ * The ship's speed as a round gauge: a rainbow arc that fills with speed, a mark at the speed
+ * that is safe from the pull of holes, an inner arc for that pull, and the speed in light-years
+ * per second on an LCD in its middle.
+ */
+function SpeedGauge({ speed, pull }: { readonly speed: number; readonly pull: number }) {
+  const share = Math.min(1, speed / RIDE.maxSpeed)
+  const safe = RIDE.safeSpeed / RIDE.maxSpeed
+  const [sx1, sy1] = arcPoint(GAUGE.from + safe * GAUGE.sweep, GAUGE.r - 7)
+  const [sx2, sy2] = arcPoint(GAUGE.from + safe * GAUGE.sweep, GAUGE.r + 6)
+  const ticks = Array.from({ length: 13 }, (_, index) => {
+    const angle = GAUGE.from + (index / 12) * GAUGE.sweep
+    const [x1, y1] = arcPoint(angle, GAUGE.r + 5)
+    const [x2, y2] = arcPoint(angle, GAUGE.r + (index % 3 === 0 ? 9 : 7))
+    return <line key={index} x1={x1} y1={y1} x2={x2} y2={y2} class="gauge-tick" />
+  })
+  return (
+    <div class="speed-gauge">
+      <svg viewBox="0 0 120 104" aria-hidden="true">
+        <defs>
+          <linearGradient id="speed-gradient" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0" stop-color="#ff5c8a" />
+            <stop offset="0.45" stop-color="#ffd166" />
+            <stop offset="1" stop-color="#6ff7ff" />
+          </linearGradient>
+          <linearGradient id="pull-gradient" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#b26bff" />
+            <stop offset="1" stop-color="#ff3d6e" />
+          </linearGradient>
+        </defs>
+        {ticks}
+        <path d={arcPath(GAUGE.r)} class="gauge-track" />
+        <path
+          d={arcPath(GAUGE.r)}
+          class="gauge-fill"
+          pathLength={100}
+          stroke-dasharray={`${share * 100} 100`}
+        />
+        <path d={arcPath(GAUGE.r - 11)} class="gauge-track thin" />
+        {pull > 0.01 && (
+          <path
+            d={arcPath(GAUGE.r - 11)}
+            class="gauge-pull"
+            pathLength={100}
+            stroke-dasharray={`${Math.min(1, pull) * 100} 100`}
+          />
+        )}
+        <line x1={sx1} y1={sy1} x2={sx2} y2={sy2} class="gauge-safe" />
+      </svg>
+      <div class="gauge-center">
+        <Lcd
+          value={String(Math.round(speed * RIDE.lightYearsPerSpeed))}
+          digits={3}
+          size={24}
+          label={t('infoSpeed')}
+        />
+        <span class="gauge-unit">{t('lyPerSecond', { value: '' }).trim()}</span>
+      </div>
+      {pull > 0.35 && <span class="gauge-warning">{t('infoGravity')}</span>}
+    </div>
+  )
+}
+
+/** How near the treasure is, as a bar that fills as the girl comes closer. */
+function NearBar({ meters }: { readonly meters: number }) {
+  const share = Math.max(0, Math.min(1, 1 - meters / 60))
+  return (
+    <span class="near-bar" aria-hidden="true">
+      <span class="near-fill" style={{ width: `${share * 100}%` }} />
+    </span>
   )
 }
 
@@ -99,7 +189,13 @@ export function RideHud({ input, best, onPause, onRecenter, hint, onHintSeen }: 
   return (
     <div class={`hud ride-hud${hud.warping ? ' warping' : ''}`}>
       <div class="distance" aria-live="off">
-        <span class="value">{number(hud.distance)}</span>
+        <Lcd
+          value={String(hud.distance)}
+          digits={5}
+          size={46}
+          color="var(--lcd-white)"
+          label={t('lightYears')}
+        />
         <span class="unit">{t('lightYears')}</span>
       </div>
       <div class="speed" aria-hidden="true">
@@ -120,20 +216,35 @@ export function RideHud({ input, best, onPause, onRecenter, hint, onHintSeen }: 
         </div>
       )}
       {!hud.warping && (
-        <InfoPanel
-          rows={[
-            [
-              t('infoSpeed'),
-              t('lyPerSecond', { value: Math.round(hud.speed * RIDE.lightYearsPerSpeed) }),
-            ],
-            [t('infoOrbs'), String(hud.orbs)],
-            [t('infoSparks'), String(hud.sparks)],
-            [t('infoTime'), clock(hud.time)],
-            ...(best > 0
-              ? [[t('infoBest'), `${number(best)} ${t('lightYearsShort')}`] as const]
-              : []),
-          ]}
-        />
+        <div class="cockpit">
+          <SpeedGauge speed={hud.speed} pull={pull} />
+          <div class="readouts">
+            <Readout label={t('infoOrbs')}>
+              <Lcd
+                value={String(hud.orbs)}
+                digits={3}
+                color="var(--lcd-gold)"
+                label={t('infoOrbs')}
+              />
+            </Readout>
+            <Readout label={t('infoSparks')}>
+              <Lcd
+                value={String(hud.sparks)}
+                digits={3}
+                color="var(--lcd-blue)"
+                label={t('infoSparks')}
+              />
+            </Readout>
+            <Readout label={t('infoTime')}>
+              <Lcd value={clock(hud.time)} color="var(--lcd-pink)" label={t('infoTime')} />
+            </Readout>
+            {best > 0 && (
+              <Readout label={t('infoBest')}>
+                <Lcd value={String(Math.round(best))} digits={5} label={t('infoBest')} />
+              </Readout>
+            )}
+          </div>
+        </div>
       )}
       <div class="corner">
         {gyro && (
@@ -207,13 +318,29 @@ export function WorldHud({ input, world, tier, distance, onPause, hint, onHintSe
           {!touch && <kbd>{pad ? 'A' : t('openKey')}</kbd>}
         </button>
       )}
-      {!banner && !touch && (
-        <InfoPanel
-          rows={[
-            [worldName(world), '✦'.repeat(tier)],
-            [t('infoFlown'), `${number(distance)} ${t('lightYearsShort')}`],
-          ]}
-        />
+      {!banner && (
+        <div class="cockpit world-cockpit">
+          <div class="cockpit-title">
+            <span>{worldName(world)}</span>
+            <span class="tier">{'✦'.repeat(tier)}</span>
+          </div>
+          <div class="readouts">
+            <Readout label={t('infoFlown')}>
+              <Lcd value={String(Math.round(distance))} digits={5} label={t('infoFlown')} />
+            </Readout>
+            {exploring && (
+              <Readout label={t('infoTreasure')}>
+                <NearBar meters={hud.treasureDistance} />
+                <Lcd
+                  value={String(hud.treasureDistance)}
+                  digits={3}
+                  color="var(--lcd-gold)"
+                  label={t('infoTreasure')}
+                />
+              </Readout>
+            )}
+          </div>
+        </div>
       )}
       <div class="corner">
         <PauseButton onPause={onPause} />

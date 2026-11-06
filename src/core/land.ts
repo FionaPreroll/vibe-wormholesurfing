@@ -11,12 +11,19 @@ export interface Land {
   heightAt(x: number, z: number): number
   /** Steepness at a point: rise per unit of distance. */
   slopeAt(x: number, z: number): number
-  /** Whether the player may stand here: inside the bounds, and not in deep water. */
+  /**
+   * What the player stands on: the ground, or in deep water the level she floats at while she
+   * swims, her head above the surface.
+   */
+  floorAt(x: number, z: number): number
+  /** Whether the water here is too deep to wade, so the player swims. */
+  swimming(x: number, z: number): boolean
+  /** Whether the player may be here: inside the world's bounds. Water no longer stops her. */
   walkable(x: number, z: number): boolean
 }
 
-/** Water deeper than this stops the player; shallower water is waded through. */
-export const WADE_DEPTH = 1
+/** Water deeper than this is swum through; shallower water is waded through. */
+export const SWIM_DEPTH = 0.95
 
 export function makeLand(shape: LandShape, seed: number): Land {
   const hillNoise: Noise2 = simplex2(seed ^ 0x51ed)
@@ -51,10 +58,15 @@ export function makeLand(shape: LandShape, seed: number): Land {
     return Math.sqrt(dx * dx + dz * dz) / (2 * e)
   }
 
-  const walkable = (x: number, z: number): boolean => {
-    if (x * x + z * z > shape.bounds * shape.bounds) return false
-    return shape.water === undefined || heightAt(x, z) > shape.water - WADE_DEPTH
+  const swimming = (x: number, z: number): boolean =>
+    shape.water !== undefined && heightAt(x, z) < shape.water - SWIM_DEPTH
+
+  const floorAt = (x: number, z: number): number => {
+    const ground = heightAt(x, z)
+    return shape.water === undefined ? ground : Math.max(ground, shape.water - SWIM_DEPTH)
   }
 
-  return { shape, heightAt, slopeAt, walkable }
+  const walkable = (x: number, z: number): boolean => x * x + z * z <= shape.bounds * shape.bounds
+
+  return { shape, heightAt, slopeAt, floorAt, swimming, walkable }
 }

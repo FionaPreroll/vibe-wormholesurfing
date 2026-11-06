@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Expedition, OPEN_TIME, REACH } from './expedition'
+import { CAPSULE_RADIUS, Expedition, OPEN_TIME, REACH } from './expedition'
 import { length2 } from './math'
 import { STAND } from './walker'
 import { WORLD_IDS } from './worlds'
@@ -12,7 +12,12 @@ describe('Expedition', () => {
       expect(land.walkable(treasure.x, treasure.z)).toBe(true)
       expect(length2(treasure.x, treasure.z)).toBeGreaterThan(15)
       expect(land.walkable(walker.x, walker.z)).toBe(true)
-      for (const blocker of visit.blockers)
+      // Every blocker but the capsule's own pedestal keeps clear of the treasure.
+      const scenery = visit.blockers.filter(
+        (blocker) => blocker.x !== treasure.x || blocker.z !== treasure.z,
+      )
+      expect(scenery).toHaveLength(visit.blockers.length - 1)
+      for (const blocker of scenery)
         expect(length2(treasure.x - blocker.x, treasure.z - blocker.z)).toBeGreaterThan(
           blocker.radius,
         )
@@ -61,5 +66,27 @@ describe('Expedition', () => {
     expect(visit.canOpen).toBe(false)
     expect(visit.step(1 / 60, STAND, true)).toEqual([])
     expect(visit.phase).toBe('exploring')
+  })
+})
+
+describe('the treasure capsule', () => {
+  it('cannot be walked into', () => {
+    const visit = new Expedition({
+      world: 'canyon',
+      seed: 6,
+      tier: 2,
+      distance: 0,
+      found: new Set(),
+    })
+    const { treasure, walker } = visit
+    walker.x = treasure.x + 4
+    walker.z = treasure.z
+    walker.y = visit.land.floorAt(walker.x, walker.z)
+    for (let index = 0; index < 120; index++)
+      visit.step(1 / 60, { x: -1, z: 0, jump: false }, false)
+    expect(Math.hypot(walker.x - treasure.x, walker.z - treasure.z)).toBeGreaterThanOrEqual(
+      CAPSULE_RADIUS,
+    )
+    expect(visit.canOpen).toBe(true)
   })
 })

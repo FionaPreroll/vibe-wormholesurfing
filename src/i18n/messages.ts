@@ -167,6 +167,8 @@ export const en = {
   infoBest: 'Best',
   infoFlown: 'Flown',
   infoHole: 'Hole',
+  infoTreasure: 'Treasure',
+  infoGravity: 'Gravity',
 
   rarity_common: 'Common',
   rarity_uncommon: 'Uncommon',
@@ -397,6 +399,8 @@ export const de: Record<MessageKey, string> = {
   infoBest: 'Rekord',
   infoFlown: 'Geflogen',
   infoHole: 'Loch',
+  infoTreasure: 'Schatz',
+  infoGravity: 'Schwerkraft',
 
   rarity_common: 'Gewöhnlich',
   rarity_uncommon: 'Ungewöhnlich',

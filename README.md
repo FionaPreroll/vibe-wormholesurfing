@@ -25,7 +25,8 @@ Everything is made in code: the ship, the girl, the eight worlds, the music and 
 - **Worlds.** Red holes lead to the Cliffs, blue ones to the Lagoon, green ones to the Canyon and yellow ones to the Caverns. White holes lead to four strange worlds: the Crystal Sea and the Star Dunes, the rarer Floating Gardens and the rarest, the Aurora Void.
 - **Treasure.** In the world, walk to the pillar of light; the compass at the top points there. Open the star capsule and see what it holds. Each world has five treasures, from common to legendary; rarer holes and longer rides make rarer ones likelier, and the chance of a shiny one grows with the distance. A flower-aura hole always holds the world's legendary treasure until you have found it.
 - **Collection.** Every treasure found stays in the collection, with how often it was found and whether a shiny one was among them.
-- **HUD.** A small panel in the corner shows the ship's speed in light-years per second, the orbs and sparks of the ride, its time and the farthest ride so far; in a world, the world, the hole's tier and the light-years flown.
+- **HUD.** A cockpit panel in the corner shows the ship's speed on a gauge (with the safe speed marked and the pull of holes on an inner arc) and the orbs, sparks, time and farthest ride on seven-segment LCDs drawn in SVG (`src/ui/lcd.tsx`); in a world, the world, the hole's tier, the light-years flown and how near the treasure is.
+- **Water.** Shallow water is waded through; deeper water is swum through, the girl floating with her head above the surface (`floorAt` in `src/core/land.ts`). Only the edge of the world stops her. The treasure capsule's pedestal is solid.
 
 ### Controls
 

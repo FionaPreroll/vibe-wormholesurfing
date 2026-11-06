@@ -85,6 +85,9 @@ const MOVE_CODES: ReadonlySet<string> = new Set([
   ...KEYS.lookDown,
 ])
 
+/** How far, in pixels, the pointer must move before a resting mouse steers again. */
+const MOUSE_WAKE = 40
+
 /** Elements where keys belong to the element, such as a slider in the settings. */
 function typingInto(target: EventTarget | null): boolean {
   return (
@@ -98,7 +101,18 @@ function typingInto(target: EventTarget | null): boolean {
  * last decides where the ship or the girl goes, so picking up another way to play just works.
  */
 export class Input {
-  mode: InputMode = 'menu'
+  #mode: InputMode = 'menu'
+
+  /** What the controls drive. A change starts the mouse afresh, as `release` does. */
+  get mode(): InputMode {
+    return this.#mode
+  }
+
+  set mode(next: InputMode) {
+    if (next === this.#mode) return
+    this.#mode = next
+    this.#ignoreMouse()
+  }
   readonly settings: InputSettings = { mouseSteer: true, invertY: false, lookSpeed: 1 }
   readonly gyro = new Gyro()
   readonly source = signal<Source>('keyboard')
@@ -116,6 +130,12 @@ export class Input {
     gyro: Number.NEGATIVE_INFINITY,
   }
   #mouse = { x: 0, y: 0, inside: false, drag: undefined as number | undefined, lastX: 0, lastY: 0 }
+  /**
+   * Where the pointer rested when the mouse last stopped counting, as when a ride starts with the
+   * pointer still on the button that started it. Until it moves well away from here, the mouse
+   * does not steer, so the ship does not dart toward wherever the pointer happens to be.
+   */
+  #mouseAnchor: { x: number; y: number } | undefined
   #lookX = 0
   #lookY = 0
   #zoom = 0
@@ -164,6 +184,13 @@ export class Input {
     this.#lookY = 0
     this.#zoom = 0
     this.touches.value = []
+    this.#ignoreMouse()
+  }
+
+  /** The mouse steers again only once it moves on purpose. */
+  #ignoreMouse(): void {
+    this.#lastActive.mouse = Number.NEGATIVE_INFINITY
+    this.#mouseAnchor = { x: this.#mouse.x, y: this.#mouse.y }
   }
 
   /** Reads every source once; call it once per frame. */
@@ -285,6 +312,8 @@ export class Input {
         this.#mouse.drag = event.pointerId
         this.#capture(event.pointerId)
       }
+      // A click on the game itself is meant: the mouse takes over at once.
+      this.#mouseAnchor = undefined
       this.#mark('mouse')
       return
     }
@@ -325,6 +354,14 @@ export class Input {
       }
       const moved = Math.hypot(x - mouse.x, y - mouse.y) > 1.5
       this.#mouse = { ...mouse, x, y, inside: true, lastX: x, lastY: y }
+      // Pointing at a button over the game is not steering.
+      const target = event.target as Element | null
+      if (target?.closest?.('button, a, input, select, label, [role="dialog"]')) return
+      const anchor = this.#mouseAnchor
+      if (anchor) {
+        if (Math.hypot(x - anchor.x, y - anchor.y) < MOUSE_WAKE) return
+        this.#mouseAnchor = undefined
+      }
       if (moved && (this.mode === 'world' ? mouse.drag !== undefined : this.settings.mouseSteer))
         this.#mark('mouse')
       return

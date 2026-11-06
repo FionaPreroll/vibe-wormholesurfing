@@ -14,6 +14,7 @@ import { defaultLook, type Look } from '../post'
 import type { QualityLevel } from '../quality'
 import { Bursts } from '../ride/particles'
 import { HoleView } from '../ride/things'
+import { uniform } from '../uniforms'
 import { buildCeiling, buildIslands, buildMotes, buildProps } from './scenery'
 import { buildSky, updateSky } from './sky'
 import { buildTerrain } from './terrain'
@@ -32,6 +33,44 @@ export interface WorldStageOptions {
 }
 
 const INTRO = 2.6
+
+/** Rings of ripples on the water around the girl while she wades or swims. */
+function buildRipples(): THREE.Mesh {
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(4, 4),
+    new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      uniforms: { uTime: { value: 0 }, uStrength: { value: 1 } },
+      vertexShader: /* glsl */ `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform float uTime;
+        uniform float uStrength;
+        varying vec2 vUv;
+        void main() {
+          float r = length(vUv - 0.5) * 2.0;
+          float rings = 0.0;
+          for (int i = 0; i < 3; i++) {
+            float phase = fract(uTime * 0.7 + float(i) / 3.0);
+            float radius = 0.25 + phase * 0.75;
+            rings += (1.0 - smoothstep(0.0, 0.05, abs(r - radius))) * (1.0 - phase);
+          }
+          float alpha = rings * uStrength * (1.0 - smoothstep(0.85, 1.0, r)) * 0.55;
+          gl_FragColor = vec4(vec3(1.0), alpha);
+        }
+      `,
+    }),
+  )
+  mesh.rotation.x = -Math.PI / 2
+  mesh.renderOrder = 2
+  return mesh
+}
 
 /**
  * A world behind a warp hole, explored on foot: the girl walks where the stick or keys send her,
@@ -56,6 +95,7 @@ export class WorldStage implements Stage {
   readonly #portal: HoleView
   readonly #treasure: TreasureView
   readonly #bursts = new Bursts(500)
+  readonly #ripples: THREE.Mesh | undefined
   readonly #islands: THREE.Group | undefined
   readonly #environment: THREE.Texture
   readonly #target = new THREE.Vector3()
@@ -166,6 +206,11 @@ export class WorldStage implements Stage {
     )
     scene.add(this.#portal.group)
 
+    if (water !== undefined) {
+      this.#ripples = buildRipples()
+      this.#ripples.position.y = water + 0.02
+      scene.add(this.#ripples)
+    }
     this.#bursts.setPixelRatio(renderer.getPixelRatio())
     scene.add(this.#bursts.points)
 
@@ -267,6 +312,7 @@ export class WorldStage implements Stage {
     girl.position.set(walker.x, walker.y, walker.z)
     girl.rotation.y = walker.yaw
     let mode: GirlMode = walker.grounded ? (walker.pace > 0.08 ? 'walk' : 'stand') : 'air'
+    if (walker.swimming) mode = 'swim'
     if (expedition.phase === 'opening') mode = 'stand'
     if (expedition.phase === 'revealed') mode = 'cheer'
     if (expedition.time < INTRO + 0.6 && walker.pace < 0.05) mode = 'wave'
@@ -337,6 +383,9 @@ export class WorldStage implements Stage {
     if (this.#desired.y < ground) this.#desired.y = ground
     const ceiling = expedition.layout.ceiling
     if (ceiling !== undefined) this.#desired.y = Math.min(this.#desired.y, ceiling - 2)
+    // Never under the water's surface, which shows nothing from below.
+    const water = expedition.land.shape.water
+    if (water !== undefined) this.#desired.y = Math.max(this.#desired.y, water + 0.6)
     camera.position.lerp(this.#desired, damp(intro < 1 ? 6 : 10, dt))
     camera.lookAt(this.#focus)
     applyFov(camera, 55)
@@ -349,6 +398,15 @@ export class WorldStage implements Stage {
     if (this.#water) updateWater(this.#water, time)
     this.#sun.position.set(walker.x, walker.y, walker.z).add(this.#sunOffset)
     this.#sun.target.position.set(walker.x, walker.y, walker.z)
+    if (this.#ripples) {
+      const inWater = walker.wading || walker.swimming
+      this.#ripples.visible = inWater
+      this.#ripples.position.x = walker.x
+      this.#ripples.position.z = walker.z
+      const material = this.#ripples.material as THREE.ShaderMaterial
+      uniform(material.uniforms, 'uTime').value = time
+      uniform(material.uniforms, 'uStrength').value = 0.35 + walker.pace * 0.65
+    }
     this.#lantern?.position.set(
       walker.x - Math.sin(this.#yaw) * 3,
       walker.y + 6,

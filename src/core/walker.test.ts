@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { makeLand } from './land'
+import { makeLand, SWIM_DEPTH } from './land'
 import { LAYOUTS } from './layouts'
 import { STAND, WALK, Walker } from './walker'
 
@@ -62,15 +62,16 @@ describe('Walker in water', () => {
     throw new Error('the lagoon has no shore')
   }
 
-  it('slides along deep water instead of sticking to it', () => {
+  it('swims across deep water, floating at the surface', () => {
     const spot = shoreSpot()
     const walker = new Walker(lagoon, [], spot.x, spot.z)
-    // Push toward the deep water at a slant, as a player walking along the shore does.
-    const angle = spot.toward + 0.6
     for (let index = 0; index < 120; index++)
-      walker.step(1 / 60, { x: Math.sin(angle), z: Math.cos(angle), jump: false })
-    expect(Math.hypot(walker.x - spot.x, walker.z - spot.z)).toBeGreaterThan(2)
-    expect(lagoon.walkable(walker.x, walker.z)).toBe(true)
+      walker.step(1 / 60, { x: Math.sin(spot.toward), z: Math.cos(spot.toward), jump: false })
+    expect(Math.hypot(walker.x - spot.x, walker.z - spot.z)).toBeGreaterThan(5)
+    if (lagoon.swimming(walker.x, walker.z)) {
+      expect(walker.swimming).toBe(true)
+      expect(walker.y).toBeCloseTo(water - SWIM_DEPTH, 1)
+    }
   })
 
   it('walks out of the water the way it came', () => {

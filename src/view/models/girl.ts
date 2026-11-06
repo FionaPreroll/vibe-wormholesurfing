@@ -4,7 +4,7 @@ import { starGeometry, taperTube } from './shapes'
 import { outline, toon } from './toon'
 
 /** What the girl is doing, which sets her pose. */
-export type GirlMode = 'sit' | 'stand' | 'walk' | 'air' | 'cheer' | 'wave'
+export type GirlMode = 'sit' | 'stand' | 'walk' | 'air' | 'cheer' | 'wave' | 'swim'
 
 export interface GirlState {
   readonly mode: GirlMode
@@ -327,7 +327,7 @@ export function buildGirl(): GirlRig {
     update(dt, time, { mode, pace = 0, wind = 0, lean = 0, rise = 0, look = 0 }) {
       lastMode = mode
       const breath = Math.sin(time * 2.2)
-      walkPhase += dt * (4 + pace * 7.5) * (mode === 'walk' ? 1 : 0)
+      walkPhase += dt * (4 + pace * 7.5) * (mode === 'walk' ? 1 : mode === 'swim' ? 0.55 : 0)
       const swing = Math.sin(walkPhase)
       let hop = 0
       root.rotation.set(0, 0, 0)
@@ -352,6 +352,18 @@ export function buildGirl(): GirlRig {
           hop = Math.abs(Math.cos(walkPhase)) * 0.045 * pace
           torso.rotation.x = 0.06 + pace * 0.1
           torso.rotation.z = swing * 0.04
+          break
+        }
+        case 'swim': {
+          // Treading water: legs kick, arms sweep in wide strokes just under the surface.
+          const kick = Math.sin(walkPhase * 2)
+          left.rotation.set(0.35 + kick * 0.35, 0, 0.12)
+          right.rotation.set(0.35 - kick * 0.35, 0, -0.12)
+          const stroke = Math.sin(walkPhase)
+          leftArm.rotation.set(-0.9 - stroke * 0.3, 0, -1.0 - Math.cos(walkPhase) * 0.45)
+          rightArm.rotation.set(-0.9 - stroke * 0.3, 0, 1.0 + Math.cos(walkPhase) * 0.45)
+          torso.rotation.x = 0.25 + pace * 0.2
+          hop = Math.sin(time * 2.4) * 0.03
           break
         }
         case 'air':

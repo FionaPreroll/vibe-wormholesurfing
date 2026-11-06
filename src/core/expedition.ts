@@ -10,6 +10,8 @@ import type { WorldId } from './worlds'
 
 /** How close the player must be to open the treasure. */
 export const REACH = 2.4
+/** The radius of the capsule's pedestal, which the player cannot walk through. */
+export const CAPSULE_RADIUS = 1.15
 /** Seconds the treasure takes to open before it shows what it holds. */
 export const OPEN_TIME = 2.4
 
@@ -67,9 +69,11 @@ export class Expedition {
     this.layout = LAYOUTS[world]
     this.land = makeLand(this.layout.land, seed)
     this.props = scatterProps(random, this.land, this.layout)
-    this.blockers = blockersOf(this.props)
-    const spot = placeTreasure(random, this.land, this.blockers)
+    const scenery = blockersOf(this.props)
+    const spot = placeTreasure(random, this.land, scenery)
     this.treasure = { x: spot.x, y: this.land.heightAt(spot.x, spot.z), z: spot.z }
+    // The capsule's pedestal is solid: the girl walks up to it, not into it.
+    this.blockers = [...scenery, { x: spot.x, z: spot.z, radius: CAPSULE_RADIUS }]
     this.reward = rollReward(random, { world, tier, distance, found })
     // The player starts beside the ship, facing roughly toward the treasure's glow.
     const facing = Math.atan2(spot.x, spot.z) + (random() - 0.5) * 0.8
@@ -157,7 +161,7 @@ export function placeTreasure(
       const nx = ni * CELL
       const nz = nj * CELL
       if (!free(nx, nz)) continue
-      const rise = land.heightAt(nx, nz) - land.heightAt(x, z)
+      const rise = land.floorAt(nx, nz) - land.floorAt(x, z)
       if (rise / CELL > WALK.wall * 0.8) continue
       seen.add(key(ni, nj))
       queue.push([ni, nj])

@@ -10,6 +10,11 @@
   --aqua: #6ff0ff;
   --gold: #ffd36b;
   --danger: #ff6b8a;
+  --lcd: #7ff7ff;
+  --lcd-white: #fff2fb;
+  --lcd-gold: #ffd36b;
+  --lcd-blue: #8fc8ff;
+  --lcd-pink: #ff9fd8;
   --radius: 18px;
   font-family: ui-rounded, "SF Pro Rounded", "Nunito", "Quicksand", system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
@@ -276,18 +281,12 @@ kbd {
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  align-items: baseline;
-  gap: 0.4em;
+  align-items: flex-end;
+  gap: 0.5em;
   font-variant-numeric: tabular-nums;
   text-shadow:
     0 0 18px rgba(140, 100, 255, 0.9),
     0 2px 4px rgba(0, 0, 0, 0.6);
-}
-
-.distance .value {
-  font-size: clamp(2rem, 5vw, 3.2rem);
-  font-weight: 900;
-  letter-spacing: 0.02em;
 }
 
 .distance .unit {
@@ -298,7 +297,7 @@ kbd {
 
 .speed {
   position: absolute;
-  top: calc(max(10px, env(safe-area-inset-top)) + clamp(2.6rem, 6.5vw, 4rem));
+  top: calc(max(10px, env(safe-area-inset-top)) + 54px);
   left: 50%;
   width: min(42vw, 320px);
   height: 8px;
@@ -1045,11 +1044,13 @@ select {
 .fps {
   position: absolute;
   left: max(10px, env(safe-area-inset-left));
-  bottom: max(8px, env(safe-area-inset-bottom));
-  font-size: 0.8rem;
+  top: max(8px, env(safe-area-inset-top));
+  font-size: 0.75rem;
   color: var(--ink-quiet);
   font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
   pointer-events: none;
+  z-index: 30;
 }
 
 @media (max-height: 520px) {
@@ -1081,40 +1082,204 @@ select {
   }
 }
 
-/* A small table of numbers in a corner */
+/* The cockpit panel: gauges and LCD readouts in a corner */
 
-.info-panel {
+.cockpit {
   position: absolute;
-  left: max(16px, env(safe-area-inset-left));
-  bottom: max(14px, env(safe-area-inset-bottom));
-  margin: 0;
-  padding: 8px 12px;
-  display: grid;
-  gap: 2px;
-  min-width: 150px;
-  border-radius: 14px;
-  background: rgba(14, 8, 36, 0.5);
-  border: 1px solid rgba(190, 170, 255, 0.18);
+  left: max(14px, env(safe-area-inset-left));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 8px 8px;
+  border-radius: 20px;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px),
+    linear-gradient(160deg, rgba(14, 22, 52, 0.82), rgba(8, 6, 28, 0.86));
+  border: 1px solid rgba(127, 247, 255, 0.22);
+  box-shadow:
+    0 8px 30px rgba(0, 0, 0, 0.45),
+    inset 0 0 18px rgba(127, 247, 255, 0.08);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  font-size: 0.82rem;
-  font-variant-numeric: tabular-nums;
   pointer-events: none;
 }
 
-.info-panel div {
+.cockpit::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(120deg, #ff8fd0, #ffd166, #6ff7ff, #b07bff);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.55;
+}
+
+.readouts {
+  display: grid;
+  gap: 3px;
+}
+
+.readout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.readout-label {
+  color: var(--ink-quiet);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.readout-value {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lcd {
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 0 3px currentColor);
+}
+
+.lcd .lcd-off {
+  fill: currentColor;
+  opacity: 0.08;
+}
+
+.speed-gauge {
+  position: relative;
+  width: 118px;
+  height: 102px;
+}
+
+.speed-gauge > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.gauge-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.gauge-track.thin {
+  stroke-width: 4;
+}
+
+.gauge-fill {
+  fill: none;
+  stroke: url(#speed-gradient);
+  stroke-width: 8;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px rgba(255, 209, 102, 0.8));
+  transition: stroke-dasharray 0.12s linear;
+}
+
+.gauge-pull {
+  fill: none;
+  stroke: url(#pull-gradient);
+  stroke-width: 4;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px rgba(255, 61, 110, 0.9));
+}
+
+.gauge-safe {
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.gauge-tick {
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 1.2;
+}
+
+.gauge-center {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 40px;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+}
+
+.gauge-unit {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--lcd);
+  opacity: 0.8;
+}
+
+.gauge-warning {
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  transform: translateX(-50%);
+  padding: 1px 8px;
+  border-radius: 99px;
+  background: rgba(255, 61, 110, 0.85);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  animation: throb 0.6s ease-in-out infinite alternate;
+}
+
+.world-cockpit {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 10px 14px;
+  min-width: 210px;
+}
+
+.cockpit-title {
   display: flex;
   justify-content: space-between;
-  gap: 14px;
-}
-
-.info-panel dt {
-  color: var(--ink-quiet);
-}
-
-.info-panel dd {
-  margin: 0;
+  gap: 12px;
   font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.cockpit-title .tier {
+  color: var(--gold);
+  letter-spacing: 0.15em;
+}
+
+.near-bar {
+  position: relative;
+  width: 70px;
+  height: 7px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.near-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #b07bff, #ff8fd0, #ffd166);
+  box-shadow: 0 0 8px rgba(255, 209, 102, 0.8);
+  transition: width 0.2s linear;
 }
 
 /* The about page */
