@@ -10,7 +10,7 @@ import { holeRadius } from '../core/ride'
 import { type WorldId, worldOf } from '../core/worlds'
 import { type GameEvent, onGameEvent } from '../game/events'
 import { rideHud } from '../game/hud'
-import { type Settings, settings } from '../game/settings'
+import { QUALITIES, type Settings, settings } from '../game/settings'
 import { t } from '../i18n'
 import { buzz, haptics } from '../input/haptics'
 import { Input } from '../input/input'
@@ -101,7 +101,10 @@ export function App({ store }: Props) {
       }
       if (cancelled) return
       bookRef.current = opened
-      settings.value = opened.current.settings
+      // `?quality=high` and the like choose the graphics for this visit only, as for screenshots.
+      const forced = new URLSearchParams(location.search).get('quality')
+      const quality = QUALITIES.find((level) => level === forced)
+      settings.value = quality ? { ...opened.current.settings, quality } : opened.current.settings
       setBook(opened)
       setSave(opened.current)
     }

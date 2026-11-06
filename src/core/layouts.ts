@@ -173,8 +173,8 @@ export const LAYOUTS: Readonly<Record<WorldId, WorldLayout>> = {
   },
   crystalSea: {
     land: {
-      base: -0.35,
-      hills: 1.6,
+      base: -0.55,
+      hills: 1.8,
       hillScale: 0.03,
       ridges: 0,
       ridgeScale: 0.02,
@@ -211,7 +211,7 @@ export const LAYOUTS: Readonly<Record<WorldId, WorldLayout>> = {
       rule('spire', 18, [0.8, 1.6], 1.4, { from: 20, to: 110 }),
       rule('rock', 60, [0.3, 1], 0),
       rule('boulder', 16, [0.6, 1.2], 1.1, { from: 12, to: 80 }),
-      rule('crystal', 36, [0.5, 1.2], 0.5, { from: 10, to: 80 }),
+      rule('crystal', 70, [0.6, 1.5], 0.5, { from: 8, to: 80 }),
       rule('shrub', 500, [0.6, 1.2], 0, { to: 85 }),
     ],
   },

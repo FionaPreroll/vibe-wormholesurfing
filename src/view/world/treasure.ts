@@ -99,7 +99,7 @@ export class TreasureView {
     this.#inner = glowSprite(BEAM_COLOR, 1.6, 0.6)
     this.#inner.position.y = 1.0
     this.group.add(this.#inner)
-    this.#halo = glowSprite(BEAM_COLOR, 7, 0.25)
+    this.#halo = glowSprite(BEAM_COLOR, 6, 0.18)
     this.#halo.position.y = 1.2
     this.group.add(this.#halo)
 
@@ -131,8 +131,8 @@ export class TreasureView {
             float up = vUv.y;
             float fade = pow(1.0 - up, 1.6) * smoothstep(0.0, 0.01, up);
             float streaks = 0.7 + 0.3 * sin(vUv.x * 6.2831853 * 3.0 + uTime * 0.8) * sin(up * 90.0 - uTime * 4.0);
-            float alpha = fade * streaks * 0.45 * uPower;
-            gl_FragColor = vec4(uColor * alpha * 1.6, alpha);
+            float alpha = fade * streaks * 0.32 * uPower;
+            gl_FragColor = vec4(uColor * alpha * 1.3, alpha);
           }
         `,
       }),
@@ -175,7 +175,7 @@ export class TreasureView {
     const beam = this.#beam.material as THREE.ShaderMaterial
     uniform(beam.uniforms, 'uTime').value = time
     const pulse = 0.85 + Math.sin(time * 2.4) * 0.15
-    this.#halo.material.opacity = 0.22 * pulse
+    this.#halo.material.opacity = 0.15 * pulse
     if (opening < 0) {
       this.#lid.rotation.x = 0
       this.group.rotation.z = 0
@@ -194,15 +194,16 @@ export class TreasureView {
     this.item.rotation.y += dt * (revealed ? 1.2 : 4 * (1 - rise) + 1.2)
     const color = BEAM_COLOR.clone().lerp(this.#rarity, clamp(t * 1.4, 0, 1))
     uniform(beam.uniforms, 'uColor').value.copy(color)
-    uniform(beam.uniforms, 'uPower').value = 1 + rise * 1.2
+    // The pillar thins as the treasure rises, so the treasure itself is what shines.
+    uniform(beam.uniforms, 'uPower').value = 1 - rise * 0.45
     ;(this.#seam.material as THREE.MeshBasicMaterial).color.copy(color).multiplyScalar(2.2)
     this.#inner.material.color.copy(color)
     this.#halo.material.color.copy(color)
-    this.#inner.scale.setScalar(1.6 + rise * 2.2)
+    this.#inner.scale.setScalar(1.6 + rise * 1.2)
     this.#inner.position.y = 1.0 + rise
     if (this.#light) {
       this.#light.color.copy(color)
-      this.#light.intensity = 6 + rise * 14
+      this.#light.intensity = 6 + rise * 6
     }
     if (revealed && this.#revealedAt < 0) this.#revealedAt = time
     const since = this.#revealedAt < 0 ? -1 : time - this.#revealedAt

@@ -145,8 +145,8 @@ export class RideStage implements Stage {
     this.#ship.seat.add(this.#girl.group)
     scene.add(this.#ship.group)
     this.#trails = [
-      new Trail(28, 0.07, new THREE.Color(0.45, 0.9, 1.0)),
-      new Trail(28, 0.07, new THREE.Color(1.0, 0.55, 0.9)),
+      new Trail(22, 0.035, new THREE.Color(0.45, 0.9, 1.0)),
+      new Trail(22, 0.035, new THREE.Color(1.0, 0.55, 0.9)),
     ]
     for (const trail of this.#trails) scene.add(trail.mesh)
 
@@ -362,7 +362,7 @@ export class RideStage implements Stage {
       const entered = ride.entered === hole
       if (entered) {
         const t = Math.min(1, ride.warp / RIDE.warpTime)
-        view.group.scale.setScalar(1 + t * t * 14)
+        view.group.scale.setScalar(1 + t * t * 7)
       }
       const fade = entered
         ? 1

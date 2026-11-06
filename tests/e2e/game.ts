@@ -11,8 +11,8 @@ export function watchErrors(page: Page): string[] {
 }
 
 /** Opens the game with its debug hook and waits until the 3D view runs. */
-export async function openGame(page: Page): Promise<void> {
-  await page.goto('./?debug')
+export async function openGame(page: Page, quality?: string): Promise<void> {
+  await page.goto(quality ? `./?debug&quality=${quality}` : './?debug')
   await page.waitForFunction(() => 'wormhole' in window, null, { timeout: 30_000 })
   await expect(page.getByRole('button', { name: 'Fly!' })).toBeEnabled()
 }

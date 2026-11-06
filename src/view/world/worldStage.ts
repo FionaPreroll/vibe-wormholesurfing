@@ -61,7 +61,7 @@ export class WorldStage implements Stage {
   readonly #focus = new THREE.Vector3()
   readonly #desired = new THREE.Vector3()
   #yaw = 0
-  #pitch = 0.32
+  #pitch = 0.24
   #distance = 6.5
   #idleLook = 10
   #stepDistance = 0
@@ -178,8 +178,10 @@ export class WorldStage implements Stage {
     this.look.bloom = theme.bloom
     this.look.bloomThreshold = 0.95
     this.look.bloomRadius = 0.45
-    this.look.vignette = 0.28
+    this.look.vignette = 0.3
     this.look.grain = 0.025
+    // Tone mapping pales bright daylight; a little more color brings it back.
+    this.look.saturation = 1.18
     this.look.flash = 1
     this.look.flashColor.setRGB(1, 1, 1)
   }
@@ -287,19 +289,30 @@ export class WorldStage implements Stage {
     let yaw = this.#yaw
     let pitch = this.#pitch
     let distance = this.#distance
-    this.#target.set(walker.x, walker.y + 1.15, walker.z)
+    this.#target.set(walker.x, walker.y + 1.35, walker.z)
     if (expedition.phase !== 'exploring') {
       // Frame the girl and the treasure from the side while it opens.
       const treasure = expedition.treasure
       const dx = treasure.x - walker.x
       const dz = treasure.z - walker.z
-      const side = Math.atan2(dx, dz) + Math.PI / 2
+      // Of the two sides, the one nearer to where the camera already is.
+      const along = Math.atan2(dx, dz)
+      const left = along + Math.PI / 2
+      const right = along - Math.PI / 2
+      const side =
+        Math.abs(angleDelta(this.#yaw, left)) < Math.abs(angleDelta(this.#yaw, right))
+          ? left
+          : right
       yaw = this.#yaw + angleDelta(this.#yaw, side)
-      this.#yaw = approach(this.#yaw, yaw, 1.6, dt)
+      this.#yaw = approach(this.#yaw, yaw, 2.2, dt)
       yaw = this.#yaw
-      pitch = 0.18
-      distance = 5.2
-      this.#target.set((walker.x + treasure.x) / 2, walker.y + 1.4, (walker.z + treasure.z) / 2)
+      pitch = 0.26
+      distance = 6.4
+      this.#target.set(
+        walker.x * 0.4 + treasure.x * 0.6,
+        walker.y + 1.5,
+        walker.z * 0.4 + treasure.z * 0.6,
+      )
     }
     // The arrival swoops down from high above.
     const swoop = 1 - (1 - intro) ** 3
