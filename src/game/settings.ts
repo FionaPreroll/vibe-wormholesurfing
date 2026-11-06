@@ -39,6 +39,8 @@ export interface Settings {
   readonly reducedMotion: boolean
   readonly vibration: boolean
   readonly showFps: boolean
+  /** Draws the circles the ride's rules test, for debugging. */
+  readonly showHitboxes: boolean
   /** The Android app looks for a newer build at every start: off unless the player says yes. */
   readonly checkUpdates: boolean
   /** Whether the app asked the player about looking for updates yet. */
@@ -66,6 +68,7 @@ export const DEFAULT_SETTINGS: Settings = {
   reducedMotion: prefersLessMotion(),
   vibration: true,
   showFps: false,
+  showHitboxes: false,
   checkUpdates: false,
   updatesAsked: false,
 }

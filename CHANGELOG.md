@@ -35,6 +35,8 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 - Change every key and controller button: Settings → Controller and keys gives each action two keys and two buttons. Choose a slot and press the key or button for it; it moves from wherever it was. Back to the defaults is one button away.
 - Tune the controller's sticks: how strongly each answers, how large its dead zone is, and its shape: round, cross (each axis on its own, for straight lines) or square (the slightest push along an axis counts). A picture shows what the stick does as you lean it. The sticks can also be swapped.
 - A Full screen button on the title screen in every browser, not only on touch screens, so a controller can reach it too.
+- The mouse pointer goes while you play with a controller or the keys, and when the mouse rests a moment in a ride or a world; it comes back as soon as the mouse moves.
+- A debug setting shows the hitboxes in rides: the circles the ship, orbs, sparks and warp holes are tested with, and the edge of the field the ship stays in.
 - The arrow keys move through the menus and dialogs as the D-pad does: up and down from row to row, left and right along a row and through lists. Sliders keep left and right for themselves.
 - Make the HUD smaller or larger, from a fifth of its size to four times, and the menus, dialogs and the treasure card from half to twice their size, under Display in the settings. Each panel of the HUD grows from its own corner.
 - Invert the camera's up and down, for the stick, the keys, the mouse and fingers alike, apart from inverting the ship's.

@@ -9,7 +9,7 @@ import { type DebugLog, debugLog, percentile } from '../game/debugLog'
 import type { Quality } from '../game/settings'
 import type { ControlFrame, Input } from '../input/input'
 import { disposeEnvironments } from './environments'
-import { afterNextFrame } from './frames'
+import { afterNextFrame, frameKind } from './frames'
 import { finishPass, type Look, sanitizePass } from './post'
 import { ProbePass } from './probe'
 import { levelOf, type QualityLevel } from './quality'
@@ -60,13 +60,6 @@ export interface FrameStats {
 
 /** Milliseconds of shader compiling a frame may take while a stage is made ready. */
 const PREPARE_BUDGET_MS = 8
-
-/**
- * A frame later than this did not stall: the browser stopped drawing, as macOS does for a window
- * that is covered, while the page still counts as visible. The game's own longest stalls, such as
- * compiling shaders, stay well below it.
- */
-const PAUSE_S = 3
 
 /**
  * The renderer and its loop. It draws the current stage with bloom and a finishing pass, and
@@ -385,14 +378,15 @@ export class Engine {
       this.#frame = requestAnimationFrame(loop)
       const raw = (now - this.#last) / 1000
       this.#last = now
-      const resumed = raw > PAUSE_S
+      const kind = frameKind(raw, document.visibilityState === 'visible')
+      const resumed = kind === 'paused'
       if (resumed) {
         // The browser stopped drawing for a while, as it does for a window that is covered or on
         // another desktop: not a stall of the game. The second being counted starts afresh.
         this.#log.log('info', `Drawing paused for ${raw.toFixed(1)} s`, { screen: this.label })
         this.#frameTimes = []
         this.#secondStart = now
-      } else if (raw > 0.25 && document.visibilityState === 'visible')
+      } else if (kind === 'long')
         this.#log.log('glitch', `Long frame: ${Math.round(raw * 1000)} ms`, {
           screen: this.label,
           // How much of it the game's own drawing took, and how many shader programs were

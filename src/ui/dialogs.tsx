@@ -225,6 +225,11 @@ export function SettingsDialog({
         <h3>{t('backupSection')}</h3>
         <SaveTools save={save} onImport={onImport} />
         <h3>{t('debugTitle')}</h3>
+        <Toggle
+          label={t('showHitboxes')}
+          checked={settings.showHitboxes}
+          onChange={(showHitboxes) => set({ showHitboxes })}
+        />
         <DebugTools
           report={debugReport}
           summary={debugSummary}

@@ -66,6 +66,7 @@ const settingsSchema = z.object({
   reducedMotion: z.boolean().catch(DEFAULT_SETTINGS.reducedMotion),
   vibration: z.boolean().catch(DEFAULT_SETTINGS.vibration),
   showFps: z.boolean().catch(DEFAULT_SETTINGS.showFps),
+  showHitboxes: z.boolean().catch(DEFAULT_SETTINGS.showHitboxes),
   checkUpdates: z.boolean().catch(DEFAULT_SETTINGS.checkUpdates),
   updatesAsked: z.boolean().catch(DEFAULT_SETTINGS.updatesAsked),
 })

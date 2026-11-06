@@ -1042,6 +1042,12 @@ select {
   font-weight: 700;
 }
 
+/* The mouse pointer goes while the mouse is not in use (src/ui/cursor.ts). */
+:root[data-cursor="hidden"],
+:root[data-cursor="hidden"] * {
+  cursor: none;
+}
+
 /* Controller and keys */
 
 .field-group {

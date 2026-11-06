@@ -26,6 +26,7 @@ import { offerUpdatesOnStart } from './appUpdates'
 import { CollectionScreen, type Flight } from './CollectionScreen'
 import { ControlsDialog } from './ControlsDialog'
 import { learnKeyboardLayout } from './controlNames'
+import { watchCursor } from './cursor'
 import { HelpDialog, PauseMenu, SettingsDialog } from './dialogs'
 import { enterFullScreen } from './FullScreen'
 import {
@@ -211,6 +212,19 @@ export function App({ store }: Props) {
 
   // Key names as the keyboard prints them, where the browser tells.
   useEffect(() => learnKeyboardLayout(), [])
+
+  // The mouse pointer goes while the mouse is not in use.
+  useEffect(
+    () =>
+      watchCursor(
+        input.source,
+        () =>
+          (screen.value === 'ride' || screen.value === 'world') &&
+          !paused.value &&
+          overlay.value === undefined,
+      ),
+    [input],
+  )
 
   // Sounds and buzzes for everything that happens.
   useEffect(

@@ -3,6 +3,7 @@ import { approach, clamp, damp } from '../../core/math'
 import { autopilot, type Hole, RIDE, Ride, type RideEvent, type RideOutcome } from '../../core/ride'
 import { emit } from '../../game/events'
 import { rideHud } from '../../game/hud'
+import { settings } from '../../game/settings'
 import type { ControlFrame } from '../../input/input'
 import { applyFov, type Stage } from '../engine'
 import { spaceEnvironment } from '../environments'
@@ -14,6 +15,7 @@ import type { QualityLevel } from '../quality'
 import { uniform } from '../uniforms'
 import { bendAt, bendFor } from './bend'
 import { Ghost, LIGHT_ORDER } from './ghost'
+import { Hitboxes } from './hitboxes'
 import { Bursts, buildDust, buildStreaks } from './particles'
 import { Shards } from './shards'
 import { HOLE_LIGHT, HoleView, ThingKit } from './things'
@@ -68,6 +70,8 @@ export class RideStage implements Stage {
    * keep the programs alive for the orbs, sparks and holes to come.
    */
   readonly #samples = new THREE.Group()
+  /** The rules' circles, drawn when the debug setting asks for them. */
+  readonly #hitboxes = new Hitboxes()
   #see = 1
   readonly #kit = new ThingKit()
   readonly #orbs = new Map<number, THREE.Group>()
@@ -139,6 +143,7 @@ export class RideStage implements Stage {
     this.#samples.add(new HoleView('white', 4, 3).group)
     this.#samples.position.set(0, 0, 60)
     scene.add(this.#samples)
+    scene.add(this.#hitboxes.group)
     this.#trails = [
       new Trail(22, 0.035, new THREE.Color(0.45, 0.9, 1.0)),
       new Trail(22, 0.035, new THREE.Color(1.0, 0.55, 0.9)),
@@ -186,6 +191,7 @@ export class RideStage implements Stage {
 
     this.#updateShip(dt)
     this.#updateThings(dt)
+    this.#updateHitboxes()
     this.#shards.update(dt, this.#travel, this.#bend)
     this.#bursts.update(dt, forward)
     uniform(this.#kit.orbMaterial.uniforms, 'uTime').value = this.#time
@@ -295,6 +301,37 @@ export class RideStage implements Stage {
       const head = tip.getWorldPosition(new THREE.Vector3())
       trail.update(head, 0.12 + ride.speed * 0.08, 0.35 + Math.min(1, ride.speed - 0.5) * 0.4)
     }
+  }
+
+  /** Draws the rules' circles over the ride, where they are asked for. */
+  #updateHitboxes(): void {
+    const boxes = this.#hitboxes
+    boxes.group.visible = settings.value.showHitboxes
+    if (!boxes.group.visible) return
+    const ride = this.ride
+    boxes.begin()
+    const circle = (
+      kind: Parameters<Hitboxes['circle']>[0],
+      x: number,
+      y: number,
+      z: number,
+      radius: number,
+    ) => {
+      bendAt(z, this.#bend, this.#offset)
+      boxes.circle(kind, x + this.#offset.x, y + this.#offset.y, -z, radius)
+    }
+    circle('field', 0, 0, 0, RIDE.fieldRadius)
+    circle('ship', ride.ship.x, ride.ship.y, 0, RIDE.shipRadius)
+    for (const orb of ride.orbs) if (!orb.taken) circle('orb', orb.x, orb.y, orb.z, RIDE.orbRadius)
+    for (const spark of ride.sparks) circle('spark', spark.x, spark.y, spark.z, RIDE.sparkRadius)
+    for (const hole of ride.holes)
+      circle('hole', hole.x, hole.y, hole.z, hole.radius * RIDE.holeInside)
+    boxes.end()
+  }
+
+  /** How many hitbox circles show, for tests and the debug hook. */
+  get hitboxesShown(): number {
+    return this.#hitboxes.shown
   }
 
   /** Puts every orb, spark and hole where the simulation has it, bent like the tunnel. */
@@ -486,6 +523,7 @@ export class RideStage implements Stage {
     this.#ship.dispose()
     this.#girl.dispose()
     this.#ghost.dispose()
+    this.#hitboxes.dispose()
     this.#kit.dispose()
   }
 }

@@ -50,6 +50,8 @@ export const RIDE = {
   shipRadius: 0.85,
   orbRadius: 0.8,
   sparkRadius: 0.75,
+  /** The share of a hole's radius that takes the ship: its middle must be inside it. */
+  holeInside: 0.8,
   /**
    * Holes pull at the ship below `safeSpeed`, harder the slower it is. Below `captureSpeed` the
    * next hole takes it whatever the controls say.
@@ -357,7 +359,7 @@ export class Ride {
     if (this.demo) return
     for (const hole of this.holes) {
       if (hole.z > 0 || hole.z + travel < 0) continue
-      const inside = length2(hole.x - ship.x, hole.y - ship.y) < hole.radius * 0.8
+      const inside = length2(hole.x - ship.x, hole.y - ship.y) < hole.radius * RIDE.holeInside
       if (inside || hole === this.captured) {
         this.#enter(hole)
         return

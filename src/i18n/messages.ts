@@ -101,6 +101,8 @@ export const en = {
   mouseSteer: 'Steer the ship with the mouse pointer',
   lookSpeed: 'Camera speed',
   invertLookY: 'Invert the camera up and down',
+  showHitboxes:
+    'Show hitboxes in rides: the circles the ship, orbs, sparks and warp holes are tested with',
   controlsButton: 'Controller and keys',
   controlsTitle: 'Controller and keys',
   sticksSection: 'Sticks',
@@ -550,6 +552,8 @@ export const de: Record<MessageKey, string> = {
   mouseSteer: 'Schiff mit dem Mauszeiger steuern',
   lookSpeed: 'Kameratempo',
   invertLookY: 'Kamera hoch und runter vertauschen',
+  showHitboxes:
+    'Hitboxen im Flug zeigen: die Kreise, mit denen Schiff, Orbs, Funken und Warp-Löcher geprüft werden',
   controlsButton: 'Controller und Tasten',
   controlsTitle: 'Controller und Tasten',
   sticksSection: 'Sticks',
