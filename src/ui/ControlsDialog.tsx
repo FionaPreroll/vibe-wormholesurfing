@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks'
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks'
 import type { Settings } from '../game/settings'
 import { type MessageKey, t } from '../i18n'
 import {
@@ -184,8 +184,9 @@ export function ControlsDialog({ settings, padStyle, onChange, onClose }: Props)
   const setBindings = (next: Bindings) => onChange({ ...latest.current, bindings: next })
   const setSticks = (next: StickSettings) => onChange({ ...latest.current, sticks: next })
 
-  // Waiting for a key: it goes into the slot, Esc cancels and Backspace empties the slot.
-  useEffect(() => {
+  // Waiting for a key: it goes into the slot, Esc cancels and Backspace empties the slot. The
+  // listening starts as the slot says so, not a frame later, so a quick key is not lost.
+  useLayoutEffect(() => {
     if (!listening) return
     const { device, action, slot } = listening
     const onKey = (event: KeyboardEvent) => {
@@ -210,7 +211,7 @@ export function ControlsDialog({ settings, padStyle, onChange, onClose }: Props)
   }, [listening])
 
   // Waiting for a controller button: the menus leave the controller alone meanwhile.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (listening?.device !== 'pad') return
     const { action, slot } = listening
     release.current?.()

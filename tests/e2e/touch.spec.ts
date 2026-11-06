@@ -1,6 +1,6 @@
 import { devices } from '@playwright/test'
 import { expect, test } from './coverage'
-import { openGame, warpInto } from './game'
+import { dismissHint, openGame, warpInto } from './game'
 
 test.use({ ...devices['Pixel 7 landscape'], locale: 'en-US' })
 
@@ -9,7 +9,7 @@ test('plays on a phone held sideways, with a stick under the finger and a jump b
 }) => {
   await openGame(page)
   await page.getByRole('button', { name: 'Fly!' }).click()
-  await page.getByRole('button', { name: 'Got it' }).click()
+  await dismissHint(page)
   await expect(page.getByText(/your finger/)).toBeHidden()
 
   // A finger on the screen brings up the stick.

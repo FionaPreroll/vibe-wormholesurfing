@@ -55,5 +55,7 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 - In the Lagoon and the Crystal Sea, the girl no longer gets stuck at the edge of deep water.
 - The girl no longer walks into the treasure capsule; she stops at its pedestal.
 - On phones, help, the settings and the other dialogs fit the screen and scroll with a finger; before, they ran off the bottom of the screen.
+- The treasure card after opening a capsule no longer shows scroll bars on large screens: its turning rays reached past its edge. Once it has landed, Fly again has the focus, so a controller's A or Enter flies on, the D-pad picks Collection or Title screen, and B goes back to the title screen.
+- The hints at the start of the first ride and the first walk no longer wait for a click: they go by themselves after ten seconds (a bar shows the time left), or at a single press of A or B on a controller, or Enter or Space. The mouse steers across them, too.
 - With a controller, every setting can be reached: the D-pad and the left stick go down row by row without skipping tick boxes or rows, left and right go along a row of buttons, and move sliders and switch lists such as the graphics quality and the language. The right stick scrolls long dialogs.
 - At the start of a ride the ship no longer darts toward the mouse pointer, which still rests on the button that started the ride: the mouse steers once it is moved during the ride, or clicked on the game.

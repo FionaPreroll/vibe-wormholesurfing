@@ -1,5 +1,5 @@
 import { expect, test } from './coverage'
-import { openGame, watchErrors } from './game'
+import { dismissHint, openGame, watchErrors } from './game'
 
 test.use({ locale: 'en-US' })
 
@@ -19,7 +19,7 @@ test('flies a ride that counts light-years and pauses with Escape', async ({ pag
   await openGame(page)
   await page.getByRole('button', { name: 'Fly!' }).click()
   await expect(page.getByRole('heading', { name: 'Surf the wormhole' })).toBeVisible()
-  await page.getByRole('button', { name: 'Got it' }).click()
+  await dismissHint(page)
   // The distance is an LCD, a picture of digits labelled with its number.
   const distance = page.locator('.distance').getByRole('img', { name: /^light-years: / })
   await expect(distance).not.toHaveAttribute('aria-label', 'light-years: 0')

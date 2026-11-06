@@ -17,6 +17,16 @@ export async function openGame(page: Page, quality?: string): Promise<void> {
   await expect(page.getByRole('button', { name: 'Fly!' })).toBeEnabled()
 }
 
+/**
+ * Lets the first ride's hint go: a click on Got it, unless it went by itself already, as it does
+ * after ten seconds, which slow software frames can take to reach the click.
+ */
+export async function dismissHint(page: Page): Promise<void> {
+  const gotIt = page.getByRole('button', { name: /^Got it/ })
+  await gotIt.click({ timeout: 8_000 }).catch(() => {})
+  await expect(gotIt).toBeHidden()
+}
+
 /** Puts a warp hole right in front of the ship, so the ride ends there. */
 export async function warpInto(page: Page, color = 'green', tier = 3): Promise<void> {
   await page.evaluate(

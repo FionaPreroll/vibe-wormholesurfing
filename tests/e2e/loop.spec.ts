@@ -1,5 +1,5 @@
 import { expect, test } from './coverage'
-import { openGame, walkToTreasure, warpInto, watchErrors } from './game'
+import { dismissHint, openGame, walkToTreasure, warpInto, watchErrors } from './game'
 
 test.use({ locale: 'en-US' })
 
@@ -8,7 +8,7 @@ test('rides into a hole, finds the treasure and keeps it in the collection', asy
   test.setTimeout(360_000)
   await openGame(page)
   await page.getByRole('button', { name: 'Fly!' }).click()
-  await page.getByRole('button', { name: 'Got it' }).click()
+  await dismissHint(page)
   await warpInto(page, 'green', 3)
 
   await expect(page.getByText('The Canyon')).toBeVisible({ timeout: 60_000 })
@@ -24,6 +24,13 @@ test('rides into a hole, finds the treasure and keeps it in the collection', asy
   await expect(card.getByRole('button', { name: 'Fly again' })).toBeVisible({ timeout: 120_000 })
   await expect(card.getByText('New!')).toBeVisible()
   const name = await card.getByRole('heading').textContent()
+  // The card's turning rays do not make it scroll, and once it has landed, Fly again has the focus
+  // for a controller's A or the Enter key.
+  const overflow = await page
+    .locator('.reward-card')
+    .evaluate((element) => element.scrollWidth - element.clientWidth)
+  expect(overflow).toBe(0)
+  await expect(card.getByRole('button', { name: 'Fly again' })).toBeFocused()
 
   await card.getByRole('button', { name: 'Collection' }).click()
   await expect(page.getByText('1 of 40 treasures found')).toBeVisible()
@@ -39,7 +46,7 @@ test('leaving a ride during the warp drops the world being made ready', async ({
   const errors = watchErrors(page)
   await openGame(page)
   await page.getByRole('button', { name: 'Fly!' }).click()
-  await page.getByRole('button', { name: 'Got it' }).click()
+  await dismissHint(page)
   await warpInto(page, 'blue', 2)
   // At once, while the world behind the hole is still being built.
   await page.keyboard.press('Escape')

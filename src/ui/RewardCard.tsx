@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'preact/hooks'
 import { RARITIES } from '../core/rewards'
 import type { Found } from '../game/hud'
 import { itemName, number, rarityName, t, worldName } from '../i18n'
@@ -12,8 +13,22 @@ interface Props {
   readonly onTitle: () => void
 }
 
-/** What the treasure held: its name and rarity, whether it is new, and where to go next. */
+/** How long the card holds back the focus, so a press meant for the treasure does not fly on. */
+const FOCUS_DELAY_MS = 900
+
+/**
+ * What the treasure held: its name and rarity, whether it is new, and where to go next. Once it
+ * has landed, Fly again has the focus, so a controller's A or the Enter key flies on.
+ */
 export function RewardCard({ found, picture, onFlyAgain, onCollection, onTitle }: Props) {
+  const flyAgain = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!document.activeElement || document.activeElement === document.body)
+        flyAgain.current?.focus()
+    }, FOCUS_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [])
   const { reward } = found
   const rarity = RARITIES.indexOf(reward.item.rarity)
   const color = RARITY_CSS[rarity] ?? '#ffffff'
@@ -26,7 +41,10 @@ export function RewardCard({ found, picture, onFlyAgain, onCollection, onTitle }
         aria-labelledby="reward-name"
         style={{ '--rarity': color }}
       >
-        <div class="reward-rays" aria-hidden="true" />
+        {/* The rays turn beyond the card's edge: clipped, so the card never scrolls for them. */}
+        <div class="reward-rays-clip" aria-hidden="true">
+          <div class="reward-rays" />
+        </div>
         <p class="reward-rarity">{rarityName(reward.item.rarity)}</p>
         {picture && <img class="reward-picture" src={picture} alt="" width={160} height={160} />}
         <h2 id="reward-name">{itemName(reward.item.id)}</h2>
@@ -43,7 +61,7 @@ export function RewardCard({ found, picture, onFlyAgain, onCollection, onTitle }
           {reward.shiny && <span class="badge shiny">{t('shiny')}</span>}
         </div>
         <div class="actions">
-          <button type="button" class="primary" onClick={onFlyAgain}>
+          <button type="button" class="primary" ref={flyAgain} onClick={onFlyAgain}>
             {t('flyAgain')}
           </button>
           <button type="button" onClick={onCollection}>

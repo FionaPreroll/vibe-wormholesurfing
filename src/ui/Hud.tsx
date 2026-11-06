@@ -1,12 +1,13 @@
 import type { ComponentChildren } from 'preact'
-import { useEffect, useState } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import { RIDE } from '../core/ride'
 import type { WorldId } from '../core/worlds'
 import { rideHud, worldHud } from '../game/hud'
 import { settings } from '../game/settings'
 import { t, worldName } from '../i18n'
+import { PAD, Pads } from '../input/gamepad'
 import type { Input } from '../input/input'
-import { buttonsFor, directionKeys, keysFor } from './controlNames'
+import { buttonsFor, directionKeys, keysFor, padButtonName } from './controlNames'
 import { Lcd } from './lcd'
 import { touchScreen } from './pointer'
 
@@ -173,6 +174,66 @@ interface RideProps {
   readonly onHintSeen: () => void
 }
 
+/** How long a hint stays before it goes by itself. */
+export const HINT_MS = 10_000
+
+/**
+ * Lets a hint go by itself after a while, or at a single press of a controller's A or B, Enter or
+ * Space, so reading it never takes a hand off the steering.
+ */
+function useHintDismiss(active: boolean, onDismiss: () => void): void {
+  const latest = useRef(onDismiss)
+  latest.current = onDismiss
+  useEffect(() => {
+    if (!active) return
+    let done = false
+    const dismiss = () => {
+      if (done) return
+      done = true
+      latest.current()
+    }
+    const timer = setTimeout(dismiss, HINT_MS)
+    const pads = new Pads()
+    // Buttons already down when the hint shows do not count.
+    pads.poll()
+    let frame = 0
+    const poll = () => {
+      const { pressed } = pads.poll()
+      if (pressed.has(PAD.a) || pressed.has(PAD.b)) dismiss()
+      else frame = requestAnimationFrame(poll)
+    }
+    frame = requestAnimationFrame(poll)
+    const onKey = (event: KeyboardEvent) => {
+      if (['Enter', 'NumpadEnter', 'Space'].includes(event.code)) dismiss()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      clearTimeout(timer)
+      cancelAnimationFrame(frame)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [active])
+}
+
+/** The hint's button, naming the controller's A where a controller plays. */
+function GotIt({
+  input,
+  onClick,
+  small = false,
+}: {
+  readonly input: Input
+  readonly onClick: () => void
+  readonly small?: boolean
+}) {
+  const pad = input.source.value === 'gamepad'
+  return (
+    <button type="button" class={small ? 'ghost small' : 'primary'} onClick={onClick}>
+      {t('gotIt')}
+      {pad && <kbd>{padButtonName(PAD.a, input.padStyle.value)}</kbd>}
+    </button>
+  )
+}
+
 /** Over the ride: light-years, speed, the pull of holes, chains of orbs and the controls. */
 export function RideHud({ input, best, onPause, onRecenter, hint, onHintSeen }: RideProps) {
   const hud = rideHud.value
@@ -181,6 +242,7 @@ export function RideHud({ input, best, onPause, onRecenter, hint, onHintSeen }: 
   const gyro = settings.value.gyro && input.gyro.state.value === 'on'
   const source = input.source.value
   const { bindings, sticks } = settings.value
+  useHintDismiss(hint, onHintSeen)
   const how = gyro
     ? t('rideHintGyro')
     : source === 'gamepad'
@@ -257,12 +319,11 @@ export function RideHud({ input, best, onPause, onRecenter, hint, onHintSeen }: 
         <PauseButton onPause={onPause} />
       </div>
       {hint && (
-        <div class="hint-card" role="dialog" aria-labelledby="ride-hint-title">
+        <div class="hint-card" role="status" aria-labelledby="ride-hint-title">
           <h2 id="ride-hint-title">{t('rideHintTitle')}</h2>
           <p>{t('rideHint', { keys: how })}</p>
-          <button type="button" class="primary" onClick={onHintSeen}>
-            {t('gotIt')}
-          </button>
+          <GotIt input={input} onClick={onHintSeen} />
+          <span class="hint-timer" aria-hidden="true" />
         </div>
       )}
       <TouchSticks input={input} />
@@ -293,6 +354,7 @@ export function WorldHud({ input, world, tier, distance, onPause, hint, onHintSe
   const pad = input.source.value === 'gamepad'
   const exploring = hud.phase === 'exploring'
   const { bindings, sticks } = settings.value
+  useHintDismiss(hint && exploring, onHintSeen)
   const style = input.padStyle.value
   // Opening takes the interact button, or the jump button near the treasure.
   const openWith = pad
@@ -383,9 +445,8 @@ export function WorldHud({ input, world, tier, distance, onPause, hint, onHintSe
                     jump: keysFor(bindings, 'confirm'),
                   })}
           </p>
-          <button type="button" class="ghost small" onClick={onHintSeen}>
-            {t('gotIt')}
-          </button>
+          <GotIt input={input} onClick={onHintSeen} small />
+          <span class="hint-timer" aria-hidden="true" />
         </div>
       )}
       <TouchSticks input={input} />

@@ -510,7 +510,7 @@ export function App({ store }: Props) {
         () => {
           if (overlay.value) closeOverlay()
           else if (paused.value) resume()
-          else if (screen.value === 'collection' || screen.value === 'about') showTitle()
+          else if (screen.value === 'collection' || screen.value === 'about' || card) showTitle()
         },
       ),
     [card, resume, showTitle],

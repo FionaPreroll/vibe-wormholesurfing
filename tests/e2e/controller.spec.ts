@@ -140,9 +140,11 @@ test('keys and controller buttons can be bound anew, named as the controller pri
   await expect(jumpPad).toHaveText('Press a button …')
   await press(page, R2)
   await expect(jumpPad).toHaveText('R2')
-  // The menus have the controller back: B goes back to the settings.
-  await press(page, B)
-  await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible()
+  // The menus have the controller back once R2 is up again: B goes back to the settings.
+  await expect(async () => {
+    await press(page, B)
+    await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible({ timeout: 5_000 })
+  }).toPass()
 
   // A key moves from the camera to jumping.
   await page.getByRole('button', { name: 'Controller and keys' }).click()
