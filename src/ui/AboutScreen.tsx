@@ -35,17 +35,58 @@ function AppVersion() {
 }
 
 /** The way from the web version to the app, or from the app back to the web version. */
-function WebAndApp() {
+/** Whether the device is an Android phone or tablet, where the Android app can go. */
+function onAndroid(): boolean {
+  return typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
+}
+
+/** The Android app's download and its release page. */
+function AndroidLinks() {
+  return (
+    <div class="tool-buttons">
+      <a class="link-button" href={APK_URL}>
+        {t('androidDownload')}
+      </a>
+      <a class="link-button" href={ANDROID_RELEASE} target="_blank" rel="noreferrer">
+        {t('androidRelease')}
+      </a>
+    </div>
+  )
+}
+
+/**
+ * How the game runs here, and the other ways: the Android app names its version, the web app the
+ * browser installed says how it updates and offers the Android app on Android, and a browser tab
+ * offers both.
+ */
+export function WebAndApp() {
+  const web = (
+    <p>
+      <a class="link-button" href={WEB_URL} target="_blank" rel="noreferrer">
+        {t('openWeb')}
+      </a>
+    </p>
+  )
+  if (isApp()) {
+    return (
+      <>
+        <p>{t('playingAndroidApp')}</p>
+        <AppVersion />
+        {web}
+      </>
+    )
+  }
   if (runsAsApp()) {
     return (
       <>
-        <p>{t('playingInApp')}</p>
-        {isApp() && <AppVersion />}
-        <p>
-          <a class="link-button" href={WEB_URL} target="_blank" rel="noreferrer">
-            {t('openWeb')}
-          </a>
-        </p>
+        <p>{t('playingInstalled')}</p>
+        {onAndroid() && (
+          <>
+            <p>{t('androidAppInstead')}</p>
+            <AndroidLinks />
+          </>
+        )}
+        {web}
       </>
     )
   }
@@ -54,14 +95,7 @@ function WebAndApp() {
       <p>{t('playingInBrowser')}</p>
       <h3>{t('androidApp')}</h3>
       <p>{t('androidAppText')}</p>
-      <div class="tool-buttons">
-        <a class="link-button" href={APK_URL}>
-          {t('androidDownload')}
-        </a>
-        <a class="link-button" href={ANDROID_RELEASE} target="_blank" rel="noreferrer">
-          {t('androidRelease')}
-        </a>
-      </div>
+      <AndroidLinks />
       <h3>{t('installApp')}</h3>
       {installPrompt.value ? (
         <p>

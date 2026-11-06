@@ -313,7 +313,12 @@ export const en = {
   shareShiny: 'shiny',
   shareFarthest: 'farthest ride',
   appTitleSection: 'Web and app',
-  playingInApp: 'You are playing the installed app.',
+  playingAndroidApp:
+    'You are playing the Android app. It plays offline, and looks for a new version at every start if you let it in the settings.',
+  playingInstalled:
+    'You are playing the web app your browser installed. It plays offline, and when a new version comes out it says so and loads it with a tap.',
+  androidAppInstead:
+    'On Android, there is also an app of its own, which fills the screen and keeps it on while you steer by tilting:',
   playingInBrowser: 'You are playing in the browser.',
   installApp: 'Install as an app',
   installHint:
@@ -755,7 +760,12 @@ export const de: Record<MessageKey, string> = {
   shareShiny: 'schillernd',
   shareFarthest: 'weitester Flug',
   appTitleSection: 'Web und App',
-  playingInApp: 'Du spielst die installierte App.',
+  playingAndroidApp:
+    'Du spielst die Android-App. Sie läuft offline und sucht bei jedem Start nach einer neuen Version, wenn du das in den Einstellungen erlaubst.',
+  playingInstalled:
+    'Du spielst die Web-App, die dein Browser installiert hat. Sie läuft offline, und wenn eine neue Version erscheint, sagt sie Bescheid und lädt sie mit einem Tipp.',
+  androidAppInstead:
+    'Für Android gibt es auch eine eigene App, die den ganzen Bildschirm füllt und ihn anlässt, während du durch Neigen steuerst:',
   playingInBrowser: 'Du spielst im Browser.',
   installApp: 'Als App installieren',
   installHint:
