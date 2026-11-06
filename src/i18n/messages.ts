@@ -25,6 +25,7 @@ export const en = {
   about: 'About',
   fullScreen: 'Full screen',
   leaveFullScreen: 'Leave full screen',
+  fullScreenRefused: 'This browser goes full screen only at a click, a tap or a key: try Enter.',
   bestDistance: 'Farthest ride: {distance} light-years',
   foundCount: 'Treasures: {found} of {total}',
   shinyCount: 'Shiny: {count}',
@@ -472,6 +473,8 @@ export const de: Record<MessageKey, string> = {
   about: 'Über das Spiel',
   fullScreen: 'Vollbild',
   leaveFullScreen: 'Vollbild beenden',
+  fullScreenRefused:
+    'Dieser Browser geht nur per Klick, Tippen oder Taste in den Vollbildmodus: Versuch es mit Enter.',
   bestDistance: 'Weitester Flug: {distance} Lichtjahre',
   foundCount: 'Schätze: {found} von {total}',
   shinyCount: 'Schillernd: {count}',

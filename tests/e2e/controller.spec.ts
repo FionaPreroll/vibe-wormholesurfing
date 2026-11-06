@@ -161,3 +161,26 @@ test('keys and controller buttons can be bound anew, named as the controller pri
   await expect(jumpKey).toHaveText('—')
   await expect(dialog.getByRole('button', { name: /^Jump, open: Controller 1/ })).toHaveText('✕')
 })
+
+test('the title screen offers full screen in a browser, to a controller too', async ({ page }) => {
+  await plugInController(page)
+  await openGame(page)
+  const button = page.getByRole('button', { name: 'Full screen' })
+  await button.focus()
+  await press(page, A)
+  const leave = page.getByRole('button', { name: 'Leave full screen' })
+  await expect(leave).toBeVisible()
+  await expect(leave).toBeFocused()
+  await press(page, A)
+  await expect(button).toBeVisible()
+
+  // Where a browser does not take a controller's press as the player's own, as Safari, the game
+  // says what will do instead.
+  await page.evaluate(() => {
+    document.documentElement.requestFullscreen = () =>
+      Promise.reject(new TypeError('Permissions check failed'))
+  })
+  await button.focus()
+  await press(page, A)
+  await expect(page.getByText(/goes full screen only at a click/)).toBeVisible()
+})

@@ -61,6 +61,13 @@ export interface FrameStats {
 const PREPARE_BUDGET_MS = 8
 
 /**
+ * A frame later than this did not stall: the browser stopped drawing, as macOS does for a window
+ * that is covered, while the page still counts as visible. The game's own longest stalls, such as
+ * compiling shaders, stay well below it.
+ */
+const PAUSE_S = 3
+
+/**
  * The renderer and its loop. It draws the current stage with bloom and a finishing pass, and
  * lowers the resolution while frames come late, raising it again once they are on time.
  *
@@ -327,9 +334,16 @@ export class Engine {
       this.#frame = requestAnimationFrame(loop)
       const raw = (now - this.#last) / 1000
       this.#last = now
-      if (raw > 0.25 && document.visibilityState === 'visible')
+      const resumed = raw > PAUSE_S
+      if (resumed) {
+        // The browser stopped drawing for a while, as it does for a window that is covered or on
+        // another desktop: not a stall of the game. The second being counted starts afresh.
+        this.#log.log('info', `Drawing paused for ${raw.toFixed(1)} s`, { screen: this.label })
+        this.#frameTimes = []
+        this.#secondStart = now
+      } else if (raw > 0.25 && document.visibilityState === 'visible')
         this.#log.log('glitch', `Long frame: ${Math.round(raw * 1000)} ms`, { screen: this.label })
-      this.#tick(Math.min(0.1, Math.max(0, raw)), now, raw)
+      this.#tick(Math.min(0.1, Math.max(0, raw)), now, resumed ? undefined : raw)
     }
     this.#frame = requestAnimationFrame(loop)
   }
@@ -339,7 +353,8 @@ export class Engine {
     this.#frame = 0
   }
 
-  #tick(dt: number, now: number, raw: number): void {
+  /** `raw` is the frame's real time, left out after a pause so it does not count as a frame. */
+  #tick(dt: number, now: number, raw: number | undefined): void {
     const controls = this.input.frame(dt)
     this.onFrame?.(dt, controls)
     const stage = this.stage
@@ -356,7 +371,7 @@ export class Engine {
     }
     this.renderer.info.reset()
     this.#composer.render(dt)
-    this.#measure(raw, now)
+    if (raw !== undefined) this.#measure(raw, now)
     this.#adapt(dt)
   }
 
