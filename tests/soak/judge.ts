@@ -49,8 +49,8 @@ export const ALLOWED: Readonly<Record<string, { amount: number; share: number }>
   nodes: { amount: 500, share: 0.25 },
   listeners: { amount: 100, share: 0.25 },
   documents: { amount: 2, share: 0 },
-  geometries: { amount: 10, share: 0.1 },
-  textures: { amount: 6, share: 0.1 },
+  geometries: { amount: 6, share: 0.05 },
+  textures: { amount: 1, share: 0 },
   programs: { amount: 6, share: 0.15 },
 }
 

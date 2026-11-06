@@ -43,6 +43,12 @@ describe('judge', () => {
     )
   })
 
+  it('finds a texture left behind by one world in five, as the first soak run on GitHub showed', () => {
+    const textures = [21, 21, 22, 22, 22, 22, 22, 23, 23, 23, 23, 23, 24, 24, 24, 24, 24, 25, 25]
+    const cycles = steady(textures.length, (round) => ({ textures: textures[round] }))
+    expect(judge(cycles, []).problems).toEqual(['Leak? Textures (low): 23 → 25 (+2, allowed +1)'])
+  })
+
   it('lets caches fill while new worlds come up, as long as they stop', () => {
     const cycles = steady(12, (round) => ({ programs: 25 + Math.min(round, 5) * 3 }))
     expect(judge(cycles, []).problems).toEqual([])

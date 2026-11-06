@@ -14,22 +14,22 @@ export function buildWater(level: number, theme: WorldTheme, heights: THREE.Text
     transparent: true,
     fog: true,
     depthWrite: false,
-    uniforms: THREE.UniformsUtils.merge([
-      THREE.UniformsLib.fog,
-      {
-        uTime: { value: 0 },
-        uLevel: { value: level },
-        uShallow: { value: new THREE.Color(colors.shallow) },
-        uDeep: { value: new THREE.Color(colors.deep) },
-        uFoam: { value: new THREE.Color(colors.foam) },
-        uSky: { value: new THREE.Color(theme.sky.horizon) },
-        uSun: { value: new THREE.Color(theme.light.sun) },
-        uSunDir: { value: new THREE.Vector3(...theme.sky.sunDir).normalize() },
-        uHeights: { value: heights },
-        uSize: { value: TERRAIN_SIZE },
-        uNoise: { value: noiseTexture() },
-      },
-    ]),
+    // The textures stay out of the merge, which would clone them: the material would hold
+    // copies, and disposing the heights would leave the copy on the GPU.
+    uniforms: {
+      ...THREE.UniformsUtils.merge([THREE.UniformsLib.fog]),
+      uTime: { value: 0 },
+      uLevel: { value: level },
+      uShallow: { value: new THREE.Color(colors.shallow) },
+      uDeep: { value: new THREE.Color(colors.deep) },
+      uFoam: { value: new THREE.Color(colors.foam) },
+      uSky: { value: new THREE.Color(theme.sky.horizon) },
+      uSun: { value: new THREE.Color(theme.light.sun) },
+      uSunDir: { value: new THREE.Vector3(...theme.sky.sunDir).normalize() },
+      uHeights: { value: heights },
+      uSize: { value: TERRAIN_SIZE },
+      uNoise: { value: noiseTexture() },
+    },
     vertexShader: /* glsl */ `
       #include <fog_pars_vertex>
       varying vec3 vWorld;
