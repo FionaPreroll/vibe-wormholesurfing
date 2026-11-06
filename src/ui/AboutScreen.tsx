@@ -1,19 +1,53 @@
 import changelog from '../../CHANGELOG.md?raw'
 import { version } from '../../package.json'
+import type { DebugReport } from '../game/debugLog'
 import { t } from '../i18n'
+import type { StoredLog } from '../persistence/logs'
 import type { Save } from '../persistence/save'
 import { renderChangelog } from './changelog'
 import { DebugTools, SaveTools } from './DataTools'
-
-const SOURCE = 'https://github.com/FionaPreroll/vibe-wormholesurfing'
+import { install, installPrompt, runsAsApp } from './install'
+import { CONTACT_EMAIL, ISSUES_URL, SOURCE_URL, WEB_URL } from './links'
 
 interface Props {
   readonly save: Save
   readonly onImport: (save: Save) => Promise<void>
-  readonly debugReport: () => string
+  readonly debugReport: () => DebugReport
   readonly debugSummary: string
+  readonly savedLogs?: readonly StoredLog[]
+  readonly session?: string
   readonly graphics: readonly string[]
   readonly onBack: () => void
+}
+
+/** The way from the web version to the app, or from the app back to the web version. */
+function WebAndApp() {
+  if (runsAsApp()) {
+    return (
+      <>
+        <p>{t('playingInApp')}</p>
+        <p>
+          <a class="link-button" href={WEB_URL} target="_blank" rel="noreferrer">
+            {t('openWeb')}
+          </a>
+        </p>
+      </>
+    )
+  }
+  return (
+    <>
+      <p>{t('playingInBrowser')}</p>
+      {installPrompt.value ? (
+        <p>
+          <button type="button" onClick={() => void install()}>
+            {t('installApp')}
+          </button>
+        </p>
+      ) : (
+        <p class="note">{t('installHint')}</p>
+      )}
+    </>
+  )
 }
 
 /** What the game is, how it is made, the player's data, the debug log and the changelog. */
@@ -22,6 +56,8 @@ export function AboutScreen({
   onImport,
   debugReport,
   debugSummary,
+  savedLogs,
+  session,
   graphics,
   onBack,
 }: Props) {
@@ -40,10 +76,28 @@ export function AboutScreen({
           <p>{t('aboutText')}</p>
           <p>{t('aboutRuns')}</p>
           <p>
-            <a href={SOURCE} target="_blank" rel="noreferrer">
+            <a href={SOURCE_URL} target="_blank" rel="noreferrer">
               {t('sourceCode')}
             </a>
           </p>
+        </section>
+        <section class="about-card">
+          <h2>{t('appTitleSection')}</h2>
+          <WebAndApp />
+        </section>
+        <section class="about-card">
+          <h2>{t('contactTitle')}</h2>
+          <p>{t('contactText')}</p>
+          <ul class="contact">
+            <li>
+              <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+            </li>
+            <li>
+              <a href={ISSUES_URL} target="_blank" rel="noreferrer">
+                {t('issueTracker')}
+              </a>
+            </li>
+          </ul>
         </section>
         <section class="about-card">
           <h2>{t('aboutMadeTitle')}</h2>
@@ -62,7 +116,12 @@ export function AboutScreen({
         <section class="about-card">
           <h2>{t('debugTitle')}</h2>
           <p>{t('debugText')}</p>
-          <DebugTools report={debugReport} summary={debugSummary} />
+          <DebugTools
+            report={debugReport}
+            summary={debugSummary}
+            saved={savedLogs}
+            session={session}
+          />
         </section>
         <section class="about-card changelog">
           <h2>{t('changes')}</h2>

@@ -4,10 +4,12 @@ import { version } from '../package.json'
 import { captureErrors, debugLog } from './game/debugLog'
 import { locale } from './i18n'
 import { App } from './ui/App'
+import { watchInstallPrompt } from './ui/install'
 import { registerServiceWorker } from './ui/updates'
 import './ui/styles.css'
 
 captureErrors()
+watchInstallPrompt()
 debugLog.setEnvironment({
   version,
   userAgent: navigator.userAgent,

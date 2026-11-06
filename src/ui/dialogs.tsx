@@ -1,6 +1,8 @@
+import type { DebugReport } from '../game/debugLog'
 import { QUALITIES, type Quality, type Settings } from '../game/settings'
 import { type MessageKey, t } from '../i18n'
 import type { GyroState } from '../input/gyro'
+import type { StoredLog } from '../persistence/logs'
 import type { Save } from '../persistence/save'
 import { DebugTools, SaveTools } from './DataTools'
 import { LanguageSwitch } from './LanguageSwitch'
@@ -26,8 +28,10 @@ interface SettingsProps {
   readonly settings: Settings
   readonly save: Save
   readonly onImport: (save: Save) => Promise<void>
-  readonly debugReport: () => string
+  readonly debugReport: () => DebugReport
   readonly debugSummary: string
+  readonly savedLogs?: readonly StoredLog[]
+  readonly session?: string
   readonly gyroState: GyroState
   readonly onChange: (settings: Settings) => void
   readonly onGyro: (on: boolean) => void
@@ -92,6 +96,8 @@ export function SettingsDialog({
   onImport,
   debugReport,
   debugSummary,
+  savedLogs,
+  session,
   gyroState,
   onChange,
   onGyro,
@@ -181,7 +187,12 @@ export function SettingsDialog({
         <h3>{t('backupSection')}</h3>
         <SaveTools save={save} onImport={onImport} />
         <h3>{t('debugTitle')}</h3>
-        <DebugTools report={debugReport} summary={debugSummary} />
+        <DebugTools
+          report={debugReport}
+          summary={debugSummary}
+          saved={savedLogs}
+          session={session}
+        />
         <button
           type="button"
           class="danger"

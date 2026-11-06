@@ -9,7 +9,7 @@ import type { Reward } from '../core/rewards'
 import type { RideOutcome } from '../core/ride'
 import { holeRadius } from '../core/ride'
 import { type WorldId, worldOf } from '../core/worlds'
-import { debugLog } from '../game/debugLog'
+import { type DebugReport, debugLog } from '../game/debugLog'
 import { type GameEvent, onGameEvent } from '../game/events'
 import { rideHud } from '../game/hud'
 import { QUALITIES, type Settings, settings } from '../game/settings'
@@ -17,6 +17,7 @@ import { t } from '../i18n'
 import { buzz, haptics } from '../input/haptics'
 import { Input } from '../input/input'
 import { watchMenuPad } from '../input/menuNav'
+import { LogArchive, type StoredLog } from '../persistence/logs'
 import { type Save, SaveBook } from '../persistence/save'
 import { browserStore, type KeyValueStore, memoryStore } from '../persistence/store'
 import type { Director } from '../view/director'
@@ -116,6 +117,9 @@ export function App({ store }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const directorRef = useRef<Director | undefined>(undefined)
   const bookRef = useRef<SaveBook | undefined>(undefined)
+  const archiveRef = useRef<LogArchive | undefined>(undefined)
+  /** The debug logs the browser kept, read when a page that lists them opens. */
+  const [savedLogs, setSavedLogs] = useState<readonly StoredLog[]>()
 
   const refresh = useCallback(() => {
     if (bookRef.current) setSave(bookRef.current.current)
@@ -134,6 +138,7 @@ export function App({ store }: Props) {
       }
       if (cancelled) return
       bookRef.current = opened
+      archiveRef.current = new LogArchive(opened.store, debugLog.openedAt.toISOString())
       // `?quality=high` and the like choose the graphics for this visit only, as for screenshots.
       const forced = new URLSearchParams(location.search).get('quality')
       const quality = QUALITIES.find((level) => level === forced)
@@ -281,8 +286,8 @@ export function App({ store }: Props) {
     })
   }, [])
 
-  /** The debug log with what the game knows now, as a file's text. */
-  const debugReport = useCallback(() => {
+  /** The debug log with what the game knows now. */
+  const debugReport = useCallback((): DebugReport => {
     const save = bookRef.current?.current
     const report = debugLog.report(version, {
       settings: settings.value,
@@ -296,8 +301,25 @@ export function App({ store }: Props) {
       address: location.href,
       visibility: document.visibilityState,
     })
-    return `${JSON.stringify(report, null, 2)}\n`
+    return report
   }, [])
+
+  // The browser keeps this session's debug log as it goes on, and when the page is left, so a
+  // glitch can be reported after a crash or a reload.
+  useEffect(() => {
+    const keep = () => void archiveRef.current?.keep(debugReport()).catch(() => undefined)
+    const hidden = () => {
+      if (document.visibilityState === 'hidden') keep()
+    }
+    const timer = setInterval(keep, 30_000)
+    document.addEventListener('visibilitychange', hidden)
+    window.addEventListener('pagehide', keep)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', hidden)
+      window.removeEventListener('pagehide', keep)
+    }
+  }, [debugReport])
 
   const importSaveFile = useCallback(
     async (imported: Save) => {
@@ -456,6 +478,24 @@ export function App({ store }: Props) {
   }
 
   const current = screen.value
+  const listsLogs = current === 'about' || overlay.value === 'settings'
+
+  // Keep the log of now first, then list what the browser kept.
+  useEffect(() => {
+    const archive = archiveRef.current
+    if (!listsLogs || !archive) return
+    let cancelled = false
+    void archive
+      .keep(debugReport())
+      .then(() => archive.list())
+      .then((logs) => {
+        if (!cancelled) setSavedLogs(logs)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [listsLogs, debugReport])
   const where = arrival.value
   const result = found.value
   return (
@@ -555,6 +595,8 @@ export function App({ store }: Props) {
           onImport={importSaveFile}
           debugReport={debugReport}
           debugSummary={summaryLine()}
+          savedLogs={savedLogs}
+          session={archiveRef.current?.session}
           gyroState={input.gyro.state.value}
           onChange={changeSettings}
           onGyro={toggleGyro}
@@ -577,6 +619,8 @@ export function App({ store }: Props) {
           onImport={importSaveFile}
           debugReport={debugReport}
           debugSummary={summaryLine()}
+          savedLogs={savedLogs}
+          session={archiveRef.current?.session}
           graphics={graphicsLines(director)}
           onBack={showTitle}
         />

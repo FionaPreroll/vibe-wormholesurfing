@@ -45,3 +45,33 @@ test('exports the save and imports it again', async ({ page }) => {
   await page.getByRole('button', { name: /Back/ }).click()
   await expect(page.getByText('Treasures: 1 of 40')).toBeVisible()
 })
+
+test('keeps the debug logs of earlier sessions and offers ways to report a problem', async ({
+  page,
+}) => {
+  await openGame(page)
+  await page.getByRole('button', { name: 'About' }).click()
+  await expect(page.getByRole('heading', { name: 'Saved debug logs' })).toBeVisible()
+  await expect(page.locator('.saved-logs li')).toHaveCount(1)
+  await expect(page.locator('.saved-logs li').first()).toContainText('this session')
+
+  // A reload is a new session; the browser keeps the log of the first one.
+  await page.reload()
+  await openGame(page)
+  await page.getByRole('button', { name: 'About' }).click()
+  await expect(page.locator('.saved-logs li')).toHaveCount(2)
+
+  const report = page.getByRole('link', { name: 'Report a problem on GitHub' })
+  await expect(report).toHaveAttribute(
+    'href',
+    /^https:\/\/github\.com\/FionaPreroll\/vibe-wormholesurfing\/issues\/new\?/,
+  )
+  await expect(page.getByRole('link', { name: 'Report by email' })).toHaveAttribute(
+    'href',
+    /^mailto:fipreroll\+app@gmail\.com\?subject=/,
+  )
+  await expect(page.getByRole('link', { name: 'fipreroll+app@gmail.com' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Issue tracker on GitHub' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Web and app' })).toBeVisible()
+  await expect(page.getByText('You are playing in the browser.')).toBeVisible()
+})

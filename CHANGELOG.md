@@ -15,7 +15,6 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 - Settings for sound, music, graphics quality, tilt steering and its range, inverted flying, mouse steering, camera speed, vibration, less motion and a frame counter. English and German.
 - Music and sounds generated live, in a mood of their own for every world.
 - The game installs as an app and plays offline.
-
 - A cockpit panel shows the ship's speed on a rainbow gauge, with the pull of holes on an inner arc, and the orbs, sparks, time and your farthest ride on glowing seven-segment LCDs; in a world, where you are, how far you flew and how near the treasure is. The light-years at the top are an LCD too.
 - A new treasure flies from its card into its place in the collection when you open the collection from there, and lands with a pop; others found since your last look pop in their places, and the Collection button counts them.
 - Share your collection: a picture of every world's treasures with your numbers goes to your phone's share sheet, or is saved with a text to post copied, where there is no share sheet.
@@ -24,6 +23,9 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 - An about page with what the game is, how it is made, your data, the debug log and every change, in place of the small about box.
 - Export your save as a file and import it again, to keep a backup or to carry your treasures to another browser or device. Both are on the about page and in the settings.
 - An exportable debug log: your device and graphics chip, how fast frames came each second, and any glitches, errors and long frames, to send along with a bug report.
+- The browser keeps the debug logs of your last three sessions, so a glitch can still be reported after a reload or a crash; each can be exported from the about page and the settings.
+- Report a problem straight from the debug log: on GitHub, with the details filled in, or by email. The log is saved as a file to attach.
+- The about page has a contact address and a link to the issue tracker, and shows how to install the game as an app in the browser, or links to the web version in the installed app.
 - While the 3D engine loads, a bar shows how much has arrived, how fast, how long it took and how long it should still take.
 - On foot, the arrow keys turn the camera; WASD walks.
 - The frame counter in the settings also shows the time per frame, the resolution and the draw calls. It sits in the top left corner, clear of the panels.
