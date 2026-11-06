@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
+import type { Pass } from 'three/addons/postprocessing/Pass.js'
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
 import type { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js'
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
@@ -75,6 +76,21 @@ const PAUSE_S = 3
  * is drawn shows it black. So every change of size waits for the next frame and happens right
  * before that frame is drawn.
  */
+/** Every material a pass draws with: its own fields, lists of them, and its full-screen quad's. */
+function passMaterials(pass: Pass): THREE.Material[] {
+  const found = new Set<THREE.Material>()
+  const take = (value: unknown) => {
+    if (value instanceof THREE.Material) found.add(value)
+  }
+  for (const value of Object.values(pass)) {
+    if (Array.isArray(value)) value.forEach(take)
+    else take(value)
+  }
+  if (pass instanceof ProbePass) take(pass.material)
+  take((pass as { fsQuad?: { material?: unknown } }).fsQuad?.material)
+  return [...found]
+}
+
 export class Engine {
   readonly renderer: THREE.WebGLRenderer
   readonly software: boolean
@@ -197,6 +213,41 @@ export class Engine {
     this.#composer.addPass(this.#finalProbe)
     this.#composer.addPass(new OutputPass())
     this.#sizeDirty = true
+    void this.#compilePasses(this.#composer)
+  }
+
+  /**
+   * Compiles the shaders of the passes after the scene alongside the frames, as `prepare` does a
+   * stage's: else the first frame builds them all, a dozen programs with the bloom's five blurs.
+   * They compile with a buffer bound and on a quad of positions and texture coordinates only, as
+   * they draw: both decide how a program is built. The last pass is left to its first frame: it
+   * sets up its shader only then, and it is the smallest.
+   */
+  async #compilePasses(composer: EffectComposer): Promise<void> {
+    if (!this.renderer.extensions.has('KHR_parallel_shader_compile')) return
+    const quad = new THREE.BufferGeometry()
+    quad.setAttribute(
+      'position',
+      new THREE.Float32BufferAttribute([-1, 3, 0, -1, -1, 0, 3, -1, 0], 3),
+    )
+    quad.setAttribute('uv', new THREE.Float32BufferAttribute([0, 2, 0, 0, 2, 0], 2))
+    const scene = new THREE.Scene()
+    for (const pass of composer.passes.slice(0, -1)) {
+      for (const material of passMaterials(pass)) {
+        const mesh = new THREE.Mesh(quad, material)
+        mesh.frustumCulled = false
+        scene.add(mesh)
+      }
+    }
+    try {
+      await this.#intoComposer(() =>
+        this.renderer.compileAsync(scene, new THREE.OrthographicCamera()),
+      )
+    } catch (error) {
+      this.#log.log('warn', `Could not compile the passes ahead: ${String(error)}`)
+    } finally {
+      quad.dispose()
+    }
   }
 
   setQuality(quality: Quality): void {
@@ -342,10 +393,27 @@ export class Engine {
         this.#frameTimes = []
         this.#secondStart = now
       } else if (raw > 0.25 && document.visibilityState === 'visible')
-        this.#log.log('glitch', `Long frame: ${Math.round(raw * 1000)} ms`, { screen: this.label })
+        this.#log.log('glitch', `Long frame: ${Math.round(raw * 1000)} ms`, {
+          screen: this.label,
+          // How much of it the game's own drawing took, and how many shader programs were
+          // built meanwhile: the usual suspects, apart from the browser's own work.
+          drawMs: Math.round(this.#drawMs),
+          newPrograms: this.#programs() - this.#programsBefore,
+        })
+      this.#programsBefore = this.#programs()
+      const drawing = performance.now()
       this.#tick(Math.min(0.1, Math.max(0, raw)), now, resumed ? undefined : raw)
+      this.#drawMs = performance.now() - drawing
     }
     this.#frame = requestAnimationFrame(loop)
+  }
+
+  #drawMs = 0
+  #programsBefore = 0
+
+  /** How many shader programs the renderer holds. */
+  #programs(): number {
+    return this.renderer.info.programs?.length ?? 0
   }
 
   stop(): void {

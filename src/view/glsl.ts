@@ -55,3 +55,15 @@ float hash12(vec2 p) {
   return fract((p3.x + p3.y) * p3.z);
 }
 `
+
+/**
+ * Whether a color holds infinity or NaN: both have every exponent bit set. The bits are tested,
+ * as Direct3D's shader compiler on Windows assumes no float is ever NaN and drops isnan() and
+ * x != x (warning X3577), which left the guard blind there.
+ */
+export const BROKEN_GLSL = /* glsl */ `
+  bool broken(vec3 color) {
+    uvec3 exponent = floatBitsToUint(color) & uvec3(0x7f800000u);
+    return any(equal(exponent, uvec3(0x7f800000u)));
+  }
+`

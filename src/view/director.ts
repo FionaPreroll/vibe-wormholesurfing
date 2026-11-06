@@ -70,9 +70,33 @@ export function createDirector(
   /** Counts new rides and title screens: a world made for an earlier one is not shown. */
   let generation = 0
 
+  /** Counts stage switches: a stage still compiling when another comes is dropped. */
+  let switching = 0
+
   const show = (stage: RideStage | WorldStage, label: string) => {
+    switching++
     current = stage
     engine.setStage(stage, label)
+  }
+
+  /**
+   * Shows a title screen's or a ride's stage once its shaders are ready, while the stage before
+   * goes on. Compiling first also lets it take over the programs of the stage before: three.js
+   * frees a program once no material uses it, so a stage shown at once would build again, in its
+   * first frame, every program the stage it replaced had just let go (18 at every start of a
+   * ride, a stall of a tenth of a second on Windows). The very first title screen compiles its
+   * programs alongside the frames this way, instead of in one first frame of two seconds there.
+   */
+  const showWhenReady = (stage: RideStage, label: string) => {
+    const mine = ++switching
+    const ready = () => {
+      if (mine === switching) show(stage, label)
+      else stage.dispose()
+    }
+    engine.prepare(stage).then(ready, (error: unknown) => {
+      debugLog.log('warn', `Could not compile ${label} ahead: ${String(error)}`)
+      ready()
+    })
   }
 
   /** Drops the world made ready for a ride that ended otherwise. */
@@ -159,7 +183,7 @@ export function createDirector(
     showTitle() {
       forget()
       input.mode = 'menu'
-      show(
+      showWhenReady(
         new RideStage(engine.renderer, {
           seed: Math.floor(Math.random() * 1e9),
           level: engine.level,
@@ -172,7 +196,7 @@ export function createDirector(
     startRide(seed) {
       forget()
       input.mode = 'ride'
-      show(
+      showWhenReady(
         new RideStage(engine.renderer, {
           seed,
           level: engine.level,

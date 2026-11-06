@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { FullScreenQuad, Pass } from 'three/addons/postprocessing/Pass.js'
+import { BROKEN_GLSL } from './glsl'
 import { uniform } from './uniforms'
 
 const SIZE = 4
@@ -24,6 +25,11 @@ export class ProbePass extends Pass {
   readonly #quad: FullScreenQuad
   readonly #material: THREE.ShaderMaterial
 
+  /** Its shader, for the engine to compile ahead. */
+  get material(): THREE.ShaderMaterial {
+    return this.#material
+  }
+
   constructor() {
     super()
     this.needsSwap = false
@@ -39,11 +45,12 @@ export class ProbePass extends Pass {
       fragmentShader: /* glsl */ `
         uniform sampler2D tDiffuse;
         varying vec2 vUv;
+        ${BROKEN_GLSL}
         void main() {
           vec3 color = texture2D(tDiffuse, vUv).rgb;
-          bool broken = any(isnan(color)) || any(isinf(color));
+          bool bad = broken(color);
           float light = dot(max(color, vec3(0.0)), vec3(0.2126, 0.7152, 0.0722));
-          gl_FragColor = vec4(vec3(broken ? 0.0 : light / (1.0 + light)), broken ? 1.0 : 0.0);
+          gl_FragColor = vec4(vec3(bad ? 0.0 : light / (1.0 + light)), bad ? 1.0 : 0.0);
         }
       `,
     })

@@ -34,8 +34,14 @@ interface Debug {
 
 /** What leaks would pile up, measured on the title screen after garbage collection. */
 async function measure(page: Page, cdp: CDPSession): Promise<Measure> {
-  // The title's new stage uploads its geometry at its first draw: two frames make sure it had one,
-  // or a quick switch would be measured half empty.
+  // The title's stage shows once its shaders are ready, the world's playing until then: wait for
+  // it, and then for two frames, as it uploads its geometry at its first draw, or a switch would
+  // be measured half done.
+  await page.waitForFunction(
+    () =>
+      (window as unknown as { wormhole: { director: { stage?: { ride?: { demo: boolean } } } } })
+        .wormhole.director.stage?.ride?.demo === true,
+  )
   await page.evaluate(
     () =>
       new Promise<void>((resolve) =>

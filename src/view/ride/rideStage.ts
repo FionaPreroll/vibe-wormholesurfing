@@ -61,6 +61,13 @@ export class RideStage implements Stage {
   readonly #girl: GirlRig
   /** The ship and its pilot, see-through in a ride so the way ahead shows. */
   readonly #ghost: Ghost
+  /**
+   * One of everything that comes along only later in a ride: an orb, a spark and the rarest
+   * hole, with its halos and flower. They are in the scene while the stage compiles, so their
+   * shaders compile with it, and hidden before it draws; they stay in it, so their materials
+   * keep the programs alive for the orbs, sparks and holes to come.
+   */
+  readonly #samples = new THREE.Group()
   #see = 1
   readonly #kit = new ThingKit()
   readonly #orbs = new Map<number, THREE.Group>()
@@ -126,6 +133,10 @@ export class RideStage implements Stage {
     this.#ship.seat.add(this.#girl.group)
     scene.add(this.#ship.group)
     this.#ghost = new Ghost(this.#ship.group)
+    this.#samples.add(this.#kit.makeOrb(), this.#kit.makeSpark().group)
+    this.#samples.add(new HoleView('white', 4, 3).group)
+    this.#samples.position.set(0, 0, 60)
+    scene.add(this.#samples)
     this.#trails = [
       new Trail(22, 0.035, new THREE.Color(0.45, 0.9, 1.0)),
       new Trail(22, 0.035, new THREE.Color(1.0, 0.55, 0.9)),
@@ -143,6 +154,7 @@ export class RideStage implements Stage {
   update(dt: number, controls: ControlFrame): void {
     const ride = this.ride
     const options = this.#options
+    this.#samples.visible = false
     this.#time += dt
     if (!options.demo) {
       if (controls.pause) options.onPause?.()

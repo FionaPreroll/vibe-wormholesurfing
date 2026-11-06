@@ -49,6 +49,8 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 
 ### Fixed
 
+- On Windows, the first title screen no longer freezes for over two seconds while its shaders compile, and starting a ride or going back to the title screen no longer stutters for a tenth of a second: each stage compiles its shaders alongside the frames before it shows, and keeps those of the stage before instead of building them again. The first orb, spark and rare warp hole of a ride no longer stutter either.
+- The guard that blacks out broken pixels before the glow works on Windows too: Direct3D's shader compiler had dropped its test for them.
 - Entering a world no longer freezes the picture for up to two seconds while its shaders compile: the world is made ready during the warp, its shaders compile alongside the frames, and the rest of its setup happens while the warp's light holds the screen white. Starting a ride and going back to the title screen no longer stall either: every stage that went away took the girl's outline shader with it, to be compiled again by the next.
 - On phones where a lower resolution does not make the game any faster, it no longer drops the resolution anyway, which only made the picture blurry.
 - Long sessions no longer fill up the graphics chip's memory: every world left its reflections, its sun's shadow map and its ground behind (about 10 MB a world at medium quality, over 130 MB at ultra), every ride its reflections, and every change of the graphics quality the buffers of the glow effect.
@@ -61,6 +63,6 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 - On phones, help, the settings and the other dialogs fit the screen and scroll with a finger; before, they ran off the bottom of the screen.
 - The treasure card after opening a capsule no longer shows scroll bars on large screens: its turning rays reached past its edge. Once it has landed, Fly again has the focus, so a controller's A or Enter flies on, the D-pad picks Collection or Title screen, and B goes back to the title screen.
 - The hints at the start of the first ride and the first walk no longer wait for a click: they go by themselves after ten seconds (a bar shows the time left), or at a single press of A or B on a controller, or Enter or Space. The mouse steers across them, too.
-- The debug log no longer counts it as a glitch when the browser stops drawing for a while, as macOS does for a covered window: such pauses are noted as information, and leave the frame statistics alone.
+- The debug log no longer counts it as a glitch when the browser stops drawing for a while, as macOS does for a covered window: such pauses are noted as information, and leave the frame statistics alone. Long frames now note how long the game's own drawing took and how many shaders were built meanwhile.
 - With a controller, every setting can be reached: the D-pad and the left stick go down row by row without skipping tick boxes or rows, left and right go along a row of buttons, and move sliders and switch lists such as the graphics quality and the language. The right stick scrolls long dialogs.
 - At the start of a ride the ship no longer darts toward the mouse pointer, which still rests on the button that started the ride: the mouse steers once it is moved during the ride, or clicked on the game.

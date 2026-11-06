@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js'
-import { HASH } from './glsl'
+import { BROKEN_GLSL, HASH } from './glsl'
 
 /** How a scene wants the picture finished, changed by the scene as it plays. */
 export interface Look {
@@ -57,12 +57,10 @@ export function sanitizePass(): ShaderPass {
     fragmentShader: /* glsl */ `
       uniform sampler2D tDiffuse;
       varying vec2 vUv;
+      ${BROKEN_GLSL}
       void main() {
         vec3 color = texture2D(tDiffuse, vUv).rgb;
-        // NaN is unequal to itself; infinity fails the bound. Both checks, since some compilers
-        // assume neither can occur and drop one of them.
-        bool broken = any(isnan(color)) || any(isinf(color)) || !(color.r == color.r && color.g == color.g && color.b == color.b);
-        color = broken ? vec3(0.0) : clamp(color, vec3(0.0), vec3(${MAX_RADIANCE.toFixed(1)}));
+        color = broken(color) ? vec3(0.0) : clamp(color, vec3(0.0), vec3(${MAX_RADIANCE.toFixed(1)}));
         gl_FragColor = vec4(color, 1.0);
       }
     `,

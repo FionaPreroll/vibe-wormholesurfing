@@ -29,6 +29,12 @@ export async function dismissHint(page: Page): Promise<void> {
 
 /** Puts a warp hole right in front of the ship, so the ride ends there. */
 export async function warpInto(page: Page, color = 'green', tier = 3): Promise<void> {
+  // The ride's stage shows once its shaders are ready; until then the title's still plays.
+  await page.waitForFunction(
+    () =>
+      (window as unknown as { wormhole: { director: { stage?: { ride?: { demo: boolean } } } } })
+        .wormhole.director.stage?.ride?.demo === false,
+  )
   await page.evaluate(
     ([holeColor, holeTier]) => {
       const debug = (window as unknown as { wormhole: { director: { stage: { ride: Ride } } } })
