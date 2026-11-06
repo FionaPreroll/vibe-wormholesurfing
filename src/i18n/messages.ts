@@ -132,6 +132,8 @@ export const en = {
   aboutText:
     'Wormhole Surfing is a small browser game. Everything in it, from the ship and the girl to the worlds, the music and the sounds, is made in code: there are no image or sound files.',
   version: 'Version {version}',
+  aboutFonts:
+    'The fonts are Unbounded (© 2022 The Unbounded Project Authors) and Fredoka (© 2016 The Fredoka Project Authors), under the SIL Open Font License 1.1.',
   aboutMadeTitle: 'How it is made',
   aboutMade:
     'Built with TypeScript, three.js for the 3D view, Preact for the menus and Vite. The ship, the girl, the eight worlds, the music and every sound are made in code while the game runs.',
@@ -506,6 +508,8 @@ export const de: Record<MessageKey, string> = {
   aboutText:
     'Wormhole Surfing ist ein kleines Browserspiel. Alles darin, vom Schiff und dem Mädchen bis zu den Welten, der Musik und den Geräuschen, ist in Code gebaut: Es gibt keine Bild- oder Tondateien.',
   version: 'Version {version}',
+  aboutFonts:
+    'Die Schriften sind Unbounded (© 2022 The Unbounded Project Authors) und Fredoka (© 2016 The Fredoka Project Authors), unter der SIL Open Font License 1.1.',
   aboutMadeTitle: 'Wie es gemacht ist',
   aboutMade:
     'Gebaut mit TypeScript, three.js für die 3D-Ansicht, Preact für die Menüs und Vite. Das Schiff, das Mädchen, die acht Welten, die Musik und jedes Geräusch entstehen in Code, während das Spiel läuft.',

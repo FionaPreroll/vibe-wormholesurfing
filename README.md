@@ -80,6 +80,8 @@ Playwright needs a Chromium: run `pnpm exec playwright install chromium` once, o
 
 TypeScript 7, three.js for the 3D view, Preact with Signals for the interface around it, Vite 8, Vitest 5, Playwright, Biome 2 and Zod. It is the stack of [Vibe Laser](https://github.com/FionaPreroll/vibe-laser), with three.js in place of PixiJS, since this game is 3D.
 
+The fonts are [Unbounded](https://github.com/googlefonts/unbounded), wide and bold, for the logo and headings, and [Fredoka](https://github.com/hafontia/Fredoka-One), rounded and easy to read, for everything else, both under the SIL Open Font License and installed from [Fontsource](https://fontsource.org/). `src/ui/fonts.ts` loads only their Latin letters, which German needs too (about 80 KB), and the collection's share picture draws with them. They are the only files the game brings that code did not make.
+
 The first download holds the menus only. The 3D view, with three.js, loads on demand (`src/ui/App.tsx` imports `src/view/director.ts` with `import()`), so the title screen shows at once; the service worker keeps both for later visits.
 
 ## Project layout

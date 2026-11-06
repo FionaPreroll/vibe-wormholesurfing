@@ -35,10 +35,12 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 
 ### Changed
 
+- New fonts: the logo and headings in the wide, bold Unbounded, and everything else in the rounded Fredoka. The title screen is easier to read over the bright wormhole: the logo has a dark edge, the tagline and the treasure count sit on dark glass, and the top and bottom of the screen are a little darker.
 - The Caverns are lighter and glow less, so the cave can be seen; a soft light goes along with the girl in dark worlds.
 
 ### Fixed
 
+- The share picture of the collection no longer runs the web address into the last world's name, and keeps the same margin to every edge.
 - On Macs and other computers with a real graphics chip, the picture no longer turns black except for a strip at the edge: a glint of light on the ship could overflow and spread across the screen.
 - After switching the graphics quality, as to Ultra, the picture no longer stays black.
 - The picture no longer flashes black for a frame when the game changes its resolution to keep up, as it often did right after arriving in a world.

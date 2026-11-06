@@ -3,6 +3,7 @@ import { WORLD_IDS } from '../core/worlds'
 import { number, t, worldName } from '../i18n'
 import type { Save } from '../persistence/save'
 import { downloadFile } from './download'
+import { DISPLAY_FONT, TEXT_FONT } from './fonts'
 import { WEB_URL } from './links'
 import { isApp, shareInApp } from './native'
 
@@ -53,21 +54,20 @@ export function pictureGrid(rows: number, columns: number) {
 }
 
 /** Sets the font, smaller if the text would be wider than `room`. */
-function fit(
+function fitFont(
   g: CanvasRenderingContext2D,
   text: string,
   weight: number,
   size: number,
   room: number,
+  family = TEXT_FONT,
 ): void {
   let px = size
   do {
-    g.font = `${weight} ${px}px ${PICTURE_FONT}`
+    g.font = `${weight} ${px}px ${family}`
     px -= 1
   } while (px > 8 && g.measureText(text).width > room)
 }
-
-const PICTURE_FONT = 'system-ui, sans-serif'
 
 /**
  * A card picture of the collection, 1200 × 630 as link previews like them: the title, the
@@ -84,6 +84,8 @@ export async function collectionPicture(
   canvas.height = height
   const g = canvas.getContext('2d')
   if (!g) return undefined
+  // The game's fonts, which a canvas uses only once they have loaded.
+  await document.fonts?.ready
   const background = g.createLinearGradient(0, 0, width, height)
   background.addColorStop(0, '#1b0f45')
   background.addColorStop(0.55, '#0c0726')
@@ -100,7 +102,7 @@ export async function collectionPicture(
   const grid = pictureGrid(WORLD_IDS.length, RARITIES.length)
   const margin = grid.margin
   const labelRight = grid.left - 14
-  g.font = `700 15px ${PICTURE_FONT}`
+  g.font = `600 15px ${TEXT_FONT}`
   const labelWidth = Math.max(...WORLD_IDS.map((world) => g.measureText(worldName(world)).width))
   const room = labelRight - Math.min(labelWidth, 190) - 28 - margin
 
@@ -111,16 +113,17 @@ export async function collectionPicture(
   title.addColorStop(0.5, '#c9a8ff')
   title.addColorStop(1, '#8ff4ff')
   g.fillStyle = title
-  fit(g, 'WORMHOLE', 900, 64, room)
-  // Capitals 0.72 of the size high: their tops touch the margin.
-  g.fillText('WORMHOLE', margin, margin + 46)
-  g.fillText('SURFING', margin, margin + 116)
+  fitFont(g, 'WORMHOLE', 900, 60, room, DISPLAY_FONT)
+  // The capitals' tops on the margin, measured in the font that is there.
+  const ascent = g.measureText('WORMHOLE').actualBoundingBoxAscent
+  g.fillText('WORMHOLE', margin, margin + ascent)
+  g.fillText('SURFING', margin, margin + ascent * 2.6)
   const stat = (value: string, label: string, color: string, size: number, baseline: number) => {
     g.fillStyle = color
-    fit(g, value, 800, size, room)
+    fitFont(g, value, 800, size, room, DISPLAY_FONT)
     g.fillText(value, margin, baseline)
     g.fillStyle = '#b9b2dc'
-    fit(g, label, 600, 26, room)
+    fitFont(g, label, 500, 26, room)
     g.fillText(label, margin, baseline + 34)
   }
   stat(`${numbers.found} / ${numbers.total}`, t('shareTreasures'), '#f4f1ff', 54, 262)
@@ -129,7 +132,7 @@ export async function collectionPicture(
   // The address's baseline on the bottom margin, as the title's capitals on the top one.
   const address = WEB_URL.replace('https://', '')
   g.fillStyle = '#b9b2dc'
-  fit(g, address, 600, 20, room)
+  fitFont(g, address, 500, 20, room)
   g.fillText(address, margin, height - margin)
 
   for (const [row, world] of WORLD_IDS.entries()) {
@@ -137,7 +140,7 @@ export async function collectionPicture(
     g.fillStyle = '#b9b2dc'
     g.textAlign = 'right'
     g.textBaseline = 'middle'
-    fit(g, worldName(world), 700, 15, 190)
+    fitFont(g, worldName(world), 600, 15, 190)
     g.fillText(worldName(world), labelRight, y + grid.cell / 2)
     for (const [column, rarity] of RARITIES.entries()) {
       const item = ITEMS.find((entry) => entry.world === world && entry.rarity === rarity)
@@ -156,7 +159,7 @@ export async function collectionPicture(
         if (image) g.drawImage(image, x + 4, y + 4, grid.cell - 8, grid.cell - 8)
       } else {
         g.fillStyle = 'rgba(255, 255, 255, 0.25)'
-        g.font = `800 26px ${PICTURE_FONT}`
+        g.font = `700 26px ${TEXT_FONT}`
         g.textAlign = 'center'
         g.fillText('?', x + grid.cell / 2, y + grid.cell / 2 + 1)
       }

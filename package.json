@@ -30,6 +30,8 @@
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.6.0",
     "@fionapreroll/app-updates": "https://github.com/FionaPreroll/vibe-p2pgame/releases/download/app-updates-v0.1.0/fionapreroll-app-updates-0.1.0.tgz",
+    "@fontsource-variable/fredoka": "^5.3.0",
+    "@fontsource-variable/unbounded": "^5.3.0",
     "@preact/signals": "^2.11.3",
     "@preact/signals-core": "^1.14.4",
     "idb-keyval": "^6.3.0",

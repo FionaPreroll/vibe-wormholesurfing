@@ -4,12 +4,14 @@ import { version } from '../package.json'
 import { captureErrors, debugLog } from './game/debugLog'
 import { locale } from './i18n'
 import { App } from './ui/App'
+import { loadFonts } from './ui/fonts'
 import { watchInstallPrompt } from './ui/install'
 import { isApp } from './ui/native'
 import { registerServiceWorker } from './ui/updates'
 import './ui/styles.css'
 
 captureErrors()
+void loadFonts()
 watchInstallPrompt()
 debugLog.setEnvironment({
   version,

@@ -16,12 +16,22 @@
   --lcd-blue: #8fc8ff;
   --lcd-pink: #ff9fd8;
   --radius: 18px;
-  font-family: ui-rounded, "SF Pro Rounded", "Nunito", "Quicksand", system-ui, sans-serif;
+  /* The fonts come with the game (src/ui/fonts.ts): Unbounded for the logo and headings,
+     Fredoka for everything else. */
+  --display: Unbounded, Fredoka, system-ui, sans-serif;
+  font-family: Fredoka, ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
 
 * {
   box-sizing: border-box;
+}
+
+h1,
+h2 {
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 html,
@@ -166,7 +176,16 @@ kbd {
   align-items: center;
   padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
     max(18px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
-  background: radial-gradient(ellipse at 50% 30%, transparent 30%, rgba(5, 3, 26, 0.55) 100%);
+  /* Darker at the top and the bottom, behind the logo and the menu; the middle stays bright. */
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(5, 3, 26, 0.55) 0%,
+      rgba(5, 3, 26, 0) 38%,
+      rgba(5, 3, 26, 0) 58%,
+      rgba(5, 3, 26, 0.72) 100%
+    ),
+    radial-gradient(ellipse at 50% 30%, transparent 30%, rgba(5, 3, 26, 0.55) 100%);
   pointer-events: none;
 }
 
@@ -179,11 +198,14 @@ kbd {
 
 .logo {
   margin: 0;
-  line-height: 0.92;
+  line-height: 0.98;
+  font-family: var(--display);
   font-weight: 900;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   text-transform: uppercase;
-  filter: drop-shadow(0 0 22px rgba(180, 120, 255, 0.55));
+  /* A dark edge first, so the letters stand out from a bright tunnel, then the glow. */
+  filter: drop-shadow(0 3px 0 rgba(28, 10, 70, 0.85)) drop-shadow(0 0 18px rgba(10, 4, 30, 0.7))
+    drop-shadow(0 0 28px rgba(180, 120, 255, 0.45));
 }
 
 .logo span {
@@ -197,20 +219,37 @@ kbd {
 }
 
 .logo-top {
-  font-size: clamp(2.6rem, 9vw, 6.5rem);
+  font-size: clamp(2.2rem, 7.6vw, 5.6rem);
 }
 
+/* Lighter, wider and leaning forward, as if it rushed past. */
 .logo-bottom {
-  font-size: clamp(2.2rem, 7.4vw, 5.4rem);
-  letter-spacing: 0.12em;
+  margin-top: 0.08em;
+  font-size: clamp(1.6rem, 5.2vw, 3.8rem);
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  /* The letter spacing also follows the last letter: as much space before the first. */
+  padding-left: 0.32em;
+  font-style: oblique 10deg;
+  transform: skewX(-10deg);
 }
 
+/* On a glassy band of its own, readable over the brightest part of the tunnel. */
 .tagline {
-  margin: 0.8em auto 0;
-  max-width: 34em;
-  color: var(--ink-quiet);
+  display: inline-block;
+  margin: 1em auto 0;
+  max-width: min(44em, 100%);
+  padding: 0.35em 1.1em;
+  border-radius: 1.2em;
+  text-wrap: balance;
+  background: rgba(10, 5, 32, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--ink);
   font-size: clamp(0.95rem, 2vw, 1.15rem);
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 .title-menu {
@@ -234,9 +273,15 @@ kbd {
   gap: 8px 18px;
   align-items: center;
   justify-content: center;
-  color: var(--ink-quiet);
-  font-size: 0.9rem;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+  padding: 4px 6px 4px 18px;
+  border-radius: 999px;
+  background: rgba(10, 5, 32, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 .title-footer button {
@@ -357,6 +402,7 @@ kbd {
   top: 34%;
   right: 12%;
   font-size: 1.6rem;
+  font-family: var(--display);
   font-weight: 900;
   color: var(--gold);
   text-shadow: 0 0 16px rgba(255, 180, 60, 0.9);
@@ -464,6 +510,7 @@ kbd {
 
 .banner strong {
   font-size: clamp(2rem, 6vw, 3.6rem);
+  font-family: var(--display);
   font-weight: 900;
 }
 
@@ -581,6 +628,7 @@ button.round.jump-button {
 .reward-rarity {
   margin: 0;
   color: var(--rarity);
+  font-family: var(--display);
   font-weight: 900;
   letter-spacing: 0.3em;
   text-transform: uppercase;

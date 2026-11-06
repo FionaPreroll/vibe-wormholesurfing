@@ -128,6 +128,12 @@ export function AboutScreen({
         <section class="about-card">
           <h2>{t('aboutMadeTitle')}</h2>
           <p>{t('aboutMade')}</p>
+          <p>
+            {t('aboutFonts')}{' '}
+            <a href="https://openfontlicense.org/" target="_blank" rel="noreferrer">
+              OFL
+            </a>
+          </p>
           {graphics.map((line) => (
             <p key={line} class="note">
               {line}
