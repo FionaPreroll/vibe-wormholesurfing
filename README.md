@@ -1,5 +1,8 @@
 # Wormhole Surfing
 
+[![CI](https://github.com/FionaPreroll/vibe-wormholesurfing/actions/workflows/ci.yml/badge.svg)](https://github.com/FionaPreroll/vibe-wormholesurfing/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/FionaPreroll/vibe-wormholesurfing/branch/main/graph/badge.svg)](https://codecov.io/gh/FionaPreroll/vibe-wormholesurfing)
+
 Ride a cute spaceship through a swirling wormhole, pick a warp hole, and see what waits on the other side. A browser game in 3D: the ride takes the mechanics of a classic warp ride, collect orbs for speed, dodge sparks, and choose a hole before a hole chooses you, and then lets a chibi girl explore the world behind it and open the treasure that waits there.
 
 Everything is made in code: the ship, the girl, the eight worlds, the music and every sound. There are no image, model or sound files.
@@ -152,7 +155,7 @@ The Playwright tests in `tests/e2e/` build the game and play it in Chromium with
 
 ## CI and deployment
 
-CI (`.github/workflows/ci.yml`) runs the type check, Biome, the unit tests with coverage, the build and the Playwright tests on every pull request and push to `main`. Every push to `main` deploys `dist/` to GitHub Pages (`.github/workflows/deploy.yml`), with Pages set to GitHub Actions in the repository settings.
+CI (`.github/workflows/ci.yml`) runs the type check, Biome, the unit tests with coverage, the build and the Playwright tests on every pull request and push to `main`. Coverage goes to [Codecov](https://codecov.io/gh/FionaPreroll/vibe-wormholesurfing) in two reports with their flags (`codecov.yml`): `unit` from Vitest, and `e2e` from the browser tests, which alone run the 3D view. For those, CI builds with source maps (`COVERAGE=1`), every spec takes `test` from `tests/e2e/coverage.ts`, which records the JavaScript each page runs in Chromium, and `monocart-coverage-reports` maps it back to `src/` as `coverage/e2e/lcov.info`. Uploads sign in with GitHub's OIDC token, so the repository needs no Codecov secret. Every push to `main` deploys `dist/` to GitHub Pages (`.github/workflows/deploy.yml`), with Pages set to GitHub Actions in the repository settings.
 
 ### Updating the screenshots
 

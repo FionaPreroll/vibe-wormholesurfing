@@ -1,4 +1,5 @@
-import { devices, expect, test } from '@playwright/test'
+import { devices } from '@playwright/test'
+import { expect, test } from './coverage'
 import { openGame, warpInto } from './game'
 
 test.use({ ...devices['Pixel 7 landscape'], locale: 'en-US' })

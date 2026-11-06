@@ -1,5 +1,7 @@
-# Coverage is reported on every pull request but never fails it: the three.js and Preact layers are
-# tested in the browser, which these unit test numbers do not see.
+# Coverage is reported on every pull request but never fails it. Two reports come together,
+# each with its flag: `unit` (Vitest) and `e2e` (the Playwright browser tests in Chromium, which
+# alone run the 3D view), both from ci.yml. A flag that a commit lacks keeps the numbers of the
+# last commit that had it.
 coverage:
   status:
     project:
@@ -8,3 +10,7 @@ coverage:
     patch:
       default:
         informational: true
+
+flag_management:
+  default_rules:
+    carryforward: true

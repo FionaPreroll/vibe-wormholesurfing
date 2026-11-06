@@ -10,6 +10,8 @@ export default defineConfig({
   build: {
     // three.js is one large chunk of its own, loaded once the first scene starts.
     chunkSizeWarningLimit: 1000,
+    // Source maps only for measuring coverage in the browser tests (COVERAGE, see tests/e2e/coverage.ts).
+    sourcemap: Boolean(process.env.COVERAGE),
   },
   test: {
     include: ['src/**/*.test.{ts,tsx}', 'tools/**/*.test.ts'],

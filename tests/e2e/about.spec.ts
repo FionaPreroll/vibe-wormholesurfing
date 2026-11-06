@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { expect, test } from '@playwright/test'
+import { expect, test } from './coverage'
 import { openGame } from './game'
 
 test.use({ locale: 'en-US' })

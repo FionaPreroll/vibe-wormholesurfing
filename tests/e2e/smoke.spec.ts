@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './coverage'
 import { openGame, watchErrors } from './game'
 
 test.use({ locale: 'en-US' })
