@@ -160,6 +160,11 @@ export class Engine {
   }
 
   #build(): void {
+    // The composer frees only its own two buffers: each pass holds its own, the bloom eleven.
+    // The probes stay from build to build.
+    for (const pass of this.#composer?.passes ?? []) {
+      if (pass !== this.#sceneProbe && pass !== this.#finalProbe) pass.dispose()
+    }
     this.#composer?.dispose()
     const level = this.level
     this.renderer.shadowMap.enabled = level.shadows > 0

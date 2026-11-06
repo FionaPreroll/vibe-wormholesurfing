@@ -88,6 +88,8 @@ export class WorldStage implements Stage {
   readonly #sky: THREE.Mesh
   readonly #water: THREE.Mesh | undefined
   readonly #sun: THREE.DirectionalLight
+  /** The ground's heights as a texture, which the water reads for its depth. */
+  readonly #heights: THREE.DataTexture
   readonly #lantern: THREE.PointLight | undefined
   readonly #sunOffset: THREE.Vector3
   readonly #girl: GirlRig
@@ -97,7 +99,8 @@ export class WorldStage implements Stage {
   readonly #bursts = new Bursts(500)
   readonly #ripples: THREE.Mesh | undefined
   readonly #islands: THREE.Group | undefined
-  readonly #environment: THREE.Texture
+  /** The sky's reflections; the render target is what must be disposed, not just its texture. */
+  readonly #environment: THREE.WebGLRenderTarget
   readonly #target = new THREE.Vector3()
   readonly #focus = new THREE.Vector3()
   readonly #desired = new THREE.Vector3()
@@ -126,9 +129,15 @@ export class WorldStage implements Stage {
     const pmrem = new THREE.PMREMGenerator(renderer)
     const skyScene = new THREE.Scene()
     skyScene.add(buildSky(theme))
-    this.#environment = pmrem.fromScene(skyScene, 0.04).texture
+    this.#environment = pmrem.fromScene(skyScene, 0.04)
     pmrem.dispose()
-    scene.environment = this.#environment
+    for (const object of skyScene.children) {
+      if (object instanceof THREE.Mesh) {
+        object.geometry.dispose()
+        ;(object.material as THREE.Material).dispose()
+      }
+    }
+    scene.environment = this.#environment.texture
     scene.environmentIntensity = 0.5
 
     const light = theme.light
@@ -162,6 +171,7 @@ export class WorldStage implements Stage {
 
     const seed = expedition.seed
     const terrain = buildTerrain(expedition.land, theme, level.detail, seed)
+    this.#heights = terrain.heights
     scene.add(terrain.mesh)
     const water = expedition.land.shape.water
     if (water !== undefined) {
@@ -461,5 +471,8 @@ export class WorldStage implements Stage {
     this.#portal.dispose()
     this.#treasure.dispose()
     this.#environment.dispose()
+    // Neither is freed with the meshes: the sun's shadow map and the ground's heights for the water.
+    this.#sun.shadow.dispose()
+    this.#heights.dispose()
   }
 }

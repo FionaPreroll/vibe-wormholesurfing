@@ -34,8 +34,11 @@ export interface RideStageOptions {
 const ORB_COLOR = new THREE.Color(1.0, 0.7, 0.3)
 const SPARK_COLOR = new THREE.Color(0.55, 0.75, 1.0)
 
-/** Space as seen from a ship, for the environment map's reflections. */
-function spaceEnvironment(renderer: THREE.WebGLRenderer): THREE.Texture {
+/**
+ * Space as seen from a ship, for the environment map's reflections. The render target is what
+ * must be disposed: disposing only its texture frees nothing on the GPU.
+ */
+function spaceEnvironment(renderer: THREE.WebGLRenderer): THREE.WebGLRenderTarget {
   const scene = new THREE.Scene()
   const geometry = new THREE.SphereGeometry(10, 32, 16)
   const material = new THREE.ShaderMaterial({
@@ -58,11 +61,11 @@ function spaceEnvironment(renderer: THREE.WebGLRenderer): THREE.Texture {
   })
   scene.add(new THREE.Mesh(geometry, material))
   const pmrem = new THREE.PMREMGenerator(renderer)
-  const texture = pmrem.fromScene(scene, 0.02).texture
+  const target = pmrem.fromScene(scene, 0.02)
   pmrem.dispose()
   geometry.dispose()
   material.dispose()
-  return texture
+  return target
 }
 
 /**
@@ -88,7 +91,7 @@ export class RideStage implements Stage {
   readonly #bursts: Bursts
   readonly #shards: Shards
   readonly #trails: Trail[]
-  readonly #environment: THREE.Texture
+  readonly #environment: THREE.WebGLRenderTarget
   readonly #flashLight: THREE.PointLight
   readonly #bend = new THREE.Vector2()
   readonly #offset = new THREE.Vector2()
@@ -113,7 +116,7 @@ export class RideStage implements Stage {
     const scene = this.scene
     scene.background = new THREE.Color().setRGB(0.02, 0.024, 0.1, THREE.LinearSRGBColorSpace)
     this.#environment = spaceEnvironment(renderer)
-    scene.environment = this.#environment
+    scene.environment = this.#environment.texture
     scene.environmentIntensity = 0.55
     scene.add(buildTunnel(this.#uniforms))
     scene.add(buildDust(this.#uniforms, Math.round(2600 * level.detail)))
