@@ -34,7 +34,11 @@ export function outlineMaterial(thickness: number, color = 0x2a1838): THREE.Shad
   if (!material) {
     material = new THREE.ShaderMaterial({
       side: THREE.BackSide,
-      uniforms: { uThickness: { value: thickness }, uColor: { value: new THREE.Color(color) } },
+      uniforms: {
+        uThickness: { value: thickness },
+        uColor: { value: new THREE.Color(color) },
+        uOpacity: { value: 1 },
+      },
       vertexShader: /* glsl */ `
         uniform float uThickness;
         void main() {
@@ -44,7 +48,8 @@ export function outlineMaterial(thickness: number, color = 0x2a1838): THREE.Shad
       `,
       fragmentShader: /* glsl */ `
         uniform vec3 uColor;
-        void main() { gl_FragColor = vec4(uColor, 1.0); }
+        uniform float uOpacity;
+        void main() { gl_FragColor = vec4(uColor, uOpacity); }
       `,
     })
     // Every girl shares it, in every stage: a stage that goes away must not dispose it, or the
@@ -53,6 +58,26 @@ export function outlineMaterial(thickness: number, color = 0x2a1838): THREE.Shad
     outlines.set(key, material)
   }
   return material
+}
+
+/** How much of the see-through outlines shows: one value for all of them, as one ship has them. */
+export const ghostOpacity = { value: 1 }
+const ghostOutlines = new Map<THREE.ShaderMaterial, THREE.ShaderMaterial>()
+
+/**
+ * The see-through twin of an outline material, as the ship's in a ride. It compiles to the same
+ * program, and every stage shares it as they share the outlines.
+ */
+export function ghostOutline(material: THREE.ShaderMaterial): THREE.ShaderMaterial {
+  let ghost = ghostOutlines.get(material)
+  if (!ghost) {
+    ghost = material.clone()
+    ghost.transparent = true
+    ghost.uniforms.uOpacity = ghostOpacity
+    ghost.userData.shared = true
+    ghostOutlines.set(material, ghost)
+  }
+  return ghost
 }
 
 /** Adds an outline to a mesh, as a child that follows it. */

@@ -13,6 +13,7 @@ import { defaultLook, type Look } from '../post'
 import type { QualityLevel } from '../quality'
 import { uniform } from '../uniforms'
 import { bendAt, bendFor } from './bend'
+import { Ghost } from './ghost'
 import { Bursts, buildDust, buildStreaks } from './particles'
 import { Shards } from './shards'
 import { HOLE_LIGHT, HoleView, ThingKit } from './things'
@@ -41,6 +42,9 @@ export interface RideStageOptions {
 const ORB_COLOR = new THREE.Color(1.0, 0.7, 0.3)
 const SPARK_COLOR = new THREE.Color(0.55, 0.75, 1.0)
 
+/** How much of the ship shows in a ride: enough to steer by, little enough to see ahead. */
+const SHIP_OPACITY = 0.62
+
 /**
  * The ride through the wormhole: the simulation from `src/core/ride.ts`, drawn as a swirling
  * tunnel with the ship and the girl, orbs, sparks and warp holes.
@@ -55,6 +59,9 @@ export class RideStage implements Stage {
   readonly #uniforms: RideUniforms
   readonly #ship: ShipRig
   readonly #girl: GirlRig
+  /** The ship and its pilot, see-through in a ride so the way ahead shows. */
+  readonly #ghost: Ghost
+  #see = 1
   readonly #kit = new ThingKit()
   readonly #orbs = new Map<number, THREE.Group>()
   readonly #orbPool: THREE.Group[] = []
@@ -118,6 +125,7 @@ export class RideStage implements Stage {
     this.#girl.group.position.y = -0.2
     this.#ship.seat.add(this.#girl.group)
     scene.add(this.#ship.group)
+    this.#ghost = new Ghost(this.#ship.group)
     this.#trails = [
       new Trail(22, 0.035, new THREE.Color(0.45, 0.9, 1.0)),
       new Trail(22, 0.035, new THREE.Color(1.0, 0.55, 0.9)),
@@ -246,6 +254,10 @@ export class RideStage implements Stage {
     this.#bank = approach(this.#bank, bankTarget, 6, dt)
     this.#pitch = approach(this.#pitch, pitchTarget, 6, dt)
     group.rotation.y = -ship.vx * 0.012
+    // In a ride the ship sits where the player looks ahead: it lets the way show through. The
+    // title screen's camera circles it, and shows it whole.
+    this.#see = approach(this.#see, this.#options.demo ? 1 : SHIP_OPACITY, 3, dt)
+    this.#ghost.opacity = this.#see
     this.#hurt = Math.max(0, this.#hurt - dt * 1.6)
     const flicker = this.#hurt > 0 ? (Math.sin(this.#time * 60) > 0 ? this.#hurt : 0) : 0
     this.#ship.update(dt, this.#time, {
@@ -445,8 +457,9 @@ export class RideStage implements Stage {
         object instanceof THREE.Points ||
         object instanceof THREE.LineSegments
       ) {
-        // An outline draws its mesh's own geometry, with a material all stages share.
-        if (object.name === 'outline') return
+        // An outline draws its mesh's own geometry, with a material all stages share; so does
+        // the ghost's depth pass.
+        if (object.name === 'outline' || object.name === 'ghost-depth') return
         object.geometry.dispose()
         disposeMaterials(object.material)
       } else if (object instanceof THREE.Sprite) object.material.dispose()
@@ -454,6 +467,7 @@ export class RideStage implements Stage {
     for (const view of this.#holes.values()) view.dispose()
     this.#ship.dispose()
     this.#girl.dispose()
+    this.#ghost.dispose()
     this.#kit.dispose()
   }
 }

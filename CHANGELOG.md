@@ -39,6 +39,7 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 
 ### Changed
 
+- In a ride, the ship and the girl are a little see-through, so what comes toward you shows through them where they sit in the middle of the screen. On the title screen they show whole.
 - On low and medium graphics, as phones and tablets use, buttons and panels are a little darker instead of frosted glass. Blurring the moving 3D view behind them cost phones more frames than the 3D view itself.
 - New fonts: the logo and headings in the wide, bold Unbounded, and everything else in the rounded Fredoka. The title screen is easier to read over the bright wormhole: the logo has a dark edge, the tagline and the treasure count sit on dark glass, and the top and bottom of the screen are a little darker.
 - The Caverns are lighter and glow less, so the cave can be seen; a soft light goes along with the girl in dark worlds.
