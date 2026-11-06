@@ -7,11 +7,18 @@ import type { Arrival } from '../game/hud'
 import type { Quality } from '../game/settings'
 import type { ControlFrame, Input } from '../input/input'
 import { Engine, type FrameStats } from './engine'
+import { skyEnvironment } from './environments'
+import { afterNextFrame } from './frames'
 import { buildItem, disposeItem, RARITY_COLORS } from './models/items'
 import { RideStage } from './ride/rideStage'
+import { buildSky } from './world/sky'
+import { buildTerrainInSteps } from './world/terrain'
+import { THEMES } from './world/themes'
 import { WorldStage } from './world/worldStage'
 
 export interface DirectorHooks {
+  /** The ship entered a hole: the outcome is settled, the warp has begun. */
+  readonly onEnter: (outcome: RideOutcome) => void
   readonly onArrive: (outcome: RideOutcome) => void
   readonly onReveal: (reward: Reward) => void
   readonly onPause: () => void
@@ -26,7 +33,16 @@ export interface Director {
   readonly stats: FrameStats
   showTitle(): void
   startRide(seed: number): void
-  enterWorld(arrival: Arrival, found: ReadonlySet<string>): void
+  /**
+   * Builds the world behind the hole and compiles its shaders in the background, while the warp
+   * plays, so it can show without a stall.
+   */
+  prepareWorld(arrival: Arrival, found: ReadonlySet<string>): void
+  /**
+   * Shows the world, as soon as it is ready: the one prepared for this arrival, or one built now.
+   * Resolves true once it shows, false if the ride was left meanwhile.
+   */
+  enterWorld(arrival: Arrival, found: ReadonlySet<string>): Promise<boolean>
   setPaused(paused: boolean): void
   setQuality(quality: Quality): void
   /** A picture of a treasure, as an image address, for the collection. */
@@ -49,10 +65,90 @@ export function createDirector(
   engine.start()
   let current: RideStage | WorldStage | undefined
   const thumbnails = new Map<string, string>()
+  /** The world being made ready for the ride under way, by the seed of its arrival. */
+  let prepared: { seed: number; ready: Promise<WorldStage> } | undefined
+  /** Counts new rides and title screens: a world made for an earlier one is not shown. */
+  let generation = 0
 
   const show = (stage: RideStage | WorldStage, label: string) => {
     current = stage
     engine.setStage(stage, label)
+  }
+
+  /** Drops the world made ready for a ride that ended otherwise. */
+  const forget = () => {
+    generation++
+    const dropped = prepared
+    prepared = undefined
+    void dropped?.ready.then((stage) => stage.dispose()).catch(() => {})
+  }
+
+  /**
+   * Makes a world ready in steps a frame apart, so that no frame stalls long while the warp
+   * plays: the world's rules, the ground in bands, the rest of the stage, then its shaders,
+   * compiled alongside the frames.
+   */
+  const prepare = async (arrival: Arrival, found: ReadonlySet<string>): Promise<WorldStage> => {
+    const started = performance.now()
+    let stepStarted = started
+    let longest = 0
+    const pause = async () => {
+      longest = Math.max(longest, performance.now() - stepStarted)
+      await afterNextFrame()
+      stepStarted = performance.now()
+    }
+    await pause()
+    const expedition = new Expedition({
+      world: arrival.world,
+      seed: arrival.seed,
+      tier: arrival.tier,
+      distance: arrival.distance,
+      found,
+    })
+    await pause()
+    const terrain = await buildTerrainInSteps(
+      expedition.land,
+      THEMES[arrival.world],
+      engine.level.detail,
+      arrival.seed,
+      pause,
+    )
+    await pause()
+    const theme = THEMES[arrival.world]
+    const envSky = buildSky(theme)
+    const environment = await skyEnvironment(engine.renderer, envSky, async (scene, camera) => {
+      // Frames go on while the sky's shader compiles: that wait is no step.
+      longest = Math.max(longest, performance.now() - stepStarted)
+      await engine.compile(scene, camera)
+      stepStarted = performance.now()
+    })
+    await pause()
+    const stage = new WorldStage(engine.renderer, {
+      expedition,
+      level: engine.level,
+      arrival,
+      terrain,
+      environment,
+      reducedMotion: hooks.reducedMotion,
+      onReveal: hooks.onReveal,
+      onPause: hooks.onPause,
+    })
+    longest = Math.max(longest, performance.now() - stepStarted)
+    debugLog.log('info', `Built ${arrival.world}`, {
+      ms: Math.round(performance.now() - started),
+      longestStep: Math.round(longest),
+      seed: arrival.seed,
+      tier: arrival.tier,
+    })
+    const compiling = performance.now()
+    await engine.prepare(stage)
+    // Kept until the stage's own sky was compiled, which shares its shader.
+    envSky.geometry.dispose()
+    ;(envSky.material as THREE.Material).dispose()
+    debugLog.log('info', `Compiled ${arrival.world}`, {
+      ms: Math.round(performance.now() - compiling),
+    })
+    return stage
   }
 
   return {
@@ -61,6 +157,7 @@ export function createDirector(
       return current
     },
     showTitle() {
+      forget()
       input.mode = 'menu'
       show(
         new RideStage(engine.renderer, {
@@ -73,12 +170,14 @@ export function createDirector(
       )
     },
     startRide(seed) {
+      forget()
       input.mode = 'ride'
       show(
         new RideStage(engine.renderer, {
           seed,
           level: engine.level,
           reducedMotion: hooks.reducedMotion,
+          onEnter: hooks.onEnter,
           onArrive: hooks.onArrive,
           onPause: hooks.onPause,
           onRecenter: hooks.onRecenter,
@@ -86,32 +185,35 @@ export function createDirector(
         'ride',
       )
     },
-    enterWorld(arrival, found) {
+    prepareWorld(arrival, found) {
+      forget()
+      prepared = { seed: arrival.seed, ready: prepare(arrival, found) }
+    },
+    async enterWorld(arrival, found) {
+      const mine = generation
+      const ready = prepared?.seed === arrival.seed ? prepared.ready : prepare(arrival, found)
+      prepared = undefined
+      let stage: WorldStage
+      try {
+        stage = await ready
+      } catch (error) {
+        debugLog.log('error', `Could not build ${arrival.world}: ${String(error)}`)
+        return false
+      }
+      if (mine !== generation) {
+        stage.dispose()
+        return false
+      }
+      // The warp ends on a white screen: the first draw's work goes there, where nothing moves.
+      const warming = performance.now()
+      engine.warmUp(stage)
+      debugLog.log('info', `Warmed up ${arrival.world}`, {
+        ms: Math.round(performance.now() - warming),
+      })
       input.mode = 'world'
-      const started = performance.now()
-      const expedition = new Expedition({
-        world: arrival.world,
-        seed: arrival.seed,
-        tier: arrival.tier,
-        distance: arrival.distance,
-        found,
-      })
-      show(
-        new WorldStage(engine.renderer, {
-          expedition,
-          level: engine.level,
-          arrival,
-          reducedMotion: hooks.reducedMotion,
-          onReveal: hooks.onReveal,
-          onPause: hooks.onPause,
-        }),
-        `world ${arrival.world}`,
-      )
-      debugLog.log('info', `Built ${arrival.world}`, {
-        ms: Math.round(performance.now() - started),
-        seed: arrival.seed,
-        tier: arrival.tier,
-      })
+      stage.publish()
+      show(stage, `world ${arrival.world}`)
+      return true
     },
     diagnostics() {
       return {

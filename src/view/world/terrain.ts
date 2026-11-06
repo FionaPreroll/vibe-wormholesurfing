@@ -8,11 +8,47 @@ export const TERRAIN_SIZE = 270
 /** The ground as a mesh, colored by height and steepness, plus its heights as a texture. */
 export interface Terrain {
   readonly mesh: THREE.Mesh
-  /** Heights over the ground's square, for water to know how deep it is. */
-  readonly heights: THREE.DataTexture
+  /** Heights over the ground's square, for water to know how deep it is; only where there is. */
+  readonly heights: THREE.DataTexture | undefined
 }
 
+/** Vertices, or texels of the heights, worked out between two pauses. */
+const BAND = 6000
+
+/** Builds the ground at once. */
 export function buildTerrain(land: Land, theme: WorldTheme, detail: number, seed: number): Terrain {
+  const steps = terrainSteps(land, theme, detail, seed)
+  for (;;) {
+    const next = steps.next()
+    if (next.done) return next.value
+  }
+}
+
+/**
+ * Builds the ground a band at a time, with `pause` between bands: tens of thousands of vertices,
+ * each with its height, slope and color, take long enough to stall a frame on a phone.
+ */
+export async function buildTerrainInSteps(
+  land: Land,
+  theme: WorldTheme,
+  detail: number,
+  seed: number,
+  pause: () => Promise<void>,
+): Promise<Terrain> {
+  const steps = terrainSteps(land, theme, detail, seed)
+  for (;;) {
+    const next = steps.next()
+    if (next.done) return next.value
+    await pause()
+  }
+}
+
+function* terrainSteps(
+  land: Land,
+  theme: WorldTheme,
+  detail: number,
+  seed: number,
+): Generator<void, Terrain> {
   const segments = Math.round(150 + 90 * Math.min(1.3, detail))
   const geometry = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, segments, segments)
   geometry.rotateX(-Math.PI / 2)
@@ -46,6 +82,7 @@ export function buildTerrain(land: Land, theme: WorldTheme, detail: number, seed
     const n = speckle(x * 0.08, z * 0.08) * 0.5 + speckle(x * 0.5, z * 0.5) * 0.25
     color.offsetHSL(n * 0.015, n * 0.05, n * 0.06)
     colors.set([color.r, color.g, color.b], index * 3)
+    if (index % BAND === BAND - 1) yield
   }
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
   geometry.computeVertexNormals()
@@ -55,6 +92,8 @@ export function buildTerrain(land: Land, theme: WorldTheme, detail: number, seed
   )
   mesh.receiveShadow = true
 
+  if (water === undefined) return { mesh, heights: undefined }
+  yield
   // Half floats, since phones may not filter full floats smoothly.
   const size = 256
   const data = new Uint16Array(size * size)
@@ -64,6 +103,7 @@ export function buildTerrain(land: Land, theme: WorldTheme, detail: number, seed
       const z = (j / (size - 1) - 0.5) * TERRAIN_SIZE
       data[j * size + i] = THREE.DataUtils.toHalfFloat(land.heightAt(x, z))
     }
+    if ((j * size) % BAND < size) yield
   }
   const heights = new THREE.DataTexture(data, size, size, THREE.RedFormat, THREE.HalfFloatType)
   heights.magFilter = THREE.LinearFilter

@@ -11,7 +11,7 @@ import { holeRadius } from '../core/ride'
 import { type WorldId, worldOf } from '../core/worlds'
 import { type DebugReport, debugLog } from '../game/debugLog'
 import { type GameEvent, onGameEvent } from '../game/events'
-import { rideHud } from '../game/hud'
+import { type Arrival, rideHud } from '../game/hud'
 import { QUALITIES, type Settings, settings } from '../game/settings'
 import { t } from '../i18n'
 import { buzz, haptics } from '../input/haptics'
@@ -362,16 +362,38 @@ export function App({ store }: Props) {
     [refresh],
   )
 
+  /** Where the hole the ship entered leads, settled as it enters and kept for its arrival. */
+  const nextArrival = useRef<Arrival | undefined>(undefined)
+
+  // The ship entered a hole: the world behind it is chosen now and made ready during the warp.
+  const onEnter = useCallback((outcome: RideOutcome) => {
+    const seed = freshSeed()
+    const world = worldOf(seededRandom(seed), outcome.color, outcome.tier)
+    const next = { ...outcome, world, seed }
+    nextArrival.current = next
+    directorRef.current?.prepareWorld(next, bookRef.current?.found ?? new Set())
+  }, [])
+
   const onArrive = useCallback(
     (outcome: RideOutcome) => {
-      const seed = freshSeed()
-      const world = worldOf(seededRandom(seed), outcome.color, outcome.tier)
-      const next = { ...outcome, world, seed }
-      arrival.value = next
-      void bookRef.current?.recordRide(outcome.distance, outcome.tier, world).then(refresh)
-      screen.value = 'world'
-      directorRef.current?.enterWorld(next, bookRef.current?.found ?? new Set())
-      setMood(world, AMBIENCE[world])
+      const prepared = nextArrival.current
+      nextArrival.current = undefined
+      const seed = prepared?.seed ?? freshSeed()
+      const next = prepared ?? {
+        ...outcome,
+        world: worldOf(seededRandom(seed), outcome.color, outcome.tier),
+        seed,
+      }
+      void bookRef.current?.recordRide(outcome.distance, outcome.tier, next.world).then(refresh)
+      // The warp's light holds until the world is ready to show.
+      void directorRef.current
+        ?.enterWorld(next, bookRef.current?.found ?? new Set())
+        .then((shown) => {
+          if (!shown) return
+          arrival.value = next
+          screen.value = 'world'
+          setMood(next.world, AMBIENCE[next.world])
+        })
     },
     [refresh, setMood],
   )
@@ -415,6 +437,7 @@ export function App({ store }: Props) {
       .then(({ createDirector }) => {
         if (disposed || !canvas.current) return
         const created = createDirector(canvas.current, input, settings.value.quality, {
+          onEnter,
           onArrive,
           onReveal,
           onPause: pause,
@@ -447,7 +470,7 @@ export function App({ store }: Props) {
     return () => {
       disposed = true
     }
-  }, [book, input, synth, onArrive, onReveal, pause, play])
+  }, [book, input, synth, onEnter, onArrive, onReveal, pause, play])
 
   useEffect(() => () => directorRef.current?.dispose(), [])
 

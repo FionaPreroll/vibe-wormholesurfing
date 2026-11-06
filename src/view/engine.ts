@@ -7,6 +7,8 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { type DebugLog, debugLog, percentile } from '../game/debugLog'
 import type { Quality } from '../game/settings'
 import type { ControlFrame, Input } from '../input/input'
+import { disposeEnvironments } from './environments'
+import { afterNextFrame } from './frames'
 import { finishPass, type Look, sanitizePass } from './post'
 import { ProbePass } from './probe'
 import { levelOf, type QualityLevel } from './quality'
@@ -54,6 +56,9 @@ export interface FrameStats {
   pixelRatio: number
   drawCalls: number
 }
+
+/** Milliseconds of shader compiling a frame may take while a stage is made ready. */
+const PREPARE_BUDGET_MS = 8
 
 /**
  * The renderer and its loop. It draws the current stage with bloom and a finishing pass, and
@@ -151,6 +156,8 @@ export class Engine {
 
   readonly #onContextRestored = () => {
     this.#lost = false
+    // Reflections rendered before the loss are gone with it.
+    disposeEnvironments(this.renderer)
     this.#log.log('info', 'WebGL context restored')
     this.#build()
   }
@@ -212,6 +219,79 @@ export class Engine {
     }
     old?.dispose()
     this.#log.log('info', `Showing ${label}`)
+  }
+
+  /**
+   * Compiles a stage's shaders before it shows, without stalling frames. With
+   * KHR_parallel_shader_compile, three.js hands them all to the driver, which compiles them
+   * alongside, and the promise resolves once they are ready. Without it, a driver compiles at the
+   * first question about a program, all queued programs at once, in one long frame: so a few
+   * objects go at a time instead, each new program finished at once, a few milliseconds a frame.
+   */
+  prepare(stage: Stage): Promise<void> {
+    return this.compile(stage.scene, stage.camera)
+  }
+
+  /** Compiles the shaders of any scene so, as `prepare` does a stage's. */
+  async compile(scene: THREE.Scene, camera: THREE.Camera): Promise<void> {
+    if (this.renderer.extensions.has('KHR_parallel_shader_compile')) {
+      await this.#intoComposer(() => this.renderer.compileAsync(scene, camera))
+      return
+    }
+    const objects: THREE.Object3D[] = []
+    scene.traverse((object) => {
+      if ('material' in object && object.material) objects.push(object)
+    })
+    let started = performance.now()
+    for (const object of objects) {
+      const materials = this.#intoComposer(() => this.renderer.compile(object, camera, scene))
+      for (const material of materials) {
+        const properties = this.renderer.properties.get(material) as {
+          currentProgram?: { getUniforms(): unknown }
+        }
+        properties.currentProgram?.getUniforms()
+      }
+      if (performance.now() - started > PREPARE_BUDGET_MS) {
+        await afterNextFrame()
+        started = performance.now()
+      }
+    }
+  }
+
+  /**
+   * Draws a stage once into the composer's buffer before it shows, every object of it, the culled
+   * ones too: its geometry and textures go to the graphics chip, its shadow map is made, and the
+   * driver builds its pipelines, which some build only at a first draw (Metal, SwiftShader).
+   * Done while the screen is white at the end of a warp, that stall shows nothing moving.
+   */
+  warmUp(stage: Stage): void {
+    const culled: THREE.Object3D[] = []
+    stage.scene.traverse((object) => {
+      if (object.frustumCulled) {
+        object.frustumCulled = false
+        culled.push(object)
+      }
+    })
+    try {
+      this.#intoComposer(() => this.renderer.render(stage.scene, stage.camera))
+    } finally {
+      for (const object of culled) object.frustumCulled = true
+    }
+  }
+
+  /**
+   * Runs `make` with the composer's buffer bound. The scene draws into it, not to the screen,
+   * which decides how its shaders are built (no tone mapping, linear color): built otherwise,
+   * the first frame would build them all again.
+   */
+  #intoComposer<T>(make: () => T): T {
+    const previous = this.renderer.getRenderTarget()
+    this.renderer.setRenderTarget(this.#composer.readBuffer)
+    try {
+      return make()
+    } finally {
+      this.renderer.setRenderTarget(previous)
+    }
   }
 
   /** Asks for the canvas to take its size again before the next frame. */
@@ -354,6 +434,7 @@ export class Engine {
     this.#composer.dispose()
     this.#sceneProbe.dispose()
     this.#finalProbe.dispose()
+    disposeEnvironments(this.renderer)
     this.renderer.dispose()
   }
 }

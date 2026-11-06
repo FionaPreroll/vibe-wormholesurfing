@@ -47,6 +47,9 @@ export function outlineMaterial(thickness: number, color = 0x2a1838): THREE.Shad
         void main() { gl_FragColor = vec4(uColor, 1.0); }
       `,
     })
+    // Every girl shares it, in every stage: a stage that goes away must not dispose it, or the
+    // next would compile it again in its first frame.
+    material.userData.shared = true
     outlines.set(key, material)
   }
   return material
@@ -60,4 +63,11 @@ export function outline<T extends THREE.Mesh>(mesh: T, thickness = 0.012): T {
   line.receiveShadow = false
   mesh.add(line)
   return mesh
+}
+
+/** Disposes a mesh's materials, except those every stage shares (`userData.shared`). */
+export function disposeMaterials(material: THREE.Material | THREE.Material[]): void {
+  for (const entry of Array.isArray(material) ? material : [material]) {
+    if (!entry.userData.shared) entry.dispose()
+  }
 }

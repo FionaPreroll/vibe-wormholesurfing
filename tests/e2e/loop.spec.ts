@@ -1,5 +1,5 @@
 import { expect, test } from './coverage'
-import { openGame, walkToTreasure, warpInto } from './game'
+import { openGame, walkToTreasure, warpInto, watchErrors } from './game'
 
 test.use({ locale: 'en-US' })
 
@@ -32,4 +32,33 @@ test('rides into a hole, finds the treasure and keeps it in the collection', asy
   // The find survives a reload.
   await page.reload()
   await expect(page.getByText('Treasures: 1 of 40')).toBeVisible({ timeout: 60_000 })
+})
+
+test('leaving a ride during the warp drops the world being made ready', async ({ page }) => {
+  test.setTimeout(240_000)
+  const errors = watchErrors(page)
+  await openGame(page)
+  await page.getByRole('button', { name: 'Fly!' }).click()
+  await page.getByRole('button', { name: 'Got it' }).click()
+  await warpInto(page, 'blue', 2)
+  // At once, while the world behind the hole is still being built.
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: 'End the ride' }).click()
+  await expect(page.getByRole('button', { name: 'Fly!' })).toBeVisible()
+  // Long enough for the dropped world to have finished building.
+  await page.waitForTimeout(8_000)
+  await expect(page.getByRole('button', { name: 'Fly!' })).toBeVisible()
+  const stage = await page.evaluate(() => {
+    const debug = (
+      window as unknown as {
+        wormhole: { director: { stage?: { expedition?: unknown; ride?: { demo: boolean } } } }
+      }
+    ).wormhole
+    return {
+      world: Boolean(debug.director.stage?.expedition),
+      demo: debug.director.stage?.ride?.demo,
+    }
+  })
+  expect(stage).toEqual({ world: false, demo: true })
+  expect(errors).toEqual([])
 })

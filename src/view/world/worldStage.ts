@@ -7,9 +7,11 @@ import { emit } from '../../game/events'
 import { worldHud } from '../../game/hud'
 import type { ControlFrame } from '../../input/input'
 import { applyFov, type Stage } from '../engine'
+import { pmremFor } from '../environments'
 import { buildGirl, type GirlMode, type GirlRig } from '../models/girl'
 import { RARITY_COLORS } from '../models/items'
 import { buildShip, type ShipRig } from '../models/ship'
+import { disposeMaterials } from '../models/toon'
 import { defaultLook, type Look } from '../post'
 import type { QualityLevel } from '../quality'
 import { Bursts } from '../ride/particles'
@@ -17,8 +19,8 @@ import { HoleView } from '../ride/things'
 import { uniform } from '../uniforms'
 import { buildCeiling, buildIslands, buildMotes, buildProps } from './scenery'
 import { buildSky, updateSky } from './sky'
-import { buildTerrain } from './terrain'
-import { THEMES } from './themes'
+import { buildTerrain, type Terrain } from './terrain'
+import { THEMES, type WorldTheme } from './themes'
 import { TreasureView } from './treasure'
 import { buildWater, updateWater } from './water'
 
@@ -30,6 +32,10 @@ export interface WorldStageOptions {
   readonly reducedMotion?: () => boolean
   readonly onReveal?: (reward: Reward) => void
   readonly onPause?: () => void
+  /** The ground, if it was built ahead in steps (buildTerrainInSteps); else it is built here. */
+  readonly terrain?: Terrain
+  /** The sky's reflections, if they were made ahead (skyEnvironment); the stage disposes them. */
+  readonly environment?: THREE.WebGLRenderTarget
 }
 
 const INTRO = 2.6
@@ -89,7 +95,7 @@ export class WorldStage implements Stage {
   readonly #water: THREE.Mesh | undefined
   readonly #sun: THREE.DirectionalLight
   /** The ground's heights as a texture, which the water reads for its depth. */
-  readonly #heights: THREE.DataTexture
+  readonly #heights: THREE.DataTexture | undefined
   readonly #lantern: THREE.PointLight | undefined
   readonly #sunOffset: THREE.Vector3
   readonly #girl: GirlRig
@@ -125,18 +131,8 @@ export class WorldStage implements Stage {
     scene.background = new THREE.Color(theme.fog.color)
     this.#sky = buildSky(theme)
     scene.add(this.#sky)
-    // Reflections come from the sky itself.
-    const pmrem = new THREE.PMREMGenerator(renderer)
-    const skyScene = new THREE.Scene()
-    skyScene.add(buildSky(theme))
-    this.#environment = pmrem.fromScene(skyScene, 0.04)
-    pmrem.dispose()
-    for (const object of skyScene.children) {
-      if (object instanceof THREE.Mesh) {
-        object.geometry.dispose()
-        ;(object.material as THREE.Material).dispose()
-      }
-    }
+    // Reflections come from the sky itself: made ahead (skyEnvironment), or here.
+    this.#environment = options.environment ?? this.#skyNow(renderer, theme)
     scene.environment = this.#environment.texture
     scene.environmentIntensity = 0.5
 
@@ -170,11 +166,11 @@ export class WorldStage implements Stage {
     }
 
     const seed = expedition.seed
-    const terrain = buildTerrain(expedition.land, theme, level.detail, seed)
+    const terrain = options.terrain ?? buildTerrain(expedition.land, theme, level.detail, seed)
     this.#heights = terrain.heights
     scene.add(terrain.mesh)
     const water = expedition.land.shape.water
-    if (water !== undefined) {
+    if (water !== undefined && terrain.heights) {
       this.#water = buildWater(water, theme, terrain.heights)
       scene.add(this.#water)
     }
@@ -246,6 +242,21 @@ export class WorldStage implements Stage {
     this.look.saturation = 1.18
     this.look.flash = 1
     this.look.flashColor.setRGB(1, 1, 1)
+  }
+
+  /** The sky's reflections at once, for a stage not made ahead. */
+  #skyNow(renderer: THREE.WebGLRenderer, theme: WorldTheme): THREE.WebGLRenderTarget {
+    const sky = buildSky(theme)
+    const scene = new THREE.Scene().add(sky)
+    const target = pmremFor(renderer).fromScene(scene, 0.04)
+    sky.geometry.dispose()
+    ;(sky.material as THREE.Material).dispose()
+    return target
+  }
+
+  /** The panel's numbers from the start, before the first frame: shown the moment the world is. */
+  publish(): void {
+    this.#publishHud()
   }
 
   update(dt: number, controls: ControlFrame): void {
@@ -459,11 +470,10 @@ export class WorldStage implements Stage {
   dispose(): void {
     this.scene.traverse((object) => {
       if (object instanceof THREE.Mesh || object instanceof THREE.Points) {
+        // An outline draws its mesh's own geometry, with a material all stages share.
         if (object.name === 'outline') return
         object.geometry.dispose()
-        const material = object.material
-        if (Array.isArray(material)) for (const entry of material) entry.dispose()
-        else material.dispose()
+        disposeMaterials(object.material)
       }
     })
     this.#girl.dispose()
@@ -473,6 +483,6 @@ export class WorldStage implements Stage {
     this.#environment.dispose()
     // Neither is freed with the meshes: the sun's shadow map and the ground's heights for the water.
     this.#sun.shadow.dispose()
-    this.#heights.dispose()
+    this.#heights?.dispose()
   }
 }

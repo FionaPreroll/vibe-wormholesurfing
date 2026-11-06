@@ -41,6 +41,7 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 
 ### Fixed
 
+- Entering a world no longer freezes the picture for up to two seconds while its shaders compile: the world is made ready during the warp, its shaders compile alongside the frames, and the rest of its setup happens while the warp's light holds the screen white. Starting a ride and going back to the title screen no longer stall either: every stage that went away took the girl's outline shader with it, to be compiled again by the next.
 - On phones where a lower resolution does not make the game any faster, it no longer drops the resolution anyway, which only made the picture blurry.
 - Long sessions no longer fill up the graphics chip's memory: every world left its reflections, its sun's shadow map and its ground behind (about 10 MB a world at medium quality, over 130 MB at ultra), every ride its reflections, and every change of the graphics quality the buffers of the glow effect.
 - The share picture of the collection no longer runs the web address into the last world's name, and keeps the same margin to every edge.

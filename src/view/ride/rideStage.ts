@@ -5,8 +5,10 @@ import { emit } from '../../game/events'
 import { rideHud } from '../../game/hud'
 import type { ControlFrame } from '../../input/input'
 import { applyFov, type Stage } from '../engine'
+import { spaceEnvironment } from '../environments'
 import { buildGirl, type GirlRig } from '../models/girl'
 import { buildShip, type ShipRig } from '../models/ship'
+import { disposeMaterials } from '../models/toon'
 import { defaultLook, type Look } from '../post'
 import type { QualityLevel } from '../quality'
 import { uniform } from '../uniforms'
@@ -23,6 +25,11 @@ export interface RideStageOptions {
   /** The title screen's ride: an autopilot flies and the camera circles the ship. */
   readonly demo?: boolean
   readonly reducedMotion?: () => boolean
+  /**
+   * Called as the ship enters a hole, when the outcome is settled: the world behind it can be
+   * made ready while the warp plays.
+   */
+  readonly onEnter?: (outcome: RideOutcome) => void
   /** Called once the ship has gone through a hole. */
   readonly onArrive?: (outcome: RideOutcome) => void
   /** The player asked to pause. */
@@ -33,40 +40,6 @@ export interface RideStageOptions {
 
 const ORB_COLOR = new THREE.Color(1.0, 0.7, 0.3)
 const SPARK_COLOR = new THREE.Color(0.55, 0.75, 1.0)
-
-/**
- * Space as seen from a ship, for the environment map's reflections. The render target is what
- * must be disposed: disposing only its texture frees nothing on the GPU.
- */
-function spaceEnvironment(renderer: THREE.WebGLRenderer): THREE.WebGLRenderTarget {
-  const scene = new THREE.Scene()
-  const geometry = new THREE.SphereGeometry(10, 32, 16)
-  const material = new THREE.ShaderMaterial({
-    side: THREE.BackSide,
-    vertexShader: /* glsl */ `
-      varying vec3 vDir;
-      void main() { vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
-    `,
-    fragmentShader: /* glsl */ `
-      varying vec3 vDir;
-      void main() {
-        vec3 top = vec3(0.55, 0.5, 1.2);
-        vec3 bottom = vec3(0.12, 0.05, 0.3);
-        vec3 color = mix(bottom, top, vDir.y * 0.5 + 0.5);
-        color += vec3(1.2, 0.5, 1.0) * pow(max(0.0, dot(vDir, normalize(vec3(-0.6, 0.3, -0.7)))), 6.0);
-        color += vec3(0.4, 1.0, 1.4) * pow(max(0.0, dot(vDir, normalize(vec3(0.7, 0.2, 0.6)))), 8.0);
-        gl_FragColor = vec4(color, 1.0);
-      }
-    `,
-  })
-  scene.add(new THREE.Mesh(geometry, material))
-  const pmrem = new THREE.PMREMGenerator(renderer)
-  const target = pmrem.fromScene(scene, 0.02)
-  pmrem.dispose()
-  geometry.dispose()
-  material.dispose()
-  return target
-}
 
 /**
  * The ride through the wormhole: the simulation from `src/core/ride.ts`, drawn as a swirling
@@ -91,7 +64,6 @@ export class RideStage implements Stage {
   readonly #bursts: Bursts
   readonly #shards: Shards
   readonly #trails: Trail[]
-  readonly #environment: THREE.WebGLRenderTarget
   readonly #flashLight: THREE.PointLight
   readonly #bend = new THREE.Vector2()
   readonly #offset = new THREE.Vector2()
@@ -115,8 +87,7 @@ export class RideStage implements Stage {
     const level = options.level
     const scene = this.scene
     scene.background = new THREE.Color().setRGB(0.02, 0.024, 0.1, THREE.LinearSRGBColorSpace)
-    this.#environment = spaceEnvironment(renderer)
-    scene.environment = this.#environment.texture
+    scene.environment = spaceEnvironment(renderer)
     scene.environmentIntensity = 0.55
     scene.add(buildTunnel(this.#uniforms))
     scene.add(buildDust(this.#uniforms, Math.round(2600 * level.detail)))
@@ -238,6 +209,8 @@ export class RideStage implements Stage {
         if (!demo) emit({ type: 'captured' })
         break
       case 'enter': {
+        const outcome = this.ride.outcome
+        if (outcome && !this.#options.demo) this.#options.onEnter?.(outcome)
         const view = this.#holes.get(event.hole.id)
         if (view)
           this.#bursts.emit(view.group.position, 80, HOLE_LIGHT[event.hole.color], {
@@ -472,17 +445,16 @@ export class RideStage implements Stage {
         object instanceof THREE.Points ||
         object instanceof THREE.LineSegments
       ) {
+        // An outline draws its mesh's own geometry, with a material all stages share.
+        if (object.name === 'outline') return
         object.geometry.dispose()
-        const material = object.material
-        if (Array.isArray(material)) for (const entry of material) entry.dispose()
-        else material.dispose()
+        disposeMaterials(object.material)
       } else if (object instanceof THREE.Sprite) object.material.dispose()
     })
     for (const view of this.#holes.values()) view.dispose()
     this.#ship.dispose()
     this.#girl.dispose()
     this.#kit.dispose()
-    this.#environment.dispose()
   }
 }
 
