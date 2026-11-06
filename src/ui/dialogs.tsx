@@ -144,6 +144,24 @@ export function SettingsDialog({
           </select>
         </label>
         <LanguageSwitch />
+        <h3>{t('displaySection')}</h3>
+        <Slider
+          label={t('hudScale', { value: settings.hudScale.toFixed(1) })}
+          value={settings.hudScale}
+          min={0.2}
+          max={4}
+          step={0.1}
+          onInput={(hudScale) => set({ hudScale })}
+        />
+        <Slider
+          label={t('menuScale', { value: settings.menuScale.toFixed(1) })}
+          value={settings.menuScale}
+          min={0.5}
+          max={2}
+          step={0.1}
+          onInput={(menuScale) => set({ menuScale })}
+          onRelease
+        />
         <h3>{t('controlsSection')}</h3>
         <Toggle label={t('gyro')} checked={settings.gyro} onChange={onGyro} />
         {settings.gyro && <p class="note">{t(GYRO_STATES[gyroState])}</p>}

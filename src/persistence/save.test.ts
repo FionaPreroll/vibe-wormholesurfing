@@ -54,10 +54,15 @@ describe('migrate', () => {
   })
 
   it('fixes single broken settings with their defaults', () => {
-    const save = { ...freshSave(), settings: { ...DEFAULT_SETTINGS, quality: 'insane', sound: 7 } }
+    const save = {
+      ...freshSave(),
+      settings: { ...DEFAULT_SETTINGS, quality: 'insane', sound: 7, hudScale: 9, menuScale: 1.5 },
+    }
     const read = migrate(save)
     expect(read.settings.quality).toBe(DEFAULT_SETTINGS.quality)
     expect(read.settings.sound).toBe(DEFAULT_SETTINGS.sound)
+    expect(read.settings.hudScale).toBe(DEFAULT_SETTINGS.hudScale)
+    expect(read.settings.menuScale).toBe(1.5)
   })
 })
 

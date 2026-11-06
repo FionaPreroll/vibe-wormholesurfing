@@ -61,6 +61,8 @@ const settingsSchema = z.object({
   lookSpeed: z.number().min(0.3).max(2.5).catch(DEFAULT_SETTINGS.lookSpeed),
   sticks: sticksSchema,
   bindings: bindingsSchema,
+  hudScale: z.number().min(0.2).max(4).catch(DEFAULT_SETTINGS.hudScale),
+  menuScale: z.number().min(0.5).max(2).catch(DEFAULT_SETTINGS.menuScale),
   reducedMotion: z.boolean().catch(DEFAULT_SETTINGS.reducedMotion),
   vibration: z.boolean().catch(DEFAULT_SETTINGS.vibration),
   showFps: z.boolean().catch(DEFAULT_SETTINGS.showFps),

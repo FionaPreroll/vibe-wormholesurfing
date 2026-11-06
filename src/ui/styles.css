@@ -320,6 +320,12 @@ kbd {
     max(14px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
 }
 
+/* The player's size for the HUD (Settings → HUD size): every panel grows or shrinks about its own
+   corner. The touch sticks stay out of it, as they follow fingers in screen pixels. */
+.hud > :not(.touch-layer) {
+  zoom: var(--hud-scale, 1);
+}
+
 .hud .corner {
   position: absolute;
   top: max(14px, env(safe-area-inset-top));
@@ -626,8 +632,9 @@ button.round.jump-button {
 
 .reward-card {
   position: relative;
+  zoom: var(--menu-scale, 1);
   width: min(440px, 100%);
-  max-height: calc(100dvh - 32px);
+  max-height: calc((100dvh - 32px) / var(--menu-scale, 1));
   overflow-y: auto;
   overscroll-behavior: contain;
   touch-action: pan-y;
@@ -916,10 +923,14 @@ button.round.jump-button {
 }
 
 .modal {
+  /* The player's size for menus (Settings → Menu and dialog size). Zoom grows every length of
+     the dialog; percentages still mean the screen's share, but viewport units are divided by it
+     so the dialog still fits the screen. */
+  zoom: var(--menu-scale, 1);
   width: min(560px, 100%);
   /* A grid item does not shrink to its track by itself: the height is bounded by the screen,
      so the body scrolls instead of running off the bottom. */
-  max-height: calc(100dvh - 20px);
+  max-height: calc((100dvh - 20px) / var(--menu-scale, 1));
   min-height: 0;
   display: flex;
   flex-direction: column;

@@ -31,6 +31,10 @@ export interface Settings {
   readonly sticks: StickSettings
   /** Which keys and controller buttons do what. */
   readonly bindings: Bindings
+  /** How large the HUD draws, 0.2 to 4 times. */
+  readonly hudScale: number
+  /** How large dialogs and the treasure card draw, 0.5 to 2 times. */
+  readonly menuScale: number
   /** Less camera shake, no speed blur and gentler flashes. */
   readonly reducedMotion: boolean
   readonly vibration: boolean
@@ -57,6 +61,8 @@ export const DEFAULT_SETTINGS: Settings = {
   lookSpeed: 1,
   sticks: DEFAULT_STICKS,
   bindings: DEFAULT_BINDINGS,
+  hudScale: 1,
+  menuScale: 1,
   reducedMotion: prefersLessMotion(),
   vibration: true,
   showFps: false,

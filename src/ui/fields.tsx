@@ -8,6 +8,7 @@ export function Slider({
   max,
   step,
   onInput,
+  onRelease = false,
 }: {
   readonly label: string
   readonly value: number
@@ -15,6 +16,8 @@ export function Slider({
   readonly max: number
   readonly step: number
   readonly onInput: (value: number) => void
+  /** Takes the value only once the slider is let go, as for what resizes the slider itself. */
+  readonly onRelease?: boolean
 }) {
   return (
     <label class="field">
@@ -25,7 +28,12 @@ export function Slider({
         max={max}
         step={step}
         value={value}
-        onInput={(event) => onInput(Number(event.currentTarget.value))}
+        onInput={(event) => {
+          if (!onRelease) onInput(Number(event.currentTarget.value))
+        }}
+        onChange={(event) => {
+          if (onRelease) onInput(Number(event.currentTarget.value))
+        }}
       />
     </label>
   )

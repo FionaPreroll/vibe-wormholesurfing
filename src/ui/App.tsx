@@ -195,6 +195,9 @@ export function App({ store }: Props) {
         input.gyro.range = current.gyroRange
         haptics.enabled = current.vibration
         synth.setVolumes(current.sound, current.music)
+        const style = document.documentElement.style
+        style.setProperty('--hud-scale', String(current.hudScale))
+        style.setProperty('--menu-scale', String(current.menuScale))
         directorRef.current?.setQuality(current.quality)
         setGlass(directorRef.current)
       }),
