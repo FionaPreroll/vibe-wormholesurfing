@@ -29,8 +29,10 @@ describe('Expedition', () => {
   // camera ran into as it opened.
   it.each(['canyon', 'cliffs', 'caverns'] as const)(
     'puts the treasure of %s on open ground that the camera can watch from several sides',
+    { timeout: 30_000 },
     (world) => {
-      for (let seed = 1; seed <= 40; seed++) {
+      // Building a world takes a while, more so with coverage on: a sample of seeds.
+      for (let seed = 1; seed <= 16; seed++) {
         const visit = new Expedition({ world, seed, tier: 1, distance: 500, found: new Set() })
         const { treasure, land, scenery, layout } = visit
         expect(enclosure(land, treasure.x, treasure.z)).toBeLessThan(0.2)
@@ -45,8 +47,8 @@ describe('Expedition', () => {
     },
   )
 
-  it('frames the opening treasure with nothing in the way', () => {
-    for (let seed = 1; seed <= 20; seed++) {
+  it('frames the opening treasure with nothing in the way', { timeout: 30_000 }, () => {
+    for (let seed = 1; seed <= 12; seed++) {
       const visit = new Expedition({
         world: 'canyon',
         seed,

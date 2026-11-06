@@ -90,6 +90,11 @@ export class RideStage implements Stage {
   readonly #lookNow = new THREE.Vector3(0, 0, -20)
   #time = 0
   #travel = 0
+  /** Where the ship is drawn, a fraction of a step past where the simulation has it. */
+  #shipX = 0
+  #shipY = 0
+  /** How much nearer things are drawn than the simulation has them, for the same reason. */
+  #ahead = 0
   #bank = 0
   #pitch = 0
   #shake = 0
@@ -175,6 +180,12 @@ export class RideStage implements Stage {
     const events = ride.advance(dt, ride.phase === 'riding' ? steer : { x: 0, y: 0 })
     const forward = ride.phase === 'warping' ? ride.forward * 0.25 : ride.forward
     this.#travel += forward * dt
+    // The simulation steps 120 times a second, the screen draws as often as it does: the part of
+    // a step not taken yet is drawn ahead, with the speeds the ship and the things have.
+    const lag = ride.lag
+    this.#shipX = ride.ship.x + ride.ship.vx * lag
+    this.#shipY = ride.ship.y + ride.ship.vy * lag
+    this.#ahead = ride.forward * lag
     for (const event of events) this.#handle(event)
 
     const uniforms = this.#uniforms
@@ -264,7 +275,7 @@ export class RideStage implements Stage {
     const ride = this.ride
     const ship = ride.ship
     const group = this.#ship.group
-    group.position.set(ship.x, ship.y, 0)
+    group.position.set(this.#shipX, this.#shipY, 0)
     if (ride.phase === 'warping' && ride.entered) {
       // Into the hole: the ship dives forward and shrinks away.
       const t = Math.min(1, ride.warp / RIDE.warpTime)
@@ -321,11 +332,14 @@ export class RideStage implements Stage {
       boxes.circle(kind, x + this.#offset.x, y + this.#offset.y, -z, radius)
     }
     circle('field', 0, 0, 0, RIDE.fieldRadius)
-    circle('ship', ride.ship.x, ride.ship.y, 0, RIDE.shipRadius)
-    for (const orb of ride.orbs) if (!orb.taken) circle('orb', orb.x, orb.y, orb.z, RIDE.orbRadius)
-    for (const spark of ride.sparks) circle('spark', spark.x, spark.y, spark.z, RIDE.sparkRadius)
+    circle('ship', this.#shipX, this.#shipY, 0, RIDE.shipRadius)
+    const ahead = this.#ahead
+    for (const orb of ride.orbs)
+      if (!orb.taken) circle('orb', orb.x, orb.y, orb.z - ahead, RIDE.orbRadius)
+    for (const spark of ride.sparks)
+      circle('spark', spark.x, spark.y, spark.z - ahead, RIDE.sparkRadius)
     for (const hole of ride.holes)
-      circle('hole', hole.x, hole.y, hole.z, hole.radius * RIDE.holeInside)
+      circle('hole', hole.x, hole.y, hole.z - ahead, hole.radius * RIDE.holeInside)
     boxes.end()
   }
 
@@ -338,7 +352,8 @@ export class RideStage implements Stage {
   #updateThings(dt: number): void {
     const ride = this.ride
     const camera = this.camera
-    const place = (object: THREE.Object3D, x: number, y: number, z: number) => {
+    const place = (object: THREE.Object3D, x: number, y: number, simulated: number) => {
+      const z = simulated - this.#ahead
       bendAt(z, this.#bend, this.#offset)
       object.position.set(x + this.#offset.x, y + this.#offset.y, -z)
     }
@@ -422,7 +437,8 @@ export class RideStage implements Stage {
 
   #updateCamera(dt: number, warp: number): void {
     const ride = this.ride
-    const ship = ride.ship
+    // Where the ship is drawn, so the camera follows it as smoothly as the screen draws.
+    const ship = { x: this.#shipX, y: this.#shipY }
     const camera = this.camera
     if (this.#options.demo) {
       const t = this.#time * 0.16

@@ -209,6 +209,16 @@ export class Ride {
     return hole && { color: hole.color, tier: hole.tier, distance: Math.floor(this.distance) }
   }
 
+  /**
+   * Time handed to `advance` that no step took yet, less than a step: how far the picture is
+   * ahead of the simulation. The view draws moving things that much farther on, so that on a
+   * screen whose frames do not match the steps (144 frames a second on 120 steps) nothing
+   * stands still for a frame.
+   */
+  get lag(): number {
+    return this.#accumulator
+  }
+
   /** Lets `seconds` pass in fixed steps and returns what happened meanwhile. */
   advance(seconds: number, steer: Steer): RideEvent[] {
     // A long stall, as when the tab was hidden, does not fast-forward the ride.

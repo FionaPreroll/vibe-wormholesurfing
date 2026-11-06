@@ -145,3 +145,35 @@ describe('autopilot', () => {
     expect(ride.outcome?.color).toBe('red')
   })
 })
+
+// On a 144 Hz screen the ship and the orbs juddered on the title screen: the simulation steps
+// 120 times a second, so every sixth frame no step came and everything stood still for it.
+describe('the lag between the simulation and the screen', () => {
+  it('lets the picture move evenly on a screen with more frames than steps', () => {
+    const ride = new Ride({ seed: 5, demo: true })
+    for (let second = 0; second < 6 && !ride.orbs.some((orb) => orb.z > 80); second++)
+      ride.advance(0.25, { x: 0, y: 0 })
+    const frame = 1 / 144
+    const orb = ride.orbs.reduce((far, candidate) => (candidate.z > far.z ? candidate : far))
+    expect(orb.z).toBeGreaterThan(80)
+    const raw: number[] = []
+    const drawn: number[] = []
+    let lastRaw = orb.z
+    let lastDrawn = orb.z - ride.forward * ride.lag
+    for (let index = 0; index < 72; index++) {
+      ride.advance(frame, { x: 0, y: 0 })
+      expect(ride.lag).toBeGreaterThanOrEqual(0)
+      expect(ride.lag).toBeLessThan(RIDE.step)
+      raw.push(lastRaw - orb.z)
+      lastRaw = orb.z
+      const now = orb.z - ride.forward * ride.lag
+      drawn.push(lastDrawn - now)
+      lastDrawn = now
+    }
+    const even = ride.forward * frame
+    // Steps alone: some frames move nothing, some two steps' worth.
+    expect(Math.min(...raw)).toBe(0)
+    // Drawn ahead by the lag: every frame moves the same.
+    for (const step of drawn) expect(step).toBeCloseTo(even, 2)
+  })
+})

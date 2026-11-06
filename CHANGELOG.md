@@ -52,6 +52,7 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 
 ### Fixed
 
+- On screens that show more frames a second than the ride steps, as 144 Hz monitors do, the ship, the girl and everything flying toward them no longer judder on the title screen and in rides: the ride steps 120 times a second, so every sixth frame nothing moved. What a frame comes before the next step is now drawn ahead.
 - Buttons and other controls light up again when a controller moves the focus, also after a click with the mouse; a click hides the highlight until a controller or a key moves the focus again.
 - In the Controller and keys dialog, trying out the sticks no longer scrolls the dialog or moves the focus: there the D-pad moves the focus.
 - The treasure capsule no longer lies in a hollow or at the foot of a wall, where it was hard to see, as could happen in the Canyon; it stands on open ground that can be seen from several sides. When it opens, the camera no longer runs into a wall or a rock beside it: it turns to a side with a clear view, or rises to see over what stands in the way.
