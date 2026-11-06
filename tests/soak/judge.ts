@@ -45,22 +45,26 @@ const median = (values: readonly number[]) => {
  * amount, or a share of where it started, whichever is more.
  */
 export const ALLOWED: Readonly<Record<string, { amount: number; share: number }>> = {
-  heapMB: { amount: 30, share: 0.5 },
-  nodes: { amount: 500, share: 0.5 },
-  listeners: { amount: 100, share: 0.5 },
+  heapMB: { amount: 30, share: 0.25 },
+  nodes: { amount: 500, share: 0.25 },
+  listeners: { amount: 100, share: 0.25 },
   documents: { amount: 2, share: 0 },
   geometries: { amount: 10, share: 0.1 },
   textures: { amount: 6, share: 0.1 },
   programs: { amount: 6, share: 0.15 },
 }
 
-/** The first rounds and the last, as medians: the first round warms up, so it does not count. */
+/**
+ * The first half of the run against its end: the highest value of the first half, after the
+ * first round's warm-up, and the median of the last three rounds. Caches that fill as new worlds
+ * come up, as three.js's shader programs do, stop growing within the first half; a leak goes on.
+ */
 function compare(cycles: readonly Cycle[], key: keyof Measure) {
   const played = cycles.filter((cycle) => cycle.round > 0)
   const values = played.map((cycle) => Number(cycle[key]))
-  const span = Math.min(3, Math.floor(values.length / 2))
-  if (span < 1) return undefined
-  return { first: median(values.slice(0, span)), last: median(values.slice(-span)) }
+  if (values.length < 2) return undefined
+  const half = values.slice(0, Math.ceil(values.length / 2))
+  return { first: Math.max(...half), last: median(values.slice(-Math.min(3, half.length))) }
 }
 
 function check(

@@ -32,7 +32,7 @@ describe('judge', () => {
 
   it('finds what keeps growing round after round', () => {
     const verdict = judge(
-      steady(12, (round) => ({ geometries: 120 + round * 8, heapMB: 40 + round * 6 })),
+      steady(12, (round) => ({ geometries: 120 + round * 8, heapMB: 40 + round * 20 })),
       [],
     )
     expect(verdict.problems.some((problem) => problem.startsWith('Leak? Geometries (low)'))).toBe(
@@ -41,6 +41,11 @@ describe('judge', () => {
     expect(verdict.problems.some((problem) => problem.startsWith('Leak? JavaScript heap'))).toBe(
       true,
     )
+  })
+
+  it('lets caches fill while new worlds come up, as long as they stop', () => {
+    const cycles = steady(12, (round) => ({ programs: 25 + Math.min(round, 5) * 3 }))
+    expect(judge(cycles, []).problems).toEqual([])
   })
 
   it('compares the GPU only within one graphics quality', () => {

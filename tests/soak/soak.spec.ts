@@ -117,7 +117,8 @@ async function round(page: Page, index: number): Promise<string> {
 /** Every third round: the collection with a treasure up close, the settings and the about page. */
 async function tour(page: Page, index: number): Promise<void> {
   await page.getByRole('dialog').getByRole('button', { name: 'Collection' }).click()
-  await page.locator('.slot-button').first().click()
+  // A treasure found so far: the slots of the others cannot be opened.
+  await page.locator('.slot-button:not([disabled])').first().click()
   await page.keyboard.press('Escape')
   await page.getByRole('button', { name: /Back/ }).click()
   await page.getByRole('button', { name: 'Settings' }).click()
