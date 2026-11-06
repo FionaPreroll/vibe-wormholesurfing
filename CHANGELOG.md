@@ -35,11 +35,13 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 
 ### Changed
 
+- On low and medium graphics, as phones and tablets use, buttons and panels are a little darker instead of frosted glass. Blurring the moving 3D view behind them cost phones more frames than the 3D view itself.
 - New fonts: the logo and headings in the wide, bold Unbounded, and everything else in the rounded Fredoka. The title screen is easier to read over the bright wormhole: the logo has a dark edge, the tagline and the treasure count sit on dark glass, and the top and bottom of the screen are a little darker.
 - The Caverns are lighter and glow less, so the cave can be seen; a soft light goes along with the girl in dark worlds.
 
 ### Fixed
 
+- On phones where a lower resolution does not make the game any faster, it no longer drops the resolution anyway, which only made the picture blurry.
 - Long sessions no longer fill up the graphics chip's memory: every world left its reflections, its sun's shadow map and its ground behind (about 10 MB a world at medium quality, over 130 MB at ultra), every ride its reflections, and every change of the graphics quality the buffers of the glow effect.
 - The share picture of the collection no longer runs the web address into the last world's name, and keeps the same margin to every edge.
 - On Macs and other computers with a real graphics chip, the picture no longer turns black except for a strip at the edge: a glint of light on the ship could overflow and spread across the screen.

@@ -73,6 +73,16 @@ function buzzFor(event: GameEvent): void {
   }
 }
 
+/**
+ * Frosted glass only at high and ultra quality: on phones, blurring the moving 3D view behind
+ * every panel again each frame costs more than the 3D view itself.
+ */
+function setGlass(director: Director | undefined): void {
+  const quality = director?.diagnostics().quality
+  document.documentElement.dataset.glass =
+    quality === 'high' || quality === 'ultra' ? 'frosted' : 'flat'
+}
+
 /** How many glitches and errors the debug log holds, in a line for the player. */
 function summaryLine(): string {
   const summary = debugLog.summary()
@@ -172,6 +182,7 @@ export function App({ store }: Props) {
         haptics.enabled = current.vibration
         synth.setVolumes(current.sound, current.music)
         directorRef.current?.setQuality(current.quality)
+        setGlass(directorRef.current)
       }),
     [input, synth],
   )
@@ -415,6 +426,7 @@ export function App({ store }: Props) {
         })
         directorRef.current = created
         created.showTitle()
+        setGlass(created)
         setDirector(created)
         loading.value = false
         if (new URLSearchParams(location.search).has('debug'))

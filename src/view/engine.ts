@@ -10,6 +10,7 @@ import type { ControlFrame, Input } from '../input/input'
 import { finishPass, type Look, sanitizePass } from './post'
 import { ProbePass } from './probe'
 import { levelOf, type QualityLevel } from './quality'
+import { Resolution } from './resolution'
 import { uniform } from './uniforms'
 
 /** A scene the engine shows: it moves its things and its camera on every frame. */
@@ -54,9 +55,6 @@ export interface FrameStats {
   drawCalls: number
 }
 
-/** Seconds a lower resolution holds before the engine tries a higher one again. */
-const RAISE_COOLDOWN = 20
-
 /**
  * The renderer and its loop. It draws the current stage with bloom and a finishing pass, and
  * lowers the resolution while frames come late, raising it again once they are on time.
@@ -85,10 +83,8 @@ export class Engine {
   readonly #finalProbe = new ProbePass()
   #frame = 0
   #last = 0
-  #scale = 1
-  #slow = 0
-  #fast = 0
-  #raiseBlockedUntil = 0
+  /** How sharp to draw, lower while frames come late (resolution.ts). */
+  readonly #resolution = new Resolution()
   #sizeDirty = true
   #frameTimes: number[] = []
   #secondStart = 0
@@ -194,7 +190,7 @@ export class Engine {
     if (next.name === this.level.name) return
     this.#log.log('info', `Quality changed from ${this.level.name} to ${next.name}`)
     this.level = next
-    this.#scale = 1
+    this.#resolution.reset()
     this.#build()
     // Shadows on or off change how every material is built.
     this.stage?.scene.traverse((object) => {
@@ -212,6 +208,7 @@ export class Engine {
       this.#renderPass.scene = stage.scene
       this.#renderPass.camera = stage.camera
       this.#sizeDirty = true
+      this.#resolution.newScreen()
     }
     old?.dispose()
     this.#log.log('info', `Showing ${label}`)
@@ -226,7 +223,8 @@ export class Engine {
     this.#sizeDirty = false
     const width = Math.max(1, this.canvas.clientWidth)
     const height = Math.max(1, this.canvas.clientHeight)
-    const ratio = Math.min(window.devicePixelRatio || 1, this.level.maxPixelRatio) * this.#scale
+    const ratio =
+      Math.min(window.devicePixelRatio || 1, this.level.maxPixelRatio) * this.#resolution.scale
     const pixelRatio = Math.max(0.5, ratio)
     this.stats.pixelRatio = Number(pixelRatio.toFixed(2))
     this.renderer.setPixelRatio(pixelRatio)
@@ -335,38 +333,15 @@ export class Engine {
    */
   #adapt(dt: number): void {
     if (this.paused || dt <= 0) return
-    if (dt > 1 / 45) {
-      this.#slow += dt
-      this.#fast = 0
-    } else if (dt < 1 / 57) {
-      this.#fast += dt
-      this.#slow = Math.max(0, this.#slow - dt * 0.5)
-    }
-    const now = performance.now() / 1000
-    if (this.#slow > 1 && this.#scale > 0.55) {
-      const from = this.#scale
-      this.#scale = Math.max(0.55, this.#scale - 0.12)
-      this.#slow = 0
-      this.#raiseBlockedUntil = now + RAISE_COOLDOWN
-      this.#sizeDirty = true
-      this.#log.log('info', 'Resolution lowered', {
-        from,
-        to: this.#scale,
-        fps: this.stats.fps,
-        screen: this.label,
-      })
-    } else if (this.#fast > 6 && this.#scale < 1 && now > this.#raiseBlockedUntil) {
-      const from = this.#scale
-      this.#scale = Math.min(1, this.#scale + 0.08)
-      this.#fast = 0
-      this.#sizeDirty = true
-      this.#log.log('info', 'Resolution raised', {
-        from,
-        to: this.#scale,
-        fps: this.stats.fps,
-        screen: this.label,
-      })
-    }
+    const change = this.#resolution.frame(dt, performance.now() / 1000, this.stats.fps)
+    if (!change) return
+    this.#sizeDirty = true
+    const message = {
+      lowered: 'Resolution lowered',
+      raised: 'Resolution raised',
+      kept: 'Resolution raised again: lowering it did not help',
+    }[change.kind]
+    this.#log.log('info', message, { ...change, screen: this.label })
   }
 
   dispose(): void {
