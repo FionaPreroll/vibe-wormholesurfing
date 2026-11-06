@@ -34,6 +34,14 @@ interface Debug {
 
 /** What leaks would pile up, measured on the title screen after garbage collection. */
 async function measure(page: Page, cdp: CDPSession): Promise<Measure> {
+  // The title's new stage uploads its geometry at its first draw: two frames make sure it had one,
+  // or a quick switch would be measured half empty.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  )
   // Two passes: what the first frees can let more go.
   await cdp.send('HeapProfiler.collectGarbage')
   await cdp.send('HeapProfiler.collectGarbage')
