@@ -113,6 +113,8 @@ export class WorldStage implements Stage {
   #yaw = 0
   #pitch = 0.24
   #distance = 6.5
+  /** How the camera watches the treasure open, once it does. */
+  #reveal: ReturnType<Expedition['revealView']> | undefined
   #idleLook = 10
   #stepDistance = 0
   #lastX = 0
@@ -365,28 +367,16 @@ export class WorldStage implements Stage {
     let distance = this.#distance
     this.#target.set(walker.x, walker.y + 1.35, walker.z)
     if (expedition.phase !== 'exploring') {
-      // Frame the girl and the treasure from the side while it opens.
-      const treasure = expedition.treasure
-      const dx = treasure.x - walker.x
-      const dz = treasure.z - walker.z
-      // Of the two sides, the one nearer to where the camera already is.
-      const along = Math.atan2(dx, dz)
-      const left = along + Math.PI / 2
-      const right = along - Math.PI / 2
-      const side =
-        Math.abs(angleDelta(this.#yaw, left)) < Math.abs(angleDelta(this.#yaw, right))
-          ? left
-          : right
-      yaw = this.#yaw + angleDelta(this.#yaw, side)
-      this.#yaw = approach(this.#yaw, yaw, 2.2, dt)
+      // Frame the girl and the treasure while it opens: from the side nearer the camera, unless a
+      // wall or scenery stands there, then from a clear side or from higher up. Chosen once, as
+      // the opening starts, so the camera swings there and stays.
+      this.#reveal ??= expedition.revealView(this.#yaw)
+      const view = this.#reveal
+      this.#yaw = approach(this.#yaw, this.#yaw + angleDelta(this.#yaw, view.yaw), 2.2, dt)
       yaw = this.#yaw
-      pitch = 0.26
-      distance = 6.4
-      this.#target.set(
-        walker.x * 0.4 + treasure.x * 0.6,
-        walker.y + 1.5,
-        walker.z * 0.4 + treasure.z * 0.6,
-      )
+      pitch = view.pitch
+      distance = view.distance
+      this.#target.set(view.focus.x, view.focus.y, view.focus.z)
     }
     // The arrival swoops down from high above.
     const swoop = 1 - (1 - intro) ** 3

@@ -38,6 +38,8 @@ export interface PadFrame {
   readonly connected: boolean
   /** The left stick and the D-pad as one, as the menus take them. */
   readonly move: Vec2
+  /** The D-pad alone, for menus where the sticks are being tried out. */
+  readonly dpad: Vec2
   /** The right stick, as the menus take it for scrolling. */
   readonly look: Vec2
   /** Both sticks as they lean, before any dead zone: right and up positive. */
@@ -88,17 +90,18 @@ export class Pads {
     const left = clampUnit(leftX, leftY)
     const right = clampUnit(rightX, rightY)
     const stick = shapeStick(left.x, left.y)
-    let moveX = stick.x
-    let moveY = stick.y
-    if (held.has(PAD.left)) moveX -= 1
-    if (held.has(PAD.right)) moveX += 1
-    if (held.has(PAD.up)) moveY += 1
-    if (held.has(PAD.down)) moveY -= 1
+    const dpad = {
+      x: (held.has(PAD.right) ? 1 : 0) - (held.has(PAD.left) ? 1 : 0),
+      y: (held.has(PAD.up) ? 1 : 0) - (held.has(PAD.down) ? 1 : 0),
+    }
+    const moveX = stick.x + dpad.x
+    const moveY = stick.y + dpad.y
     const pressed = new Set([...held].filter((button) => !this.#before.has(button)))
     this.#before = held
     return {
       connected: pads.length > 0,
       move: clampUnit(moveX, moveY),
+      dpad,
       look: shapeStick(right.x, right.y, 0.18, 1.6),
       left,
       right,

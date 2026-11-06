@@ -112,6 +112,25 @@ export function holdMenuPad(on: boolean): void {
   held = on
 }
 
+/**
+ * Marks the page as worked by keys or a controller, so the focus shows. Browsers show a focus ring
+ * (:focus-visible) after keys only: not when a controller moves the focus, nor once the mouse
+ * clicked something, so the menus mark it themselves (`data-focus` on the page, styled in
+ * src/ui/styles.css). A press of the mouse or a finger takes the mark away again.
+ */
+export function showFocus(shown: boolean): void {
+  if (typeof document === 'undefined') return
+  const root = document.documentElement
+  if (shown) root.dataset.focus = 'shown'
+  else delete root.dataset.focus
+}
+
+/** Whether the topmost dialog leaves the sticks alone, as while they are being tried out. */
+function sticksFree(): boolean {
+  const root = scope()
+  return root instanceof HTMLElement && root.dataset.sticks === 'free'
+}
+
 /** The topmost dialog, or the page, as far as the menus are concerned. */
 function scope(): ParentNode {
   const dialogs = document.querySelectorAll<HTMLElement>('[role="dialog"]')
@@ -147,7 +166,9 @@ export function watchMenuPad(enabled: () => boolean, onBack: () => void): () => 
   const poll = (now: number) => {
     const pad = pads.poll()
     if (enabled() && pad.connected && !held) {
-      const { x, y } = pad.move
+      // Where the sticks are being tried out, only the D-pad moves the focus.
+      const free = sticksFree()
+      const { x, y } = free ? pad.dpad : pad.move
       const direction: Direction | undefined =
         Math.abs(x) < 0.5 && Math.abs(y) < 0.5
           ? undefined
@@ -160,12 +181,14 @@ export function watchMenuPad(enabled: () => boolean, onBack: () => void): () => 
               : 'down'
       if (direction && (direction !== lastDirection || now >= repeatAt)) {
         const sideways = direction === 'left' || direction === 'right'
+        showFocus(true)
         if (!sideways || !adjustControl(document.activeElement, direction)) moveFocus(direction)
         repeatAt = now + (direction === lastDirection ? 140 : 380)
       }
       lastDirection = direction
-      if (Math.abs(pad.look.y) > 0.2) scrollBy(-pad.look.y * 18)
+      if (!free && Math.abs(pad.look.y) > 0.2) scrollBy(-pad.look.y * 18)
       if (pad.pressed.has(PAD.a)) {
+        showFocus(true)
         const active = document.activeElement
         if (active instanceof HTMLSelectElement) adjustControl(active, 'right')
         else if (active instanceof HTMLElement && active !== document.body) active.click()
@@ -177,6 +200,54 @@ export function watchMenuPad(enabled: () => boolean, onBack: () => void): () => 
   }
   frame = requestAnimationFrame(poll)
   return () => cancelAnimationFrame(frame)
+}
+
+const ARROWS: Readonly<Record<string, Direction>> = {
+  ArrowUp: 'up',
+  ArrowDown: 'down',
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+}
+
+/** Where keys belong to the element, as in a text field. */
+function typing(element: Element | null): boolean {
+  return (
+    element instanceof HTMLTextAreaElement ||
+    (element instanceof HTMLElement && element.isContentEditable) ||
+    (element instanceof HTMLInputElement &&
+      !['range', 'checkbox', 'radio', 'button', 'submit', 'file'].includes(element.type))
+  )
+}
+
+/**
+ * Lets the arrow keys work the menus as the D-pad does: up and down go from row to row, left and
+ * right along a row, and switch lists. A slider keeps left and right, which move it by itself.
+ * Tab and the arrows show the focus; a press of the mouse or a finger hides it again.
+ */
+export function watchMenuKeys(enabled: () => boolean): () => void {
+  const onKey = (event: KeyboardEvent) => {
+    if (event.altKey || event.ctrlKey || event.metaKey) return
+    if (event.key === 'Tab') {
+      showFocus(true)
+      return
+    }
+    const direction = ARROWS[event.key]
+    if (!direction || !enabled()) return
+    const active = document.activeElement
+    if (typing(active)) return
+    showFocus(true)
+    const sideways = direction === 'left' || direction === 'right'
+    if (sideways && active instanceof HTMLInputElement && active.type === 'range') return
+    event.preventDefault()
+    if (!sideways || !adjustControl(active, direction)) moveFocus(direction)
+  }
+  const onPointer = () => showFocus(false)
+  window.addEventListener('keydown', onKey)
+  window.addEventListener('pointerdown', onPointer, true)
+  return () => {
+    window.removeEventListener('keydown', onKey)
+    window.removeEventListener('pointerdown', onPointer, true)
+  }
 }
 
 /** Where a control shows: the label around a hidden one, such as a file picker's. */

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CAPSULE_RADIUS, Expedition, OPEN_TIME, REACH } from './expedition'
+import { clearView, enclosure } from './framing'
 import { length2 } from './math'
 import { STAND } from './walker'
 import { WORLD_IDS } from './worlds'
@@ -21,6 +22,50 @@ describe('Expedition', () => {
         expect(length2(treasure.x - blocker.x, treasure.z - blocker.z)).toBeGreaterThan(
           blocker.radius,
         )
+    }
+  })
+
+  // A capsule once lay at the bottom of a canyon's slot, hardly seen, or against a wall that the
+  // camera ran into as it opened.
+  it.each(['canyon', 'cliffs', 'caverns'] as const)(
+    'puts the treasure of %s on open ground that the camera can watch from several sides',
+    (world) => {
+      for (let seed = 1; seed <= 40; seed++) {
+        const visit = new Expedition({ world, seed, tier: 1, distance: 500, found: new Set() })
+        const { treasure, land, scenery, layout } = visit
+        expect(enclosure(land, treasure.x, treasure.z)).toBeLessThan(0.2)
+        const focus = { x: treasure.x, y: treasure.y + 1.5, z: treasure.z }
+        const clear = Array.from({ length: 8 }, (_, index) => ({
+          yaw: (index / 8) * Math.PI * 2,
+          pitch: 0.26,
+          distance: 6.4,
+        })).filter((view) => clearView(land, scenery, focus, view, layout.ceiling))
+        expect(clear.length).toBeGreaterThanOrEqual(4)
+      }
+    },
+  )
+
+  it('frames the opening treasure with nothing in the way', () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const visit = new Expedition({
+        world: 'canyon',
+        seed,
+        tier: 1,
+        distance: 0,
+        found: new Set(),
+      })
+      // The girl walks up to the treasure from where she landed.
+      const { treasure, walker } = visit
+      const toward = Math.atan2(walker.x - treasure.x, walker.z - treasure.z)
+      walker.x = treasure.x + Math.sin(toward) * 2
+      walker.z = treasure.z + Math.cos(toward) * 2
+      walker.y = visit.land.heightAt(walker.x, walker.z)
+      for (const yaw of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+        const view = visit.revealView(yaw)
+        expect(clearView(visit.land, visit.scenery, view.focus, view, visit.layout.ceiling)).toBe(
+          true,
+        )
+      }
     }
   })
 

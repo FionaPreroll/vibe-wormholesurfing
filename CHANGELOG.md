@@ -35,6 +35,7 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 - Change every key and controller button: Settings → Controller and keys gives each action two keys and two buttons. Choose a slot and press the key or button for it; it moves from wherever it was. Back to the defaults is one button away.
 - Tune the controller's sticks: how strongly each answers, how large its dead zone is, and its shape: round, cross (each axis on its own, for straight lines) or square (the slightest push along an axis counts). A picture shows what the stick does as you lean it. The sticks can also be swapped.
 - A Full screen button on the title screen in every browser, not only on touch screens, so a controller can reach it too.
+- The arrow keys move through the menus and dialogs as the D-pad does: up and down from row to row, left and right along a row and through lists. Sliders keep left and right for themselves.
 - Make the HUD smaller or larger, from a fifth of its size to four times, and the menus, dialogs and the treasure card from half to twice their size, under Display in the settings. Each panel of the HUD grows from its own corner.
 - Invert the camera's up and down, for the stick, the keys, the mouse and fingers alike, apart from inverting the ship's.
 - The game names the buttons as your controller prints them: ✕ ○ □ △, L1 and R2 on a PlayStation controller, the swapped letters of a Nintendo one, and the letters of others. Keys are named as your keyboard's layout prints them, where the browser tells. The hints in a ride and in a world, and the help, name the keys and buttons as you bound them.
@@ -49,6 +50,9 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 
 ### Fixed
 
+- Buttons and other controls light up again when a controller moves the focus, also after a click with the mouse; a click hides the highlight until a controller or a key moves the focus again.
+- In the Controller and keys dialog, trying out the sticks no longer scrolls the dialog or moves the focus: there the D-pad moves the focus.
+- The treasure capsule no longer lies in a hollow or at the foot of a wall, where it was hard to see, as could happen in the Canyon; it stands on open ground that can be seen from several sides. When it opens, the camera no longer runs into a wall or a rock beside it: it turns to a side with a clear view, or rises to see over what stands in the way.
 - The ship and the girl no longer glitch on the title screen and while flying: since the ship became see-through in rides, it drew over its own engine flames and the light trails of its wing tips, which flickered as it turned, and on Macs its hull could flicker too. On the title screen it draws whole again, as before; in a ride, flames, trails and bursts of light draw over it.
 - On Windows, the first title screen no longer freezes for over two seconds while its shaders compile, and starting a ride or going back to the title screen no longer stutters for a tenth of a second: each stage compiles its shaders alongside the frames before it shows, and keeps those of the stage before instead of building them again. The first orb, spark and rare warp hole of a ride no longer stutter either.
 - The guard that blacks out broken pixels before the glow works on Windows too: Direct3D's shader compiler had dropped its test for them.

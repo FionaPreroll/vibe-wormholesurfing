@@ -16,7 +16,7 @@ import { QUALITIES, type Settings, settings } from '../game/settings'
 import { t } from '../i18n'
 import { buzz, haptics } from '../input/haptics'
 import { Input } from '../input/input'
-import { watchMenuPad } from '../input/menuNav'
+import { watchMenuKeys, watchMenuPad } from '../input/menuNav'
 import { LogArchive, type StoredLog } from '../persistence/logs'
 import { type Save, SaveBook } from '../persistence/save'
 import { browserStore, type KeyValueStore, memoryStore } from '../persistence/store'
@@ -499,25 +499,26 @@ export function App({ store }: Props) {
     if (save?.settings.gyro && input.gyro.state.value === 'off') void input.gyro.enable()
   }, [save?.settings.gyro, input])
 
-  // A controller works the menus and dialogs.
-  useEffect(
-    () =>
-      watchMenuPad(
-        () =>
-          screen.value === 'title' ||
-          screen.value === 'collection' ||
-          screen.value === 'about' ||
-          paused.value ||
-          overlay.value !== undefined ||
-          card,
-        () => {
-          if (overlay.value) closeOverlay()
-          else if (paused.value) resume()
-          else if (screen.value === 'collection' || screen.value === 'about' || card) showTitle()
-        },
-      ),
-    [card, resume, showTitle],
-  )
+  // A controller and the arrow keys work the menus and dialogs.
+  useEffect(() => {
+    const inMenus = () =>
+      screen.value === 'title' ||
+      screen.value === 'collection' ||
+      screen.value === 'about' ||
+      paused.value ||
+      overlay.value !== undefined ||
+      card
+    const stopPad = watchMenuPad(inMenus, () => {
+      if (overlay.value) closeOverlay()
+      else if (paused.value) resume()
+      else if (screen.value === 'collection' || screen.value === 'about' || card) showTitle()
+    })
+    const stopKeys = watchMenuKeys(inMenus)
+    return () => {
+      stopPad()
+      stopKeys()
+    }
+  }, [card, resume, showTitle])
 
   // Android's back button: closes what is open, pauses a ride or a walk, goes back to the title,
   // and on the title leaves the app, as the back button does on other apps' first screen.

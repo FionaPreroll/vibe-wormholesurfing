@@ -10,6 +10,8 @@ interface Props {
   readonly children: ComponentChildren
   /** Room for a table, as the keys and buttons have. */
   readonly wide?: boolean
+  /** The controller's sticks are tried out here: only its D-pad moves the focus. */
+  readonly sticksFree?: boolean
 }
 
 /**
@@ -17,7 +19,7 @@ interface Props {
  * backdrop around it closes it. The focus moves into it when it opens and returns to where it was
  * when it closes.
  */
-export function Modal({ id, title, onClose, children, wide = false }: Props) {
+export function Modal({ id, title, onClose, children, wide = false, sticksFree = false }: Props) {
   const close = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     const opener = document.activeElement
@@ -43,6 +45,7 @@ export function Modal({ id, title, onClose, children, wide = false }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={`${id}-title`}
+        data-sticks={sticksFree ? 'free' : undefined}
       >
         <header class="modal-header">
           <h2 id={`${id}-title`}>{title}</h2>

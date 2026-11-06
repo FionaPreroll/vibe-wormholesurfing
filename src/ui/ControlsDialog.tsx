@@ -283,7 +283,7 @@ export function ControlsDialog({ settings, padStyle, onChange, onClose }: Props)
   }
 
   return (
-    <Modal id="controls" title={t('controlsTitle')} onClose={onClose} wide>
+    <Modal id="controls" title={t('controlsTitle')} onClose={onClose} wide sticksFree>
       <div class="settings controls">
         <h3>{t('sticksSection')}</h3>
         <p class="note">{t('stickTest')}</p>

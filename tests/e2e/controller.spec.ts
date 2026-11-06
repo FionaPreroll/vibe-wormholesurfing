@@ -184,3 +184,88 @@ test('the title screen offers full screen in a browser, to a controller too', as
   await press(page, A)
   await expect(page.getByText(/goes full screen only at a click/)).toBeVisible()
 })
+
+/** The focused element's ring: its box shadow or outline, as drawn. */
+async function focusRing(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const active = document.activeElement as HTMLElement | null
+    if (!active) return ''
+    const style = getComputedStyle(active)
+    return `${style.boxShadow} ${style.outlineStyle}`
+  })
+}
+
+test('the focus shows when a controller or the arrow keys move it, and not after a click', async ({
+  page,
+}) => {
+  await plugInController(page)
+  await openGame(page)
+  // A click does not mark the focus.
+  await page.getByRole('button', { name: 'Settings' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Settings' })
+  await expect(dialog.getByRole('button', { name: 'Close', exact: true })).toBeFocused()
+  expect(await page.evaluate(() => document.documentElement.dataset.focus)).toBeUndefined()
+
+  // The D-pad does, and the focused control shows a ring.
+  await press(page, DOWN)
+  await expect(dialog.getByRole('slider', { name: 'Sound effects' })).toBeFocused()
+  expect(await page.evaluate(() => document.documentElement.dataset.focus)).toBe('shown')
+  expect(await focusRing(page)).toContain('solid')
+
+  // A click hides it again; the arrow keys show it and move the focus as the D-pad does.
+  await dialog.getByRole('heading', { name: 'Settings' }).click()
+  expect(await page.evaluate(() => document.documentElement.dataset.focus)).toBeUndefined()
+  await page.keyboard.press('ArrowUp')
+  const close = dialog.getByRole('button', { name: 'Close', exact: true })
+  await expect(close).toBeFocused()
+  expect(await page.evaluate(() => document.documentElement.dataset.focus)).toBe('shown')
+  // The ring fades in with the button's transition.
+  await expect.poll(() => focusRing(page)).toMatch(/rgb\(111, 240, 255\)/)
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('ArrowDown')
+  await expect(dialog.getByRole('slider', { name: 'Music' })).toBeFocused()
+  // Left and right still move a slider.
+  const music = dialog.getByRole('slider', { name: 'Music' })
+  const before = Number(await music.inputValue())
+  await page.keyboard.press('ArrowRight')
+  expect(Number(await music.inputValue())).toBeGreaterThan(before)
+  await expect(music).toBeFocused()
+})
+
+test('trying out the sticks in the controls dialog moves neither the focus nor the page', async ({
+  page,
+}) => {
+  await plugInController(page)
+  await openGame(page)
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await page.getByRole('button', { name: 'Controller and keys' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Controller and keys' })
+  const close = dialog.getByRole('button', { name: 'Close', exact: true })
+  await expect(close).toBeFocused()
+  const body = dialog.locator('.modal-body')
+  const scrolled = () => body.evaluate((element) => element.scrollTop)
+  const before = await scrolled()
+
+  // Both sticks leaned all the way, for a while: down, then the camera stick down.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        const pad = (window as unknown as { pad: { axes: number[] } }).pad
+        pad.axes = [0, 1, 0, 1]
+        let frames = 0
+        const wait = () => {
+          if (++frames < 30) requestAnimationFrame(wait)
+          else {
+            pad.axes = [0, 0, 0, 0]
+            resolve()
+          }
+        }
+        requestAnimationFrame(wait)
+      }),
+  )
+  await expect(close).toBeFocused()
+  expect(await scrolled()).toBe(before)
+  // The D-pad still moves the focus.
+  await press(page, DOWN)
+  await expect(close).not.toBeFocused()
+})

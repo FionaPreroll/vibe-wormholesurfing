@@ -104,7 +104,8 @@ button {
 }
 
 button:hover:not(:disabled),
-button:focus-visible {
+button:focus-visible,
+:root[data-focus="shown"] button:focus {
   transform: translateY(-1px) scale(1.02);
   background: rgba(60, 40, 130, 0.7);
   box-shadow:
@@ -113,7 +114,8 @@ button:focus-visible {
   outline: none;
 }
 
-button:focus-visible {
+button:focus-visible,
+:root[data-focus="shown"] button:focus {
   box-shadow:
     0 0 0 3px var(--aqua),
     0 8px 24px rgba(120, 80, 255, 0.35);
@@ -132,7 +134,8 @@ button.primary {
 }
 
 button.primary:hover:not(:disabled),
-button.primary:focus-visible {
+button.primary:focus-visible,
+:root[data-focus="shown"] button.primary:focus {
   background: linear-gradient(135deg, #ffa8dc 0%, #c49bff 50%, #8fe4ff 100%);
 }
 
@@ -1603,6 +1606,13 @@ select {
   box-shadow: 0 0 0 3px var(--aqua);
 }
 
+/* Sliders, tick boxes, lists and links show the focus as clearly when a controller or the arrow
+   keys move it (data-focus, set by src/input/menuNav.ts). */
+:root[data-focus="shown"] :is(input, select, a:not(.link-button)):focus {
+  outline: 3px solid var(--aqua);
+  outline-offset: 3px;
+}
+
 /* A link that looks like the buttons next to it. */
 a.link-button {
   display: inline-block;
@@ -1619,7 +1629,8 @@ a.link-button {
 }
 
 a.link-button:hover,
-a.link-button:focus-visible {
+a.link-button:focus-visible,
+:root[data-focus="shown"] a.link-button:focus {
   transform: translateY(-1px) scale(1.02);
   background: rgba(60, 40, 130, 0.7);
   outline: none;
