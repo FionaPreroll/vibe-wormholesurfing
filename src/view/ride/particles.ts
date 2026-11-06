@@ -53,7 +53,7 @@ export function buildDust(uniforms: RideUniforms, count: number): THREE.Points {
       void main() {
         vec2 c = gl_PointCoord - 0.5;
         float d = length(c);
-        float glow = smoothstep(0.5, 0.0, d);
+        float glow = 1.0 - smoothstep(0.0, 0.5, d);
         gl_FragColor = vec4(vColor * glow * glow * vFade * 1.2, glow * vFade);
       }
     `,
@@ -167,7 +167,7 @@ export class Bursts {
         varying vec3 vColor;
         void main() {
           float d = length(gl_PointCoord - 0.5);
-          float glow = smoothstep(0.5, 0.0, d);
+          float glow = 1.0 - smoothstep(0.0, 0.5, d);
           gl_FragColor = vec4(vColor * glow * glow * 2.5, glow);
         }
       `,

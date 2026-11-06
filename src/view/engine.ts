@@ -6,7 +6,7 @@ import type { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js'
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import type { Quality } from '../game/settings'
 import type { ControlFrame, Input } from '../input/input'
-import { finishPass, type Look } from './post'
+import { finishPass, type Look, sanitizePass } from './post'
 import { levelOf, type QualityLevel } from './quality'
 import { uniform } from './uniforms'
 
@@ -94,6 +94,7 @@ export class Engine {
     this.#bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.9, 0.55, 0.72)
     this.#finish = finishPass(level.radialBlur)
     this.#composer.addPass(this.#renderPass)
+    this.#composer.addPass(sanitizePass())
     this.#composer.addPass(this.#bloom)
     this.#composer.addPass(this.#finish)
     this.#composer.addPass(new OutputPass())

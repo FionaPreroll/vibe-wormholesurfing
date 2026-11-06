@@ -37,6 +37,41 @@ export function defaultLook(): Look {
   }
 }
 
+/**
+ * Cleans the drawn scene before bloom. On real graphics chips a very bright highlight, as the sun
+ * glinting on the ship's glossy coat, overflows the half-float buffer to infinity; bloom then
+ * smears it, and what is not a number afterwards, across the screen, which tone mapping turns
+ * black. Here every pixel becomes a finite, bounded color, and a broken one becomes black alone.
+ */
+export function sanitizePass(): ShaderPass {
+  return new ShaderPass({
+    name: 'SanitizeShader',
+    uniforms: { tDiffuse: { value: null } },
+    vertexShader: /* glsl */ `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform sampler2D tDiffuse;
+      varying vec2 vUv;
+      void main() {
+        vec3 color = texture2D(tDiffuse, vUv).rgb;
+        // NaN is unequal to itself; infinity fails the bound. Both checks, since some compilers
+        // assume neither can occur and drop one of them.
+        bool broken = any(isnan(color)) || any(isinf(color)) || !(color.r == color.r && color.g == color.g && color.b == color.b);
+        color = broken ? vec3(0.0) : clamp(color, vec3(0.0), vec3(${MAX_RADIANCE.toFixed(1)}));
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `,
+  })
+}
+
+/** The brightest any pixel may be before bloom: far above white, far below overflow. */
+export const MAX_RADIANCE = 32
+
 /** The last touch before tone mapping: fringes, speed blur, vignette, flash and film grain. */
 export function finishPass(radialBlur: boolean): ShaderPass {
   return new ShaderPass({

@@ -179,7 +179,7 @@ export function buildMotes(
       varying float vTwinkle;
       void main() {
         float d = length(gl_PointCoord - 0.5);
-        float glow = smoothstep(0.5, 0.0, d);
+        float glow = 1.0 - smoothstep(0.0, 0.5, d);
         gl_FragColor = vec4(uColor * glow * glow * (0.6 + vTwinkle) * 1.4, glow);
       }
     `,

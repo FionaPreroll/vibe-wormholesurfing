@@ -36,25 +36,25 @@ vec3 rainbow(float t) {
 void main() {
   vec2 p = (vUv - 0.5) * 2.0;
   float r = length(p) * 1.5;
-  float a = atan(p.y, p.x);
+  float a = atan(p.y, p.x + 1e-6);
   float t = uTime + uSeed * 10.0;
   float swirl = a + 0.7 / (r + 0.3) + t * (0.5 + uPull);
   float rays = snoise(vec3(cos(swirl) * 2.2, sin(swirl) * 2.2, r * 2.5 - t * 1.4));
   float spokes = pow(abs(sin(a * 9.0 + snoise(vec3(p * 2.5, t * 0.35)) * 2.2)), 24.0);
   float core = exp(-r * r * 11.0);
   vec3 body = mix(uColor, rainbow(a / 6.2831853 + t * 0.1 + r * 0.5), uWhite * 0.75);
-  vec3 color = body * (0.55 + 0.35 * smoothstep(1.0, 0.3, r));
-  color += body * max(rays, 0.0) * 0.45 * smoothstep(1.0, 0.25, r);
-  color += mix(body, vec3(1.0), 0.5) * spokes * smoothstep(1.0, 0.2, r) * 0.55;
+  vec3 color = body * (0.55 + 0.35 * (1.0 - smoothstep(0.3, 1.0, r)));
+  color += body * max(rays, 0.0) * 0.45 * (1.0 - smoothstep(0.25, 1.0, r));
+  color += mix(body, vec3(1.0), 0.5) * spokes * (1.0 - smoothstep(0.2, 1.0, r)) * 0.55;
   color = mix(color, vec3(1.5), core);
 
   float edge = 1.0 + snoise(vec3(cos(a) * 1.5, sin(a) * 1.5, t * 0.6)) * 0.04;
-  float inside = smoothstep(0.98 * edge, 0.86 * edge, r);
+  float inside = 1.0 - smoothstep(0.86 * edge, 0.98 * edge, r);
   float smoke = snoise(vec3(cos(swirl) * 3.0, sin(swirl) * 3.0, t * 0.5 + r)) * 0.12;
   float rimOuter = 1.42 + uPull * 0.35;
   float rim = 1.0 - smoothstep(0.95 * edge, rimOuter + smoke, r);
   vec3 dark = vec3(0.01, 0.0, 0.03);
-  vec3 lip = body * 0.9 * smoothstep(1.12, 0.95, r);
+  vec3 lip = body * 0.9 * (1.0 - smoothstep(0.95, 1.12, r));
   vec3 outside = dark + lip;
   vec3 finalColor = mix(outside, color, inside);
   float alpha = max(inside, rim * 0.96) * uFade;
@@ -72,12 +72,12 @@ vec3 rainbow(float t) {
 void main() {
   vec2 p = (vUv - 0.5) * 2.0;
   float r = length(p);
-  float a = atan(p.y, p.x) + uTime * 0.25;
+  float a = atan(p.y, p.x + 1e-6) + uTime * 0.25;
   float petals = 0.55 + 0.4 * pow(abs(cos(a * 3.0)), 0.7);
   float inner = 0.3 + 0.22 * pow(abs(cos(a * 3.0 + 1.5708)), 0.7);
-  float glow = smoothstep(petals, petals - 0.22, r) * smoothstep(0.18, 0.35, r);
-  float glow2 = smoothstep(inner + 0.2, inner, r) * 0.6;
-  float edge = smoothstep(petals - 0.02, petals - 0.07, r) - smoothstep(petals - 0.07, petals - 0.15, r);
+  float glow = (1.0 - smoothstep(petals - 0.22, petals, r)) * smoothstep(0.18, 0.35, r);
+  float glow2 = (1.0 - smoothstep(inner, inner + 0.2, r)) * 0.6;
+  float edge = smoothstep(petals - 0.15, petals - 0.07, r) - smoothstep(petals - 0.07, petals - 0.02, r);
   vec3 color = mix(vec3(1.0, 0.55, 0.85), vec3(1.0, 0.85, 0.4), 0.5 + 0.5 * cos(a * 2.0 + uTime));
   color = mix(color, rainbow(r - uTime * 0.2), 0.3);
   float alpha = (glow * 0.3 + glow2 * 0.5 + edge * 0.8) * uFade;
@@ -126,7 +126,7 @@ ${HASH}
 void main() {
   vec2 p = (vUv - 0.5) * 2.0;
   float r = length(p);
-  float a = atan(p.y, p.x);
+  float a = atan(p.y, p.x + 1e-6);
   float t = uTime * 1.0 + uSeed * 13.0;
   float flicker = step(0.3, hash12(vec2(floor(t * 18.0), uSeed)));
   float arcs = 0.0;
@@ -135,7 +135,7 @@ void main() {
     float n = snoise(vec3(cos(a) * (1.5 + fi), sin(a) * (1.5 + fi), r * 3.0 - t * 6.0 + fi * 7.0));
     arcs += pow(1.0 - abs(n), 14.0) * (0.6 + 0.4 * flicker);
   }
-  arcs *= smoothstep(1.0, 0.25, r);
+  arcs *= (1.0 - smoothstep(0.25, 1.0, r));
   float core = exp(-r * r * 18.0);
   float haze = exp(-r * r * 3.5) * 0.35;
   vec3 color = vec3(0.5, 0.75, 1.0) * arcs * 1.6 + vec3(1.6, 1.8, 2.1) * core + vec3(0.45, 0.3, 1.0) * haze;

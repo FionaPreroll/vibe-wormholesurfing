@@ -68,14 +68,14 @@ export function buildSky(theme: WorldTheme): THREE.Mesh {
 
         // Stars, twinkling, fading toward the horizon.
         if (uStars > 0.0) {
-          vec2 cell = floor(vec2(atan(dir.z, dir.x) * 220.0, asin(dir.y) * 220.0));
+          vec2 cell = floor(vec2(atan(dir.z, dir.x + 1e-6) * 220.0, asin(clamp(dir.y, -1.0, 1.0)) * 220.0));
           float star = hash12(cell);
           float twinkle = 0.6 + 0.4 * sin(uTime * (1.0 + star * 4.0) + star * 50.0);
           float bright = step(0.9965, star) * twinkle * smoothstep(-0.05, 0.3, up);
           color += vec3(0.9, 0.95, 1.0) * bright * uStars * 1.6;
           // A faint band of the galaxy.
           float band = exp(-pow(dot(dir, normalize(vec3(0.3, 0.6, -0.74))) * 4.0, 2.0));
-          float dust = texture2D(uNoise, vec2(atan(dir.z, dir.x) * 0.4, dir.y * 0.8)).r;
+          float dust = texture2D(uNoise, vec2(atan(dir.z, dir.x + 1e-6) * 0.4, dir.y * 0.8)).r;
           color += vec3(0.35, 0.3, 0.6) * band * dust * uStars * 0.35;
         }
 
@@ -90,7 +90,7 @@ export function buildSky(theme: WorldTheme): THREE.Mesh {
 
         // An aurora: curtains of green, cyan and violet that sway.
         if (uAurora > 0.0) {
-          float angle = atan(dir.z, dir.x);
+          float angle = atan(dir.z, dir.x + 1e-6);
           float curtain = texture2D(uNoise, vec2(angle * 0.5 + uTime * 0.01, uTime * 0.02)).r;
           float height = smoothstep(0.05, 0.25, up) * (1.0 - smoothstep(0.35 + curtain * 0.35, 0.75, up));
           float rays = texture2D(uNoise, vec2(angle * 3.0 + curtain, up * 0.3 - uTime * 0.03)).g;
@@ -102,7 +102,7 @@ export function buildSky(theme: WorldTheme): THREE.Mesh {
         // A planet with a ring, lit from the side.
         if (uPlanetSize > 0.0) {
           float d = acos(clamp(dot(dir, uPlanetDir), -1.0, 1.0));
-          float disc = smoothstep(uPlanetSize, uPlanetSize * 0.97, d);
+          float disc = (1.0 - smoothstep(uPlanetSize * 0.97, uPlanetSize, d));
           vec3 side = normalize(cross(uPlanetDir, vec3(0.0, 1.0, 0.0)));
           float lit = 0.35 + 0.65 * smoothstep(-0.2, 0.15, dot(dir - uPlanetDir, side));
           float stripes = texture2D(uNoise, vec2(dot(dir, vec3(0.0, 1.0, 0.0)) * 8.0, 0.2)).r;
@@ -110,7 +110,7 @@ export function buildSky(theme: WorldTheme): THREE.Mesh {
           color = mix(color, planet, disc);
           vec3 tilt = normalize(vec3(0.15, 1.0, 0.25));
           float ringPlane = abs(dot(dir - uPlanetDir, tilt));
-          float ring = smoothstep(0.012, 0.0, ringPlane) * smoothstep(uPlanetSize * 1.25, uPlanetSize * 1.4, d) * smoothstep(uPlanetSize * 2.3, uPlanetSize * 1.9, d);
+          float ring = (1.0 - smoothstep(0.0, 0.012, ringPlane)) * smoothstep(uPlanetSize * 1.25, uPlanetSize * 1.4, d) * (1.0 - smoothstep(uPlanetSize * 1.9, uPlanetSize * 2.3, d));
           color += uPlanetColor * ring * 0.7 * (1.0 - disc * step(0.0, dot(dir - uPlanetDir, tilt)));
           color += uPlanetColor * exp(-pow((d - uPlanetSize) * 40.0, 2.0)) * 0.3;
         }

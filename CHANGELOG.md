@@ -15,3 +15,7 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 - Settings for sound, music, graphics quality, tilt steering and its range, inverted flying, mouse steering, camera speed, vibration, less motion and a frame counter. English and German.
 - Music and sounds generated live, in a mood of their own for every world.
 - The game installs as an app and plays offline.
+
+### Fixed
+
+- On Macs and other computers with a real graphics chip, the picture no longer turns black except for a strip at the edge: a glint of light on the ship could overflow and spread across the screen.
