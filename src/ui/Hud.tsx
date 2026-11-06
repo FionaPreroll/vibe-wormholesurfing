@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks'
+import { RIDE } from '../core/ride'
 import type { WorldId } from '../core/worlds'
 import { rideHud, worldHud } from '../game/hud'
 import { settings } from '../game/settings'
@@ -52,8 +53,29 @@ function clampKnob(dx: number, dy: number, radius: number): [number, number] {
   return [dx * scale, dy * scale]
 }
 
+/** Minutes and seconds, as 1:05. */
+function clock(seconds: number): string {
+  return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`
+}
+
+/** A small table of numbers in a corner of the screen. */
+function InfoPanel({ rows }: { readonly rows: readonly (readonly [string, string])[] }) {
+  return (
+    <dl class="info-panel">
+      {rows.map(([label, value]) => (
+        <div key={label}>
+          <dt>{label}</dt>
+          <dd>{value}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
 interface RideProps {
   readonly input: Input
+  /** The farthest ride so far, in light-years. */
+  readonly best: number
   readonly onPause: () => void
   readonly onRecenter: () => void
   readonly hint: boolean
@@ -61,7 +83,7 @@ interface RideProps {
 }
 
 /** Over the ride: light-years, speed, the pull of holes, chains of orbs and the controls. */
-export function RideHud({ input, onPause, onRecenter, hint, onHintSeen }: RideProps) {
+export function RideHud({ input, best, onPause, onRecenter, hint, onHintSeen }: RideProps) {
   const hud = rideHud.value
   const speedShare = Math.min(1, hud.speed / 2.6)
   const pull = hud.captured ? 1 : hud.pull
@@ -97,6 +119,22 @@ export function RideHud({ input, onPause, onRecenter, hint, onHintSeen }: RidePr
           {t('combo', { count: hud.combo })}
         </div>
       )}
+      {!hud.warping && (
+        <InfoPanel
+          rows={[
+            [
+              t('infoSpeed'),
+              t('lyPerSecond', { value: Math.round(hud.speed * RIDE.lightYearsPerSpeed) }),
+            ],
+            [t('infoOrbs'), String(hud.orbs)],
+            [t('infoSparks'), String(hud.sparks)],
+            [t('infoTime'), clock(hud.time)],
+            ...(best > 0
+              ? [[t('infoBest'), `${number(best)} ${t('lightYearsShort')}`] as const]
+              : []),
+          ]}
+        />
+      )}
       <div class="corner">
         {gyro && (
           <button type="button" class="ghost small" onClick={onRecenter}>
@@ -123,13 +161,15 @@ interface WorldProps {
   readonly input: Input
   readonly world: WorldId
   readonly tier: number
+  /** Light-years flown to get here. */
+  readonly distance: number
   readonly onPause: () => void
   readonly hint: boolean
   readonly onHintSeen: () => void
 }
 
 /** Over a world: its name on arrival, a compass to the treasure and the buttons to act. */
-export function WorldHud({ input, world, tier, onPause, hint, onHintSeen }: WorldProps) {
+export function WorldHud({ input, world, tier, distance, onPause, hint, onHintSeen }: WorldProps) {
   const hud = worldHud.value
   const [banner, setBanner] = useState(true)
   useEffect(() => {
@@ -166,6 +206,14 @@ export function WorldHud({ input, world, tier, onPause, hint, onHintSeen }: Worl
           {t('openTreasure')}
           {!touch && <kbd>{pad ? 'A' : t('openKey')}</kbd>}
         </button>
+      )}
+      {!banner && !touch && (
+        <InfoPanel
+          rows={[
+            [worldName(world), '✦'.repeat(tier)],
+            [t('infoFlown'), `${number(distance)} ${t('lightYearsShort')}`],
+          ]}
+        />
       )}
       <div class="corner">
         <PauseButton onPause={onPause} />

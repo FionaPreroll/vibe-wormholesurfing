@@ -3,6 +3,11 @@ export const en = {
   tagline: 'Surf the wormhole, pick a warp hole, find what waits on the other side.',
   language: 'Language',
   loading: 'Warming up the engines…',
+  loadingEngine: 'Loading the 3D engine',
+  loadingBytes: '{loaded} of {total}',
+  loadingSpeed: '{speed}/s',
+  loadingTime: '{elapsed} · about {left} left',
+  loadingElapsed: '{elapsed}',
   graphicsFailed:
     'The 3D graphics could not start in this browser. Try another browser, or switch on hardware acceleration.',
   storageBlocked:
@@ -49,7 +54,7 @@ export const en = {
   jump: 'Jump',
   worldHint: 'Walk with {walk}, turn the camera with {look}, jump with {jump}.',
   worldHintKeys: 'WASD',
-  worldHintLook: 'the mouse (drag) or IJKL',
+  worldHintLook: 'the arrow keys or by dragging the mouse',
   worldHintSpace: 'Space',
   worldHintPad:
     'Walk with the left stick, turn the camera with the right stick, jump with A, open with A or X.',
@@ -112,7 +117,7 @@ export const en = {
     'In the world, walk to the pillar of light and open the treasure. Rarer holes and longer rides hold rarer treasures, and sometimes a shiny one.',
   helpKeyboard: 'Keyboard and mouse',
   helpKeyboardText:
-    'Fly: WASD or the arrow keys, or point with the mouse. Walk: WASD, drag with the mouse to look around, wheel to zoom, Space to jump, E to open. Esc pauses.',
+    'Fly: WASD or the arrow keys, or point with the mouse. Walk: WASD; the arrow keys, IJKL or dragging the mouse turn the camera, the wheel zooms, Space jumps and E opens. Esc pauses.',
   helpPad: 'Controller',
   helpPadText:
     'Fly: left stick or D-pad. Walk: left stick, right stick to look, A to jump or open, LB and RB to zoom. Y centers the tilt, Start pauses. In menus, the D-pad moves and A chooses.',
@@ -127,6 +132,41 @@ export const en = {
   aboutText:
     'Wormhole Surfing is a small browser game. Everything in it, from the ship and the girl to the worlds, the music and the sounds, is made in code: there are no image or sound files.',
   version: 'Version {version}',
+  aboutMadeTitle: 'How it is made',
+  aboutMade:
+    'Built with TypeScript, three.js for the 3D view, Preact for the menus and Vite. The ship, the girl, the eight worlds, the music and every sound are made in code while the game runs.',
+  aboutRuns:
+    'It plays in any current browser with WebGL 2, on computers, tablets and phones, installs as an app and then also plays offline.',
+  sourceCode: 'Source code on GitHub',
+  changes: 'Changes',
+  changesInEnglish: 'The list of changes is in English.',
+  dataTitle: 'Your data',
+  dataText:
+    'Your treasures, records and settings are kept in this browser only. Export them as a file to keep a backup, or to carry them to another browser or device.',
+  exportSave: 'Export save',
+  importSave: 'Import save',
+  importConfirm: 'Replace your treasures, records and settings with the ones in this file?',
+  importDone: 'The save was imported.',
+  importFailed: 'This file holds no save of this game.',
+  debugTitle: 'Debug log',
+  debugText:
+    'If something looks wrong, export the debug log and send it along with your report. It holds your device and graphics chip, how fast frames came and anything that went wrong, but none of your treasures.',
+  exportDebug: 'Export debug log',
+  copyDebug: 'Copy debug log',
+  copied: 'Copied.',
+  debugSummary: '{glitches} glitches and {errors} errors so far',
+  graphicsChip: 'Graphics: {gpu}',
+  graphicsNow: 'Quality {quality}, pixel ratio {ratio}, {fps} frames per second',
+  backupSection: 'Backup',
+  fpsLine: '{fps} fps · {ms} ms · ×{ratio} · {calls} draw calls',
+  infoSpeed: 'Speed',
+  lyPerSecond: '{value} ly/s',
+  infoOrbs: 'Orbs',
+  infoSparks: 'Sparks',
+  infoTime: 'Time',
+  infoBest: 'Best',
+  infoFlown: 'Flown',
+  infoHole: 'Hole',
 
   rarity_common: 'Common',
   rarity_uncommon: 'Uncommon',
@@ -193,6 +233,11 @@ export const de: Record<MessageKey, string> = {
   tagline: 'Surf durchs Wurmloch, such dir ein Warp-Loch aus, finde, was dahinter wartet.',
   language: 'Sprache',
   loading: 'Triebwerke laufen warm …',
+  loadingEngine: '3D-Engine wird geladen',
+  loadingBytes: '{loaded} von {total}',
+  loadingSpeed: '{speed}/s',
+  loadingTime: '{elapsed} · noch etwa {left}',
+  loadingElapsed: '{elapsed}',
   graphicsFailed:
     'Die 3D-Grafik startet in diesem Browser nicht. Versuch einen anderen Browser oder schalte die Hardwarebeschleunigung ein.',
   storageBlocked:
@@ -239,7 +284,7 @@ export const de: Record<MessageKey, string> = {
   jump: 'Springen',
   worldHint: 'Laufen mit {walk}, Kamera drehen mit {look}, springen mit {jump}.',
   worldHintKeys: 'WASD',
-  worldHintLook: 'der Maus (ziehen) oder IJKL',
+  worldHintLook: 'den Pfeiltasten oder durch Ziehen mit der Maus',
   worldHintSpace: 'Leertaste',
   worldHintPad:
     'Laufen mit dem linken Stick, Kamera mit dem rechten, springen mit A, öffnen mit A oder X.',
@@ -302,7 +347,7 @@ export const de: Record<MessageKey, string> = {
     'In der Welt läufst du zur Lichtsäule und öffnest den Schatz. Seltenere Löcher und längere Flüge bergen seltenere Schätze, und manchmal einen schillernden.',
   helpKeyboard: 'Tastatur und Maus',
   helpKeyboardText:
-    'Fliegen: WASD oder Pfeiltasten, oder mit der Maus zeigen. Laufen: WASD, mit der Maus ziehen zum Umsehen, Mausrad zum Zoomen, Leertaste springt, E öffnet. Esc pausiert.',
+    'Fliegen: WASD oder Pfeiltasten, oder mit der Maus zeigen. Laufen: WASD; Pfeiltasten, IJKL oder Ziehen mit der Maus drehen die Kamera, das Mausrad zoomt, die Leertaste springt und E öffnet. Esc pausiert.',
   helpPad: 'Controller',
   helpPadText:
     'Fliegen: linker Stick oder Steuerkreuz. Laufen: linker Stick, rechter Stick zum Umsehen, A springt oder öffnet, LB und RB zoomen. Y zentriert die Neigung, Start pausiert. In Menüs bewegt das Steuerkreuz, A wählt.',
@@ -317,6 +362,41 @@ export const de: Record<MessageKey, string> = {
   aboutText:
     'Wormhole Surfing ist ein kleines Browserspiel. Alles darin, vom Schiff und dem Mädchen bis zu den Welten, der Musik und den Geräuschen, ist in Code gebaut: Es gibt keine Bild- oder Tondateien.',
   version: 'Version {version}',
+  aboutMadeTitle: 'Wie es gemacht ist',
+  aboutMade:
+    'Gebaut mit TypeScript, three.js für die 3D-Ansicht, Preact für die Menüs und Vite. Das Schiff, das Mädchen, die acht Welten, die Musik und jedes Geräusch entstehen in Code, während das Spiel läuft.',
+  aboutRuns:
+    'Es läuft in jedem aktuellen Browser mit WebGL 2, auf Computern, Tablets und Handys, lässt sich als App installieren und spielt dann auch offline.',
+  sourceCode: 'Quellcode auf GitHub',
+  changes: 'Änderungen',
+  changesInEnglish: 'Die Liste der Änderungen ist auf Englisch.',
+  dataTitle: 'Deine Daten',
+  dataText:
+    'Deine Schätze, Rekorde und Einstellungen liegen nur in diesem Browser. Exportiere sie als Datei, um eine Sicherung zu haben oder sie in einen anderen Browser oder auf ein anderes Gerät mitzunehmen.',
+  exportSave: 'Spielstand exportieren',
+  importSave: 'Spielstand importieren',
+  importConfirm: 'Deine Schätze, Rekorde und Einstellungen durch die aus dieser Datei ersetzen?',
+  importDone: 'Der Spielstand wurde importiert.',
+  importFailed: 'Diese Datei enthält keinen Spielstand dieses Spiels.',
+  debugTitle: 'Debug-Log',
+  debugText:
+    'Wenn etwas falsch aussieht, exportiere das Debug-Log und schick es mit deiner Meldung. Es enthält dein Gerät und seinen Grafikchip, wie schnell die Bilder kamen und was schiefging, aber keine deiner Schätze.',
+  exportDebug: 'Debug-Log exportieren',
+  copyDebug: 'Debug-Log kopieren',
+  copied: 'Kopiert.',
+  debugSummary: 'Bisher {glitches} Grafikfehler und {errors} Fehler',
+  graphicsChip: 'Grafik: {gpu}',
+  graphicsNow: 'Qualität {quality}, Pixelverhältnis {ratio}, {fps} Bilder pro Sekunde',
+  backupSection: 'Sicherung',
+  fpsLine: '{fps} fps · {ms} ms · ×{ratio} · {calls} Draw Calls',
+  infoSpeed: 'Tempo',
+  lyPerSecond: '{value} Lj/s',
+  infoOrbs: 'Orbs',
+  infoSparks: 'Funken',
+  infoTime: 'Zeit',
+  infoBest: 'Rekord',
+  infoFlown: 'Geflogen',
+  infoHole: 'Loch',
 
   rarity_common: 'Gewöhnlich',
   rarity_uncommon: 'Ungewöhnlich',

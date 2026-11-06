@@ -15,6 +15,10 @@ export interface RideHud {
   /** A hole has the ship in its grip. */
   readonly captured: boolean
   readonly warping: boolean
+  readonly orbs: number
+  readonly sparks: number
+  /** Seconds since the ride began. */
+  readonly time: number
 }
 
 export const rideHud = signal<RideHud>({
@@ -25,6 +29,9 @@ export const rideHud = signal<RideHud>({
   stunned: false,
   captured: false,
   warping: false,
+  orbs: 0,
+  sparks: 0,
+  time: 0,
 })
 
 /** What the screen shows in a world. */

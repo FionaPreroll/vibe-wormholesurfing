@@ -1,9 +1,25 @@
 import { effect } from '@preact/signals'
 import { render } from 'preact'
+import { version } from '../package.json'
+import { captureErrors, debugLog } from './game/debugLog'
 import { locale } from './i18n'
 import { App } from './ui/App'
 import { registerServiceWorker } from './ui/updates'
 import './ui/styles.css'
+
+captureErrors()
+debugLog.setEnvironment({
+  version,
+  userAgent: navigator.userAgent,
+  languages: [...navigator.languages],
+  screen: `${screen.width}×${screen.height}`,
+  devicePixelRatio: window.devicePixelRatio,
+  cores: navigator.hardwareConcurrency,
+  memoryGB: (navigator as Navigator & { deviceMemory?: number }).deviceMemory,
+  touch: navigator.maxTouchPoints,
+  installed: matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches,
+})
+debugLog.log('info', `Wormhole Surfing ${version} started`)
 
 effect(() => {
   document.documentElement.lang = locale.value

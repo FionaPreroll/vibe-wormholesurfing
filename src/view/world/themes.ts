@@ -49,6 +49,10 @@ export interface WorldTheme {
   }
   readonly exposure: number
   readonly bloom: number
+  /** How brightly glowing props shine, 1 as built. */
+  readonly glow?: number
+  /** A soft light that goes along with the girl, for dark worlds: its color and strength. */
+  readonly lantern?: readonly [number, number]
   /** Floating islands around the edge, for worlds that float. */
   readonly islands?: boolean
 }
@@ -157,9 +161,9 @@ export const THEMES: Readonly<Record<WorldId, WorldTheme>> = {
   },
   caverns: {
     sky: {
-      zenith: 0x0d0805,
-      horizon: 0x1e130a,
-      below: 0x140c06,
+      zenith: 0x1a120c,
+      horizon: 0x2e2014,
+      below: 0x1e140c,
       sun: 0xffcc66,
       sunDir: [0.2, 0.9, 0.1],
       sunSize: 0,
@@ -167,25 +171,27 @@ export const THEMES: Readonly<Record<WorldId, WorldTheme>> = {
       aurora: 0,
       clouds: 0,
     },
-    fog: { color: 0x1c120a, near: 12, far: 95 },
+    fog: { color: 0x261c14, near: 25, far: 150 },
     light: {
-      sun: 0xffc870,
-      sunIntensity: 0.55,
-      skyAmbient: 0x6a4a2a,
-      groundAmbient: 0x20140a,
-      ambientIntensity: 0.9,
+      sun: 0xffd890,
+      sunIntensity: 1.1,
+      skyAmbient: 0xb08a5e,
+      groundAmbient: 0x3a2814,
+      ambientIntensity: 1.7,
     },
-    ground: { low: 0x4a3a2a, mid: 0x5e4834, high: 0x6b5238, steep: 0x352a20 },
+    ground: { low: 0x6e5840, mid: 0x86684a, high: 0x9a7a56, steep: 0x4e3e30 },
     props: {
       crystal: [0xffc233, 0xffb000],
       crystalPillar: [0xffd36b, 0xffa020],
       mushroom: [0xe8d8c0, 0x7ff0ff],
-      stalagmite: [0x5a4634],
-      rock: [0x4e3e2e],
+      stalagmite: [0x7a624a],
+      rock: [0x6a5440],
     },
-    motes: { color: 0xffd060, count: 220, size: 0.09, rise: 0.25 },
-    exposure: 1.15,
-    bloom: 0.9,
+    motes: { color: 0xffd060, count: 160, size: 0.07, rise: 0.25 },
+    exposure: 1.0,
+    bloom: 0.3,
+    glow: 0.45,
+    lantern: [0xffd8a0, 16],
   },
   crystalSea: {
     sky: {
@@ -250,7 +256,8 @@ export const THEMES: Readonly<Record<WorldId, WorldTheme>> = {
     },
     motes: { color: 0xbfe0ff, count: 140, size: 0.08, rise: 0.08 },
     exposure: 1.05,
-    bloom: 0.6,
+    bloom: 0.5,
+    lantern: [0xc8d8ff, 10],
   },
   floatingGardens: {
     sky: {
@@ -315,7 +322,9 @@ export const THEMES: Readonly<Record<WorldId, WorldTheme>> = {
     },
     motes: { color: 0x7ffff0, count: 220, size: 0.09, rise: 0.18 },
     exposure: 1.1,
-    bloom: 0.85,
+    bloom: 0.6,
+    glow: 0.8,
+    lantern: [0xa8f0ff, 14],
     islands: true,
   },
 }

@@ -1,5 +1,6 @@
 import { effect } from '@preact/signals'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks'
+import { version } from '../../package.json'
 import type { MoodName } from '../audio/music'
 import type { Ambience } from '../audio/synth'
 import { Synth } from '../audio/synth'
@@ -8,6 +9,7 @@ import type { Reward } from '../core/rewards'
 import type { RideOutcome } from '../core/ride'
 import { holeRadius } from '../core/ride'
 import { type WorldId, worldOf } from '../core/worlds'
+import { debugLog } from '../game/debugLog'
 import { type GameEvent, onGameEvent } from '../game/events'
 import { rideHud } from '../game/hud'
 import { QUALITIES, type Settings, settings } from '../game/settings'
@@ -18,11 +20,14 @@ import { watchMenuPad } from '../input/menuNav'
 import { type Save, SaveBook } from '../persistence/save'
 import { browserStore, type KeyValueStore, memoryStore } from '../persistence/store'
 import type { Director } from '../view/director'
+import { AboutScreen } from './AboutScreen'
 import { CollectionScreen } from './CollectionScreen'
-import { AboutDialog, HelpDialog, PauseMenu, SettingsDialog } from './dialogs'
+import { HelpDialog, PauseMenu, SettingsDialog } from './dialogs'
 import { enterFullScreen } from './FullScreen'
 import { arrival, found, graphicsFailed, loading, overlay, paused, screen } from './flow'
 import { RideHud, WorldHud } from './Hud'
+import { LoadingIndicator } from './LoadingIndicator'
+import { loadWithProgress } from './loading'
 import { touchScreen } from './pointer'
 import { RewardCard } from './RewardCard'
 import { TitleScreen } from './TitleScreen'
@@ -64,6 +69,29 @@ function buzzFor(event: GameEvent): void {
   }
 }
 
+/** How many glitches and errors the debug log holds, in a line for the player. */
+function summaryLine(): string {
+  const summary = debugLog.summary()
+  return t('debugSummary', { glitches: Number(summary.glitches), errors: Number(summary.errors) })
+}
+
+/** The graphics chip and how the 3D view runs on it, in lines for the about page. */
+function graphicsLines(director: Director | undefined): string[] {
+  const gpu = debugLog.environment.gpuRenderer
+  const lines = typeof gpu === 'string' ? [t('graphicsChip', { gpu })] : []
+  if (director) {
+    const info = director.diagnostics()
+    lines.push(
+      t('graphicsNow', {
+        quality: String(info.quality),
+        ratio: String(info.pixelRatio),
+        fps: director.stats.fps,
+      }),
+    )
+  }
+  return lines
+}
+
 interface Props {
   /** Where the save goes; IndexedDB unless a test passes another store. */
   readonly store?: KeyValueStore
@@ -78,7 +106,7 @@ export function App({ store }: Props) {
   const [director, setDirector] = useState<Director>()
   const [card, setCard] = useState(false)
   const [picture, setPicture] = useState<string>()
-  const [fps, setFps] = useState(0)
+  const [fps, setFps] = useState('')
   const root = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   const directorRef = useRef<Director | undefined>(undefined)
@@ -203,13 +231,49 @@ export function App({ store }: Props) {
     setMood('ride', 'ride')
   }, [input, synth, setMood])
 
-  const openCollection = useCallback(() => {
-    if (screen.value === 'world') directorRef.current?.showTitle()
-    found.value = undefined
-    setCard(false)
-    screen.value = 'collection'
-    setMood('title', 'none')
-  }, [setMood])
+  /** A screen over the title's ride: the collection or the about page. */
+  const openPanel = useCallback(
+    (panel: 'collection' | 'about') => {
+      if (screen.value === 'world' || screen.value === 'ride') directorRef.current?.showTitle()
+      found.value = undefined
+      paused.value = false
+      overlay.value = undefined
+      setCard(false)
+      directorRef.current?.setPaused(false)
+      screen.value = panel
+      setMood('title', 'none')
+    },
+    [setMood],
+  )
+  const openCollection = useCallback(() => openPanel('collection'), [openPanel])
+
+  /** The debug log with what the game knows now, as a file's text. */
+  const debugReport = useCallback(() => {
+    const save = bookRef.current?.current
+    const report = debugLog.report(version, {
+      settings: settings.value,
+      save: save && {
+        rides: save.stats.rides,
+        bestDistance: save.stats.bestDistance,
+        found: Object.keys(save.collection).length,
+      },
+      graphics: directorRef.current?.diagnostics(),
+      screen: screen.value,
+      address: location.href,
+      visibility: document.visibilityState,
+    })
+    return `${JSON.stringify(report, null, 2)}\n`
+  }, [])
+
+  const importSaveFile = useCallback(
+    async (imported: Save) => {
+      await bookRef.current?.replace(imported)
+      settings.value = imported.settings
+      debugLog.log('info', 'Save imported')
+      refresh()
+    },
+    [refresh],
+  )
 
   const onArrive = useCallback(
     (outcome: RideOutcome) => {
@@ -253,7 +317,7 @@ export function App({ store }: Props) {
   useEffect(() => {
     if (!book || !canvas.current || directorRef.current) return
     let disposed = false
-    import('../view/director')
+    loadWithProgress(() => import('../view/director'))
       .then(({ createDirector }) => {
         if (disposed || !canvas.current) return
         const created = createDirector(canvas.current, input, settings.value.quality, {
@@ -303,13 +367,14 @@ export function App({ store }: Props) {
         () =>
           screen.value === 'title' ||
           screen.value === 'collection' ||
+          screen.value === 'about' ||
           paused.value ||
           overlay.value !== undefined ||
           card,
         () => {
           if (overlay.value) overlay.value = undefined
           else if (paused.value) resume()
-          else if (screen.value === 'collection') showTitle()
+          else if (screen.value === 'collection' || screen.value === 'about') showTitle()
         },
       ),
     [card, resume, showTitle],
@@ -318,7 +383,19 @@ export function App({ store }: Props) {
   // Frames per second for the optional counter.
   useEffect(() => {
     if (!save?.settings.showFps) return
-    const timer = setInterval(() => setFps(directorRef.current?.stats.fps ?? 0), 500)
+    const timer = setInterval(() => {
+      const stats = directorRef.current?.stats
+      setFps(
+        stats
+          ? t('fpsLine', {
+              fps: stats.fps,
+              ms: stats.frameMs,
+              ratio: stats.pixelRatio,
+              calls: stats.drawCalls,
+            })
+          : '',
+      )
+    }, 500)
     return () => clearInterval(timer)
   }, [save?.settings.showFps])
 
@@ -343,11 +420,7 @@ export function App({ store }: Props) {
   return (
     <div class={`game screen-${current}`} ref={root}>
       <canvas class="stage-canvas" ref={canvas} />
-      {loading.value && !graphicsFailed.value && (
-        <div class="loader" role="status">
-          {t('loading')}
-        </div>
-      )}
+      {loading.value && !graphicsFailed.value && current !== 'title' && <LoadingIndicator />}
       {graphicsFailed.value && (
         <p class="notice error" role="alert">
           {t('graphicsFailed')}
@@ -365,14 +438,13 @@ export function App({ store }: Props) {
           onSettings={() => {
             overlay.value = 'settings'
           }}
-          onAbout={() => {
-            overlay.value = 'about'
-          }}
+          onAbout={() => openPanel('about')}
         />
       )}
       {current === 'ride' && save && (
         <RideHud
           input={input}
+          best={save.stats.bestDistance}
           onPause={pause}
           onRecenter={() => input.gyro.calibrate()}
           hint={!save.seen.rideHint}
@@ -385,6 +457,7 @@ export function App({ store }: Props) {
           input={input}
           world={where.world}
           tier={where.tier}
+          distance={where.distance}
           onPause={pause}
           hint={!save.seen.worldHint}
           onHintSeen={() => hintSeen('worldHint')}
@@ -427,6 +500,10 @@ export function App({ store }: Props) {
       {overlay.value === 'settings' && save && (
         <SettingsDialog
           settings={settings.value}
+          save={save}
+          onImport={importSaveFile}
+          debugReport={debugReport}
+          debugSummary={summaryLine()}
           gyroState={input.gyro.state.value}
           onChange={changeSettings}
           onGyro={toggleGyro}
@@ -443,18 +520,21 @@ export function App({ store }: Props) {
           }}
         />
       )}
-      {overlay.value === 'about' && (
-        <AboutDialog
-          onClose={() => {
-            overlay.value = undefined
-          }}
+      {current === 'about' && save && (
+        <AboutScreen
+          save={save}
+          onImport={importSaveFile}
+          debugReport={debugReport}
+          debugSummary={summaryLine()}
+          graphics={graphicsLines(director)}
+          onBack={showTitle}
         />
       )}
       <div class="notices">
         <UpdateNotice />
         {blocked && <p class="notice">{t('storageBlocked')}</p>}
       </div>
-      {save?.settings.showFps && <div class="fps">{fps} fps</div>}
+      {save?.settings.showFps && <div class="fps">{fps}</div>}
     </div>
   )
 }

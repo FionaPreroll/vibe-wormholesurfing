@@ -49,6 +49,7 @@ export class WorldStage implements Stage {
   readonly #sky: THREE.Mesh
   readonly #water: THREE.Mesh | undefined
   readonly #sun: THREE.DirectionalLight
+  readonly #lantern: THREE.PointLight | undefined
   readonly #sunOffset: THREE.Vector3
   readonly #girl: GirlRig
   readonly #ship: ShipRig
@@ -112,6 +113,12 @@ export class WorldStage implements Stage {
     }
     scene.add(this.#sun)
     scene.add(this.#sun.target)
+    if (theme.lantern) {
+      // In dark worlds a soft light goes with her, so the way ahead is never pitch black.
+      const [color, strength] = theme.lantern
+      this.#lantern = new THREE.PointLight(color, strength, 30, 1.2)
+      scene.add(this.#lantern)
+    }
 
     const seed = expedition.seed
     const terrain = buildTerrain(expedition.land, theme, level.detail, seed)
@@ -342,6 +349,11 @@ export class WorldStage implements Stage {
     if (this.#water) updateWater(this.#water, time)
     this.#sun.position.set(walker.x, walker.y, walker.z).add(this.#sunOffset)
     this.#sun.target.position.set(walker.x, walker.y, walker.z)
+    this.#lantern?.position.set(
+      walker.x - Math.sin(this.#yaw) * 3,
+      walker.y + 6,
+      walker.z - Math.cos(this.#yaw) * 3,
+    )
     this.#ship.update(dt, time, { thrust: 0.15, bank: Math.sin(time * 0.7) * 0.04, pitch: 0 })
     this.#ship.group.position.y += Math.sin(time * 1.3) * 0.004
     const portalFade = clamp(1 - (time - 1.2) / 2.5, 0, 1)

@@ -99,7 +99,7 @@ export function buildProps(
       kind === 'flower' ? kind : kind,
       kind === 'flower' ? { body: new THREE.Color(0xffffff), accent: colors.accent } : colors,
     )
-    const glow = GLOWING.has(kind) ? (kind === 'crystalPillar' ? 0.9 : 1.6) : 0
+    const glow = GLOWING.has(kind) ? (kind === 'crystalPillar' ? 0.9 : 1.6) * (theme.glow ?? 1) : 0
     const mesh = new THREE.InstancedMesh(geometry, sceneryMaterial(kind, time, glow), list.length)
     for (const [index, prop] of list.entries()) {
       const tilt = kind === 'rock' || kind === 'boulder' || kind === 'crystal' ? 0.25 : 0.06

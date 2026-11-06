@@ -16,6 +16,21 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 - Music and sounds generated live, in a mood of their own for every world.
 - The game installs as an app and plays offline.
 
+- A small panel shows the ship's speed in light-years per second, the orbs and sparks of the ride, its time and your farthest ride; in a world, where you are and how far you flew.
+- An about page with what the game is, how it is made, your data, the debug log and every change, in place of the small about box.
+- Export your save as a file and import it again, to keep a backup or to carry your treasures to another browser or device. Both are on the about page and in the settings.
+- An exportable debug log: your device and graphics chip, how fast frames came each second, and any glitches, errors and long frames, to send along with a bug report.
+- While the 3D engine loads, a bar shows how much has arrived, how fast, how long it took and how long it should still take.
+- On foot, the arrow keys turn the camera; WASD walks.
+- The frame counter in the settings also shows the time per frame, the resolution and the draw calls.
+
+### Changed
+
+- The Caverns are lighter and glow less, so the cave can be seen; a soft light goes along with the girl in dark worlds.
+
 ### Fixed
 
 - On Macs and other computers with a real graphics chip, the picture no longer turns black except for a strip at the edge: a glint of light on the ship could overflow and spread across the screen.
+- After switching the graphics quality, as to Ultra, the picture no longer stays black.
+- The picture no longer flashes black for a frame when the game changes its resolution to keep up, as it often did right after arriving in a world.
+- In the Lagoon and the Crystal Sea, the girl no longer gets stuck at the edge of deep water: she slides along the shore and can always wade out.

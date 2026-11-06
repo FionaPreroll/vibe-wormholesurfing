@@ -50,6 +50,32 @@ const saveSchema = z.object({
 })
 
 export type Save = z.infer<typeof saveSchema>
+
+/** The format of an exported save file. */
+export const SAVE_FORMAT = 'vibe-wormholesurfing-save'
+
+/** A save as a file to keep: the record and when it was exported. */
+export function exportSave(save: Save, now = new Date()): string {
+  return `${JSON.stringify({ format: SAVE_FORMAT, exportedAt: now.toISOString(), save }, null, 2)}\n`
+}
+
+/**
+ * The save in an exported file, or undefined when the file is not one: another format, broken
+ * JSON or a save that does not read. Settings that do not read fall back to their defaults.
+ */
+export function importSave(text: string): Save | undefined {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    return undefined
+  }
+  if (!parsed || typeof parsed !== 'object') return undefined
+  const file = parsed as { format?: unknown; save?: unknown }
+  if (file.format !== SAVE_FORMAT) return undefined
+  const result = saveSchema.safeParse(file.save)
+  return result.success ? result.data : undefined
+}
 export type Find = z.infer<typeof findSchema>
 
 export function freshSave(): Save {
@@ -147,6 +173,11 @@ export class SaveBook {
 
   markSeen(hint: keyof Save['seen']): Promise<void> {
     return this.update((save) => ({ ...save, seen: { ...save.seen, [hint]: true } }))
+  }
+
+  /** Puts an imported save in place of this one, settings included. */
+  replace(save: Save): Promise<void> {
+    return this.update(() => save)
   }
 
   /** Forgets every treasure and record, keeping the settings. */

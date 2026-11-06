@@ -16,7 +16,7 @@ export interface Land {
 }
 
 /** Water deeper than this stops the player; shallower water is waded through. */
-export const WADE_DEPTH = 0.85
+export const WADE_DEPTH = 1
 
 export function makeLand(shape: LandShape, seed: number): Land {
   const hillNoise: Noise2 = simplex2(seed ^ 0x51ed)

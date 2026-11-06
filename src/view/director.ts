@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { Expedition } from '../core/expedition'
 import { itemById, type Reward } from '../core/rewards'
 import type { RideOutcome } from '../core/ride'
+import { debugLog } from '../game/debugLog'
 import type { Arrival } from '../game/hud'
 import type { Quality } from '../game/settings'
 import type { ControlFrame, Input } from '../input/input'
@@ -30,6 +31,8 @@ export interface Director {
   setQuality(quality: Quality): void
   /** A picture of a treasure, as an image address, for the collection. */
   thumbnail(itemId: string, shiny: boolean, size?: number): string
+  /** The graphics as they run now, for the debug log. */
+  diagnostics(): Record<string, unknown>
   /** The current ride or world, for tests that drive the game. */
   readonly stage: RideStage | WorldStage | undefined
   dispose(): void
@@ -47,9 +50,9 @@ export function createDirector(
   let current: RideStage | WorldStage | undefined
   const thumbnails = new Map<string, string>()
 
-  const show = (stage: RideStage | WorldStage) => {
+  const show = (stage: RideStage | WorldStage, label: string) => {
     current = stage
-    engine.setStage(stage)
+    engine.setStage(stage, label)
   }
 
   return {
@@ -66,6 +69,7 @@ export function createDirector(
           demo: true,
           reducedMotion: hooks.reducedMotion,
         }),
+        'title',
       )
     },
     startRide(seed) {
@@ -79,10 +83,12 @@ export function createDirector(
           onPause: hooks.onPause,
           onRecenter: hooks.onRecenter,
         }),
+        'ride',
       )
     },
     enterWorld(arrival, found) {
       input.mode = 'world'
+      const started = performance.now()
       const expedition = new Expedition({
         world: arrival.world,
         seed: arrival.seed,
@@ -99,7 +105,22 @@ export function createDirector(
           onReveal: hooks.onReveal,
           onPause: hooks.onPause,
         }),
+        `world ${arrival.world}`,
       )
+      debugLog.log('info', `Built ${arrival.world}`, {
+        ms: Math.round(performance.now() - started),
+        seed: arrival.seed,
+        tier: arrival.tier,
+      })
+    },
+    diagnostics() {
+      return {
+        quality: engine.level.name,
+        pixelRatio: engine.stats.pixelRatio,
+        devicePixelRatio: window.devicePixelRatio,
+        canvas: `${canvas.width}×${canvas.height}`,
+        screen: engine.label,
+      }
     },
     setPaused(paused) {
       engine.paused = paused

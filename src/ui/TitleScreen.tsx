@@ -2,6 +2,7 @@ import { ITEMS } from '../core/rewards'
 import { number, t } from '../i18n'
 import type { Save } from '../persistence/save'
 import { FullScreenButton } from './FullScreen'
+import { LoadingIndicator } from './LoadingIndicator'
 
 interface Props {
   readonly save: Save
@@ -34,9 +35,13 @@ export function TitleScreen({
         <p class="tagline">{t('tagline')}</p>
       </div>
       <nav class="title-menu">
-        <button type="button" class="primary big" onClick={onPlay} disabled={!ready}>
-          {ready ? t('play') : t('loading')}
-        </button>
+        {ready ? (
+          <button type="button" class="primary big" onClick={onPlay}>
+            {t('play')}
+          </button>
+        ) : (
+          <LoadingIndicator inline />
+        )}
         <button type="button" onClick={onCollection}>
           {t('collection')}
         </button>

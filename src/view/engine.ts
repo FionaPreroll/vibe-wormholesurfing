@@ -4,9 +4,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
 import type { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js'
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
+import { type DebugLog, debugLog, percentile } from '../game/debugLog'
 import type { Quality } from '../game/settings'
 import type { ControlFrame, Input } from '../input/input'
 import { finishPass, type Look, sanitizePass } from './post'
+import { ProbePass } from './probe'
 import { levelOf, type QualityLevel } from './quality'
 import { uniform } from './uniforms'
 
@@ -26,59 +28,135 @@ export function rendersInSoftware(gl: WebGLRenderingContext | WebGL2RenderingCon
   return /swiftshader|llvmpipe|software|basic render/i.test(name)
 }
 
+/** What the graphics chip and its WebGL can do, for the debug log. */
+function graphicsInfo(gl: WebGL2RenderingContext | WebGLRenderingContext): Record<string, unknown> {
+  const info = gl.getExtension('WEBGL_debug_renderer_info')
+  return {
+    gpuVendor: info ? gl.getParameter(info.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR),
+    gpuRenderer: info
+      ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL)
+      : gl.getParameter(gl.RENDERER),
+    webgl: gl.getParameter(gl.VERSION),
+    shading: gl.getParameter(gl.SHADING_LANGUAGE_VERSION),
+    maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+    maxSamples: 'MAX_SAMPLES' in gl ? gl.getParameter(gl.MAX_SAMPLES) : 0,
+    floatBuffers: gl.getExtension('EXT_color_buffer_float') !== null,
+    halfFloatBuffers:
+      gl.getExtension('EXT_color_buffer_half_float') !== null || 'MAX_SAMPLES' in gl,
+  }
+}
+
 /** Frames per second over the last second, for the optional counter. */
 export interface FrameStats {
   fps: number
+  frameMs: number
   pixelRatio: number
+  drawCalls: number
 }
+
+/** Seconds a lower resolution holds before the engine tries a higher one again. */
+const RAISE_COOLDOWN = 20
 
 /**
  * The renderer and its loop. It draws the current stage with bloom and a finishing pass, and
  * lowers the resolution while frames come late, raising it again once they are on time.
+ *
+ * Changing the canvas's size clears it, and a browser that shows the page before the next frame
+ * is drawn shows it black. So every change of size waits for the next frame and happens right
+ * before that frame is drawn.
  */
 export class Engine {
   readonly renderer: THREE.WebGLRenderer
   readonly software: boolean
   level: QualityLevel
   stage: Stage | undefined
+  /** Where the game is, for the performance log: title, ride or a world. */
+  label = 'title'
   /** While paused, the stage stands still but is still drawn. */
   paused = false
-  readonly stats: FrameStats = { fps: 0, pixelRatio: 1 }
+  readonly stats: FrameStats = { fps: 0, frameMs: 0, pixelRatio: 1, drawCalls: 0 }
   onFrame: ((dt: number, controls: ControlFrame) => void) | undefined
 
   #composer!: EffectComposer
   #renderPass!: RenderPass
   #bloom!: UnrealBloomPass
   #finish!: ShaderPass
+  readonly #sceneProbe = new ProbePass()
+  readonly #finalProbe = new ProbePass()
   #frame = 0
   #last = 0
   #scale = 1
   #slow = 0
   #fast = 0
-  #frames = 0
-  #fpsTime = 0
+  #raiseBlockedUntil = 0
+  #sizeDirty = true
+  #frameTimes: number[] = []
+  #secondStart = 0
+  #probeAt = 0
+  #probeTurn = 0
+  #lastBright = 1
+  #lost = false
   readonly #observer: ResizeObserver
+  readonly #log: DebugLog
 
   constructor(
     readonly canvas: HTMLCanvasElement,
     readonly input: Input,
     quality: Quality,
+    log: DebugLog = debugLog,
   ) {
+    this.#log = log
     this.renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: false,
       powerPreference: 'high-performance',
       stencil: false,
     })
-    this.software = rendersInSoftware(this.renderer.getContext())
+    const gl = this.renderer.getContext()
+    this.software = rendersInSoftware(gl)
     this.level = levelOf(quality, this.software)
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
     this.renderer.shadowMap.type = THREE.PCFShadowMap
+    // Draw calls and triangles add up over every pass of a frame, not just the last one.
+    this.renderer.info.autoReset = false
+    log.setEnvironment({ ...graphicsInfo(gl), softwareRendering: this.software })
+    log.log('info', `Graphics started at quality ${this.level.name}`, { asked: quality })
+    this.#sceneProbe.onReading = (reading) => {
+      if (reading.broken > 0)
+        log.log('glitch', 'Overflowing or broken pixels in the scene, cleaned before bloom', {
+          share: reading.broken,
+          screen: this.label,
+        })
+    }
+    this.#finalProbe.onReading = (reading) => {
+      if (reading.broken > 0 || (reading.brightness < 0.004 && this.#lastBright > 0.02))
+        log.log('glitch', 'Black or broken frame', {
+          brightness: Number(reading.brightness.toFixed(4)),
+          broken: reading.broken,
+          screen: this.label,
+          pixelRatio: this.stats.pixelRatio,
+        })
+      this.#lastBright = reading.brightness
+    }
+    canvas.addEventListener('webglcontextlost', this.#onContextLost)
+    canvas.addEventListener('webglcontextrestored', this.#onContextRestored)
     this.#build()
     this.#observer = new ResizeObserver(() => this.resize())
     this.#observer.observe(canvas)
-    this.resize()
+  }
+
+  readonly #onContextLost = (event: Event) => {
+    // Asking for it back lets the browser restore the context instead of giving up on it.
+    event.preventDefault()
+    this.#lost = true
+    this.#log.log('glitch', 'WebGL context lost', { screen: this.label })
+  }
+
+  readonly #onContextRestored = () => {
+    this.#lost = false
+    this.#log.log('info', 'WebGL context restored')
+    this.#build()
   }
 
   #build(): void {
@@ -90,42 +168,62 @@ export class Engine {
       samples: level.samples,
     })
     this.#composer = new EffectComposer(this.renderer, target)
-    this.#renderPass = new RenderPass(new THREE.Scene(), new THREE.PerspectiveCamera())
+    this.#renderPass = new RenderPass(
+      this.stage?.scene ?? new THREE.Scene(),
+      this.stage?.camera ?? new THREE.PerspectiveCamera(),
+    )
     this.#bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.9, 0.55, 0.72)
     this.#finish = finishPass(level.radialBlur)
     this.#composer.addPass(this.#renderPass)
+    this.#composer.addPass(this.#sceneProbe)
     this.#composer.addPass(sanitizePass())
     this.#composer.addPass(this.#bloom)
     this.#composer.addPass(this.#finish)
+    this.#composer.addPass(this.#finalProbe)
     this.#composer.addPass(new OutputPass())
+    this.#sizeDirty = true
   }
 
   setQuality(quality: Quality): void {
     const next = levelOf(quality, this.software)
     if (next.name === this.level.name) return
+    this.#log.log('info', `Quality changed from ${this.level.name} to ${next.name}`)
     this.level = next
     this.#scale = 1
     this.#build()
-    this.resize()
+    // Shadows on or off change how every material is built.
+    this.stage?.scene.traverse((object) => {
+      const material = (object as THREE.Mesh).material
+      if (Array.isArray(material)) for (const entry of material) entry.needsUpdate = true
+      else if (material) material.needsUpdate = true
+    })
   }
 
-  setStage(stage: Stage | undefined): void {
+  setStage(stage: Stage | undefined, label = this.label): void {
     const old = this.stage
     this.stage = stage
+    this.label = label
     if (stage) {
       this.#renderPass.scene = stage.scene
       this.#renderPass.camera = stage.camera
-      this.resize()
+      this.#sizeDirty = true
     }
     old?.dispose()
+    this.#log.log('info', `Showing ${label}`)
   }
 
+  /** Asks for the canvas to take its size again before the next frame. */
   resize(): void {
+    this.#sizeDirty = true
+  }
+
+  #applySize(): void {
+    this.#sizeDirty = false
     const width = Math.max(1, this.canvas.clientWidth)
     const height = Math.max(1, this.canvas.clientHeight)
     const ratio = Math.min(window.devicePixelRatio || 1, this.level.maxPixelRatio) * this.#scale
     const pixelRatio = Math.max(0.5, ratio)
-    this.stats.pixelRatio = pixelRatio
+    this.stats.pixelRatio = Number(pixelRatio.toFixed(2))
     this.renderer.setPixelRatio(pixelRatio)
     this.renderer.setSize(width, height, false)
     this.#composer.setPixelRatio(pixelRatio)
@@ -141,11 +239,14 @@ export class Engine {
   start(): void {
     if (this.#frame) return
     this.#last = performance.now()
+    this.#secondStart = this.#last
     const loop = (now: number) => {
       this.#frame = requestAnimationFrame(loop)
-      const dt = Math.min(0.1, Math.max(0, (now - this.#last) / 1000))
+      const raw = (now - this.#last) / 1000
       this.#last = now
-      this.#tick(dt, now)
+      if (raw > 0.25 && document.visibilityState === 'visible')
+        this.#log.log('glitch', `Long frame: ${Math.round(raw * 1000)} ms`, { screen: this.label })
+      this.#tick(Math.min(0.1, Math.max(0, raw)), now, raw)
     }
     this.#frame = requestAnimationFrame(loop)
   }
@@ -155,15 +256,25 @@ export class Engine {
     this.#frame = 0
   }
 
-  #tick(dt: number, now: number): void {
+  #tick(dt: number, now: number, raw: number): void {
     const controls = this.input.frame(dt)
     this.onFrame?.(dt, controls)
     const stage = this.stage
-    if (!stage) return
+    if (!stage || this.#lost) return
     if (!this.paused) stage.update(dt, controls)
     this.#applyLook(stage, now)
+    if (this.#sizeDirty) this.#applySize()
+    if (now >= this.#probeAt) {
+      // One probe per turn, each every few seconds.
+      this.#probeAt = now + 1500
+      this.#probeTurn = 1 - this.#probeTurn
+      if (this.#probeTurn === 0) this.#sceneProbe.due = true
+      else this.#finalProbe.due = true
+    }
+    this.renderer.info.reset()
     this.#composer.render(dt)
-    this.#adapt(dt, now)
+    this.#measure(raw, now)
+    this.#adapt(dt)
   }
 
   #applyLook(stage: Stage, now: number): void {
@@ -183,14 +294,41 @@ export class Engine {
     uniform(uniforms, 'uTime').value = now / 1000
   }
 
-  /** Lowers the resolution while frames come late, and raises it once they are quick again. */
-  #adapt(dt: number, now: number): void {
-    this.#frames++
-    if (now - this.#fpsTime >= 1000) {
-      this.stats.fps = Math.round((this.#frames * 1000) / (now - this.#fpsTime))
-      this.#frames = 0
-      this.#fpsTime = now
-    }
+  /** Sums up each second of frames for the counter and the debug log. */
+  #measure(raw: number, now: number): void {
+    this.#frameTimes.push(raw * 1000)
+    if (now - this.#secondStart < 1000) return
+    const times = this.#frameTimes
+    const seconds = (now - this.#secondStart) / 1000
+    this.#frameTimes = []
+    this.#secondStart = now
+    const average = times.reduce((sum, time) => sum + time, 0) / Math.max(1, times.length)
+    const info = this.renderer.info
+    this.stats.fps = Math.round(times.length / seconds)
+    this.stats.frameMs = Number(average.toFixed(1))
+    this.stats.drawCalls = info.render.calls
+    const memory = (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory
+    this.#log.sample({
+      t: Math.round(now),
+      screen: this.label,
+      fps: this.stats.fps,
+      frameAvg: this.stats.frameMs,
+      frameP95: Number(percentile(times, 0.95).toFixed(1)),
+      frameMax: Number(Math.max(...times).toFixed(1)),
+      pixelRatio: this.stats.pixelRatio,
+      drawCalls: info.render.calls,
+      triangles: info.render.triangles,
+      geometries: info.memory.geometries,
+      textures: info.memory.textures,
+      ...(memory ? { heapMB: Math.round(memory.usedJSHeapSize / 1048576) } : {}),
+    })
+  }
+
+  /**
+   * Lowers the resolution while frames come late, and raises it once they are quick again. A
+   * resolution that had to come down holds for a while, so it does not swing up and down.
+   */
+  #adapt(dt: number): void {
     if (this.paused || dt <= 0) return
     if (dt > 1 / 45) {
       this.#slow += dt
@@ -199,23 +337,43 @@ export class Engine {
       this.#fast += dt
       this.#slow = Math.max(0, this.#slow - dt * 0.5)
     }
-    if (this.#slow > 0.8 && this.#scale > 0.55) {
+    const now = performance.now() / 1000
+    if (this.#slow > 1 && this.#scale > 0.55) {
+      const from = this.#scale
       this.#scale = Math.max(0.55, this.#scale - 0.12)
       this.#slow = 0
-      this.resize()
-    } else if (this.#fast > 4 && this.#scale < 1) {
+      this.#raiseBlockedUntil = now + RAISE_COOLDOWN
+      this.#sizeDirty = true
+      this.#log.log('info', 'Resolution lowered', {
+        from,
+        to: this.#scale,
+        fps: this.stats.fps,
+        screen: this.label,
+      })
+    } else if (this.#fast > 6 && this.#scale < 1 && now > this.#raiseBlockedUntil) {
+      const from = this.#scale
       this.#scale = Math.min(1, this.#scale + 0.08)
       this.#fast = 0
-      this.resize()
+      this.#sizeDirty = true
+      this.#log.log('info', 'Resolution raised', {
+        from,
+        to: this.#scale,
+        fps: this.stats.fps,
+        screen: this.label,
+      })
     }
   }
 
   dispose(): void {
     this.stop()
     this.#observer.disconnect()
+    this.canvas.removeEventListener('webglcontextlost', this.#onContextLost)
+    this.canvas.removeEventListener('webglcontextrestored', this.#onContextRestored)
     this.stage?.dispose()
     this.stage = undefined
     this.#composer.dispose()
+    this.#sceneProbe.dispose()
+    this.#finalProbe.dispose()
     this.renderer.dispose()
   }
 }

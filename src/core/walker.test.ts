@@ -43,3 +43,42 @@ describe('Walker', () => {
     expect(Math.hypot(walker.x, walker.z)).toBeLessThanOrEqual(LAYOUTS.canyon.land.bounds)
   })
 })
+
+describe('Walker in water', () => {
+  const lagoon = makeLand(LAYOUTS.lagoon.land, 3)
+  const water = LAYOUTS.lagoon.land.water ?? 0
+
+  /** A walkable spot in shallow water with deep water a few steps to one side. */
+  function shoreSpot(): { x: number; z: number; toward: number } {
+    for (let x = -60; x < 60; x += 1.5) {
+      for (let z = -60; z < 60; z += 1.5) {
+        if (!lagoon.walkable(x, z) || lagoon.heightAt(x, z) > water - 0.2) continue
+        for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
+          if (!lagoon.walkable(x + Math.sin(angle) * 2, z + Math.cos(angle) * 2))
+            return { x, z, toward: angle }
+        }
+      }
+    }
+    throw new Error('the lagoon has no shore')
+  }
+
+  it('slides along deep water instead of sticking to it', () => {
+    const spot = shoreSpot()
+    const walker = new Walker(lagoon, [], spot.x, spot.z)
+    // Push toward the deep water at a slant, as a player walking along the shore does.
+    const angle = spot.toward + 0.6
+    for (let index = 0; index < 120; index++)
+      walker.step(1 / 60, { x: Math.sin(angle), z: Math.cos(angle), jump: false })
+    expect(Math.hypot(walker.x - spot.x, walker.z - spot.z)).toBeGreaterThan(2)
+    expect(lagoon.walkable(walker.x, walker.z)).toBe(true)
+  })
+
+  it('walks out of the water the way it came', () => {
+    const spot = shoreSpot()
+    const walker = new Walker(lagoon, [], spot.x, spot.z)
+    const away = spot.toward + Math.PI
+    for (let index = 0; index < 180; index++)
+      walker.step(1 / 60, { x: Math.sin(away), z: Math.cos(away), jump: false })
+    expect(Math.hypot(walker.x - spot.x, walker.z - spot.z)).toBeGreaterThan(5)
+  })
+})

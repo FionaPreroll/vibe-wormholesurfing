@@ -1,11 +1,12 @@
 import preact from '@preact/preset-vite'
 import { defineConfig } from 'vitest/config'
+import { lazyFiles } from './tools/lazyFiles.ts'
 import { serviceWorker } from './tools/serviceWorker.ts'
 
 export default defineConfig({
   // Relative asset URLs, so the build runs under any path, such as GitHub Pages' /vibe-wormholesurfing/.
   base: './',
-  plugins: [preact(), serviceWorker()],
+  plugins: [preact(), lazyFiles(), serviceWorker()],
   build: {
     // three.js is one large chunk of its own, loaded once the first scene starts.
     chunkSizeWarningLimit: 1000,

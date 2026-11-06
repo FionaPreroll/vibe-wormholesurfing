@@ -973,18 +973,72 @@ select {
 
 .loader {
   position: absolute;
-  inset: 0;
+  left: 50%;
+  bottom: max(18%, 90px);
+  transform: translateX(-50%);
+  width: min(420px, calc(100% - 40px));
   display: grid;
-  place-items: center;
-  color: var(--ink-quiet);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  animation: throbText 1.2s ease-in-out infinite alternate;
+  gap: 8px;
+  justify-items: center;
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  background: var(--glass-strong);
+  border: 1px solid var(--edge);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 25;
 }
 
-@keyframes throbText {
+.loader.inline {
+  position: static;
+  transform: none;
+  flex-basis: 100%;
+  margin: 0 auto 6px;
+}
+
+.loader-title {
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.loader-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 99px;
+  background: rgba(20, 10, 50, 0.7);
+  box-shadow: inset 0 0 0 1px var(--edge);
+  overflow: hidden;
+}
+
+.loader-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--pink), var(--lilac), var(--aqua));
+  transition: width 0.15s linear;
+}
+
+.loader-bar.unknown .loader-fill {
+  animation: sweep 1.2s ease-in-out infinite alternate;
+}
+
+.loader-stats {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+  color: var(--ink-quiet);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes sweep {
+  from {
+    transform: translateX(-60%);
+  }
   to {
-    opacity: 0.4;
+    transform: translateX(240%);
   }
 }
 
@@ -1025,6 +1079,124 @@ select {
     /* biome-ignore lint/complexity/noImportantStyles: less motion must win over every animation. */
     animation-iteration-count: 1 !important;
   }
+}
+
+/* A small table of numbers in a corner */
+
+.info-panel {
+  position: absolute;
+  left: max(16px, env(safe-area-inset-left));
+  bottom: max(14px, env(safe-area-inset-bottom));
+  margin: 0;
+  padding: 8px 12px;
+  display: grid;
+  gap: 2px;
+  min-width: 150px;
+  border-radius: 14px;
+  background: rgba(14, 8, 36, 0.5);
+  border: 1px solid rgba(190, 170, 255, 0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.info-panel div {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.info-panel dt {
+  color: var(--ink-quiet);
+}
+
+.info-panel dd {
+  margin: 0;
+  font-weight: 800;
+}
+
+/* The about page */
+
+.about-body {
+  display: grid;
+  gap: 14px;
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+.about-card {
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  background: var(--glass);
+  border: 1px solid var(--edge);
+  line-height: 1.5;
+}
+
+.about-card h2 {
+  margin: 0 0 6px;
+  font-size: 1.2rem;
+}
+
+.about-card p {
+  margin: 0 0 8px;
+  color: var(--ink-quiet);
+}
+
+.about-card a {
+  color: var(--aqua);
+  font-weight: 700;
+}
+
+.changelog h3 {
+  margin: 1em 0 0.2em;
+  color: var(--pink);
+}
+
+.changelog h4 {
+  margin: 0.6em 0 0.2em;
+  color: var(--aqua);
+}
+
+.changelog ul {
+  margin: 0;
+  padding-left: 1.2em;
+  color: var(--ink-quiet);
+}
+
+.tools {
+  display: grid;
+  gap: 8px;
+}
+
+.tool-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.file-button {
+  position: relative;
+  cursor: pointer;
+  border: 1px solid var(--edge);
+  background: var(--glass);
+  padding: 0.7em 1.3em;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.file-button:focus-within {
+  box-shadow: 0 0 0 3px var(--aqua);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 button.round svg {

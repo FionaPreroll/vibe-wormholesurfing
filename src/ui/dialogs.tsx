@@ -1,7 +1,8 @@
-import { version } from '../../package.json'
 import { QUALITIES, type Quality, type Settings } from '../game/settings'
 import { type MessageKey, t } from '../i18n'
 import type { GyroState } from '../input/gyro'
+import type { Save } from '../persistence/save'
+import { DebugTools, SaveTools } from './DataTools'
 import { LanguageSwitch } from './LanguageSwitch'
 import { Modal } from './Modal'
 
@@ -23,6 +24,10 @@ const GYRO_STATES: Readonly<Record<GyroState, MessageKey>> = {
 
 interface SettingsProps {
   readonly settings: Settings
+  readonly save: Save
+  readonly onImport: (save: Save) => Promise<void>
+  readonly debugReport: () => string
+  readonly debugSummary: string
   readonly gyroState: GyroState
   readonly onChange: (settings: Settings) => void
   readonly onGyro: (on: boolean) => void
@@ -83,6 +88,10 @@ function Toggle({
 
 export function SettingsDialog({
   settings,
+  save,
+  onImport,
+  debugReport,
+  debugSummary,
   gyroState,
   onChange,
   onGyro,
@@ -169,6 +178,10 @@ export function SettingsDialog({
           checked={settings.showFps}
           onChange={(showFps) => set({ showFps })}
         />
+        <h3>{t('backupSection')}</h3>
+        <SaveTools save={save} onImport={onImport} />
+        <h3>{t('debugTitle')}</h3>
+        <DebugTools report={debugReport} summary={debugSummary} />
         <button
           type="button"
           class="danger"
@@ -206,15 +219,6 @@ export function HelpDialog({ onClose }: { readonly onClose: () => void }) {
         <h3>{t('helpGyro')}</h3>
         <p>{t('helpGyroText')}</p>
       </div>
-    </Modal>
-  )
-}
-
-export function AboutDialog({ onClose }: { readonly onClose: () => void }) {
-  return (
-    <Modal id="about" title={t('aboutTitle')} onClose={onClose}>
-      <p>{t('aboutText')}</p>
-      <p class="note">{t('version', { version })}</p>
     </Modal>
   )
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { itemById } from '../core/rewards'
 import { DEFAULT_SETTINGS } from '../game/settings'
-import { freshSave, migrate, SaveBook } from './save'
+import { exportSave, freshSave, importSave, migrate, SaveBook } from './save'
 import { memoryStore } from './store'
 
 const pearl = itemById('tidePearl')
@@ -61,5 +61,36 @@ describe('SaveBook', () => {
     expect(book.current.collection).toEqual({})
     expect(book.current.seen.rideHint).toBe(false)
     expect(book.current.settings.music).toBe(0.2)
+  })
+})
+
+describe('exportSave and importSave', () => {
+  it('carry a save through a file unchanged', async () => {
+    const book = await SaveBook.open(memoryStore())
+    await book.addFind({ item: pearl, shiny: true }, 5)
+    await book.recordRide(900, 3, 'lagoon')
+    const file = exportSave(book.current, new Date('2026-11-06T12:00:00Z'))
+    expect(JSON.parse(file)).toMatchObject({
+      format: 'vibe-wormholesurfing-save',
+      exportedAt: '2026-11-06T12:00:00.000Z',
+    })
+    expect(importSave(file)).toEqual(book.current)
+  })
+
+  it('refuses files that are not saves', () => {
+    expect(importSave('not json')).toBeUndefined()
+    expect(
+      importSave(JSON.stringify({ format: 'vibe-laser-profile', save: freshSave() })),
+    ).toBeUndefined()
+    expect(
+      importSave(JSON.stringify({ format: 'vibe-wormholesurfing-save', save: { version: 99 } })),
+    ).toBeUndefined()
+  })
+
+  it('replaces the save in the book', async () => {
+    const book = await SaveBook.open(memoryStore())
+    const other = { ...freshSave(), collection: { tidePearl: { count: 3, shiny: 0, first: 1 } } }
+    await book.replace(other)
+    expect(book.current.collection.tidePearl?.count).toBe(3)
   })
 })

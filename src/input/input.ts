@@ -46,10 +46,14 @@ export interface TouchView {
 type Button = 'confirm' | 'interact' | 'pause' | 'recenter'
 
 const KEYS = {
-  up: ['KeyW', 'ArrowUp'],
-  down: ['KeyS', 'ArrowDown'],
-  left: ['KeyA', 'ArrowLeft'],
-  right: ['KeyD', 'ArrowRight'],
+  up: ['KeyW'],
+  down: ['KeyS'],
+  left: ['KeyA'],
+  right: ['KeyD'],
+  arrowUp: ['ArrowUp'],
+  arrowDown: ['ArrowDown'],
+  arrowLeft: ['ArrowLeft'],
+  arrowRight: ['ArrowRight'],
   lookLeft: ['KeyJ'],
   lookRight: ['KeyL'],
   lookUp: ['KeyI'],
@@ -71,6 +75,14 @@ const MOVE_CODES: ReadonlySet<string> = new Set([
   ...KEYS.down,
   ...KEYS.left,
   ...KEYS.right,
+  ...KEYS.arrowUp,
+  ...KEYS.arrowDown,
+  ...KEYS.arrowLeft,
+  ...KEYS.arrowRight,
+  ...KEYS.lookLeft,
+  ...KEYS.lookRight,
+  ...KEYS.lookUp,
+  ...KEYS.lookDown,
 ])
 
 /** Elements where keys belong to the element, such as a slider in the settings. */
@@ -162,7 +174,14 @@ export class Input {
     if (pad.active) this.#mark('gamepad', now)
 
     const held = (codes: readonly string[]) => codes.some((code) => this.#held.has(code))
-    const keys = keysToVector(held(KEYS.up), held(KEYS.down), held(KEYS.left), held(KEYS.right))
+    // Flying, the arrows steer like WASD; on foot they turn the camera, as IJKL do.
+    const arrowsLook = this.mode === 'world'
+    const keys = keysToVector(
+      held(KEYS.up) || (!arrowsLook && held(KEYS.arrowUp)),
+      held(KEYS.down) || (!arrowsLook && held(KEYS.arrowDown)),
+      held(KEYS.left) || (!arrowsLook && held(KEYS.arrowLeft)),
+      held(KEYS.right) || (!arrowsLook && held(KEYS.arrowRight)),
+    )
     if (keys.x !== 0 || keys.y !== 0) this.#mark('keyboard', now)
 
     const gyro = this.gyro
@@ -188,8 +207,13 @@ export class Input {
     if (this.mode === 'ride' && this.settings.invertY) move = { x: move.x, y: -move.y }
 
     const turn = 2.4 * dt * this.settings.lookSpeed
-    const keyLookX = (held(KEYS.lookRight) ? 1 : 0) - (held(KEYS.lookLeft) ? 1 : 0)
-    const keyLookY = (held(KEYS.lookUp) ? 1 : 0) - (held(KEYS.lookDown) ? 1 : 0)
+    const lookRight = held(KEYS.lookRight) || (arrowsLook && held(KEYS.arrowRight))
+    const lookLeft = held(KEYS.lookLeft) || (arrowsLook && held(KEYS.arrowLeft))
+    const lookUp = held(KEYS.lookUp) || (arrowsLook && held(KEYS.arrowUp))
+    const lookDown = held(KEYS.lookDown) || (arrowsLook && held(KEYS.arrowDown))
+    const keyLookX = (lookRight ? 1 : 0) - (lookLeft ? 1 : 0)
+    // Looking up lowers the camera, which tilts the view up.
+    const keyLookY = (lookDown ? 1 : 0) - (lookUp ? 1 : 0)
     const look = {
       x: this.#lookX + (pad.look.x + keyLookX) * turn * 1.2,
       y: this.#lookY + (pad.look.y + keyLookY) * turn,

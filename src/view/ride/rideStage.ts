@@ -451,6 +451,9 @@ export class RideStage implements Stage {
       stunned: ride.stun > 0,
       captured: ride.captured !== undefined,
       warping: ride.phase !== 'riding',
+      orbs: ride.orbsTaken,
+      sparks: ride.sparksHit,
+      time: ride.time,
     }
   }
 

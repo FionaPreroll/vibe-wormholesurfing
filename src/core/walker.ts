@@ -18,7 +18,7 @@ export const WALK = {
   wall: 2.6,
   radius: 0.45,
   /** Water slows the walk to this share. */
-  wade: 0.6,
+  wade: 0.78,
 } as const
 
 export interface WalkInput {
@@ -30,6 +30,9 @@ export interface WalkInput {
 }
 
 export const STAND: WalkInput = { x: 0, z: 0, jump: false }
+
+/** Turns tried, nearest first, when a move runs into ground that cannot be walked. */
+const SLIDE_TURNS = [0.35, -0.35, 0.75, -0.75, 1.15, -1.15, 1.5, -1.5]
 
 /**
  * The player on foot: walks, turns to face the way it goes, jumps, follows the ground, and stays
@@ -91,12 +94,13 @@ export class Walker {
       jumped = true
     }
 
-    // Uphill on steep ground the walk slows, and a wall stops it.
+    // Uphill on steep ground the walk slows, and a wall stops it. Climbing out of water is
+    // always possible: the shore under water is never a wall.
     let nextX = this.x + this.vx * dt
     let nextZ = this.z + this.vz * dt
     const rise = land.heightAt(nextX, nextZ) - land.heightAt(this.x, this.z)
     const run = length2(nextX - this.x, nextZ - this.z)
-    if (run > 1e-6 && this.grounded) {
+    if (run > 1e-6 && this.grounded && !this.wading) {
       const slope = rise / run
       if (slope > WALK.wall) {
         nextX = this.x
@@ -133,7 +137,11 @@ export class Walker {
     return { jumped, landed }
   }
 
-  /** The nearest free place to a point: outside every blocker, on walkable ground. */
+  /**
+   * The nearest free place to a point: outside every blocker, on walkable ground. A move that
+   * would leave the walkable ground, as into deep water, turns along its edge instead, so the
+   * girl slides along a shore rather than sticking to it.
+   */
   #keepOut(x: number, z: number): [number, number] {
     let px = x
     let pz = z
@@ -148,15 +156,26 @@ export class Walker {
       }
     }
     const land = this.land
-    if (land.walkable(px, pz)) return [px, pz]
-    // Slide along the edge: keep whichever axis of the move still leads somewhere.
-    if (land.walkable(px, this.z)) {
-      this.vz = 0
-      return [px, this.z]
-    }
-    if (land.walkable(this.x, pz)) {
-      this.vx = 0
-      return [this.x, pz]
+    // Standing where one may not stand, any move is allowed, so there is always a way out.
+    if (land.walkable(px, pz) || !land.walkable(this.x, this.z)) return [px, pz]
+    const moveX = px - this.x
+    const moveZ = pz - this.z
+    const length = length2(moveX, moveZ)
+    if (length > 1e-6) {
+      for (const turn of SLIDE_TURNS) {
+        const cos = Math.cos(turn)
+        const sin = Math.sin(turn)
+        const keep = Math.max(0.35, cos)
+        const sx = this.x + (moveX * cos - moveZ * sin) * keep
+        const sz = this.z + (moveX * sin + moveZ * cos) * keep
+        if (land.walkable(sx, sz)) {
+          // Carry on along the edge with the speed that is left.
+          const speed = length2(this.vx, this.vz)
+          this.vx = ((sx - this.x) / length) * speed
+          this.vz = ((sz - this.z) / length) * speed
+          return [sx, sz]
+        }
+      }
     }
     this.vx = 0
     this.vz = 0

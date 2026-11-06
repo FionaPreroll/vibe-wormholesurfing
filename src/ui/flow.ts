@@ -1,8 +1,8 @@
 import { signal } from '@preact/signals'
 import type { Arrival, Found } from '../game/hud'
 
-export type Screen = 'title' | 'ride' | 'world' | 'collection'
-export type Overlay = 'settings' | 'help' | 'about' | undefined
+export type Screen = 'title' | 'ride' | 'world' | 'collection' | 'about'
+export type Overlay = 'settings' | 'help' | undefined
 
 /** Which part of the game shows. */
 export const screen = signal<Screen>('title')
