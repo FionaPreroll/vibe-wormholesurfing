@@ -1,13 +1,16 @@
+import { useEffect, useState } from 'preact/hooks'
 import changelog from '../../CHANGELOG.md?raw'
 import { version } from '../../package.json'
 import type { DebugReport } from '../game/debugLog'
 import { t } from '../i18n'
 import type { StoredLog } from '../persistence/logs'
 import type { Save } from '../persistence/save'
+import { appBuild } from './appUpdates'
 import { renderChangelog } from './changelog'
 import { DebugTools, SaveTools } from './DataTools'
 import { install, installPrompt, runsAsApp } from './install'
-import { CONTACT_EMAIL, ISSUES_URL, SOURCE_URL, WEB_URL } from './links'
+import { ANDROID_RELEASE, APK_URL, CONTACT_EMAIL, ISSUES_URL, SOURCE_URL, WEB_URL } from './links'
+import { isApp } from './native'
 
 interface Props {
   readonly save: Save
@@ -20,12 +23,24 @@ interface Props {
   readonly onBack: () => void
 }
 
+/** The version of the Android app installed, once the app has said. */
+function AppVersion() {
+  const [version, setVersion] = useState<string>()
+  useEffect(() => {
+    void appBuild().then((build) => {
+      if (build) setVersion(t('appVersion', { name: build.name }))
+    })
+  }, [])
+  return version ? <p class="note">{version}</p> : null
+}
+
 /** The way from the web version to the app, or from the app back to the web version. */
 function WebAndApp() {
   if (runsAsApp()) {
     return (
       <>
         <p>{t('playingInApp')}</p>
+        {isApp() && <AppVersion />}
         <p>
           <a class="link-button" href={WEB_URL} target="_blank" rel="noreferrer">
             {t('openWeb')}
@@ -37,6 +52,17 @@ function WebAndApp() {
   return (
     <>
       <p>{t('playingInBrowser')}</p>
+      <h3>{t('androidApp')}</h3>
+      <p>{t('androidAppText')}</p>
+      <div class="tool-buttons">
+        <a class="link-button" href={APK_URL}>
+          {t('androidDownload')}
+        </a>
+        <a class="link-button" href={ANDROID_RELEASE} target="_blank" rel="noreferrer">
+          {t('androidRelease')}
+        </a>
+      </div>
+      <h3>{t('installApp')}</h3>
       {installPrompt.value ? (
         <p>
           <button type="button" onClick={() => void install()}>

@@ -23,6 +23,10 @@ export interface Settings {
   readonly reducedMotion: boolean
   readonly vibration: boolean
   readonly showFps: boolean
+  /** The Android app looks for a newer build at every start: off unless the player says yes. */
+  readonly checkUpdates: boolean
+  /** Whether the app asked the player about looking for updates yet. */
+  readonly updatesAsked: boolean
 }
 
 function prefersLessMotion(): boolean {
@@ -41,6 +45,8 @@ export const DEFAULT_SETTINGS: Settings = {
   reducedMotion: prefersLessMotion(),
   vibration: true,
   showFps: false,
+  checkUpdates: false,
+  updatesAsked: false,
 }
 
 /** The settings in force. The save sets them when it loads, and the settings dialog changes them. */

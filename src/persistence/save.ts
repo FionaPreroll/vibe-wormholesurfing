@@ -21,6 +21,8 @@ const settingsSchema = z.object({
   reducedMotion: z.boolean().catch(DEFAULT_SETTINGS.reducedMotion),
   vibration: z.boolean().catch(DEFAULT_SETTINGS.vibration),
   showFps: z.boolean().catch(DEFAULT_SETTINGS.showFps),
+  checkUpdates: z.boolean().catch(DEFAULT_SETTINGS.checkUpdates),
+  updatesAsked: z.boolean().catch(DEFAULT_SETTINGS.updatesAsked),
 })
 
 /** One time a treasure was found: when, whether shiny, and where the ride led. */

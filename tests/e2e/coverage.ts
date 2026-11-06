@@ -24,10 +24,10 @@ export const coverageOptions: CoverageReportOptions = {
 
 export const covering = Boolean(process.env.COVERAGE)
 
-export const test = base.extend<{ jsCoverage: void }>({
+export const test = base.extend<{ jsCoverage: undefined }>({
   jsCoverage: [
     async ({ browser }, use) => {
-      if (!covering) return use()
+      if (!covering) return use(undefined)
       const recording = new Set<Page>()
       const collected: unknown[] = []
       const stop = async (page: Page) => {
@@ -53,7 +53,7 @@ export const test = base.extend<{ jsCoverage: void }>({
       const newContext = browser.newContext.bind(browser)
       browser.newContext = async (options) => watch(await newContext(options))
       try {
-        await use()
+        await use(undefined)
       } finally {
         browser.newContext = newContext
         for (const page of [...recording]) await stop(page)

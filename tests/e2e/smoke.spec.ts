@@ -8,6 +8,10 @@ test('starts at the title screen without errors', async ({ page }) => {
   await openGame(page)
   await expect(page.getByRole('heading', { name: /Wormhole\s*Surfing/ })).toBeVisible()
   await expect(page.getByText('Treasures: 0 of 40')).toBeVisible()
+  // The website keeps itself for offline play; only the Android app goes without.
+  await expect
+    .poll(() => page.evaluate(async () => Boolean(await navigator.serviceWorker.getRegistration())))
+    .toBe(true)
   expect(errors).toEqual([])
 })
 

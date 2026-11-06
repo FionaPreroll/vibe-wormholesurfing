@@ -22,6 +22,7 @@ import { type Save, SaveBook } from '../persistence/save'
 import { browserStore, type KeyValueStore, memoryStore } from '../persistence/store'
 import type { Director } from '../view/director'
 import { AboutScreen } from './AboutScreen'
+import { offerUpdatesOnStart } from './appUpdates'
 import { CollectionScreen, type Flight } from './CollectionScreen'
 import { HelpDialog, PauseMenu, SettingsDialog } from './dialogs'
 import { enterFullScreen } from './FullScreen'
@@ -29,6 +30,7 @@ import { arrival, found, graphicsFailed, loading, overlay, paused, screen } from
 import { RideHud, WorldHud } from './Hud'
 import { LoadingIndicator } from './LoadingIndicator'
 import { loadWithProgress } from './loading'
+import { exitApp, onBackButton } from './native'
 import { touchScreen } from './pointer'
 import { RewardCard } from './RewardCard'
 import { shareCollection } from './share'
@@ -145,6 +147,12 @@ export function App({ store }: Props) {
       settings.value = quality ? { ...opened.current.settings, quality } : opened.current.settings
       setBook(opened)
       setSave(opened.current)
+      // In the Android app: ask once whether to look for updates, then look if the player wants.
+      void offerUpdatesOnStart((changes) => {
+        const next = { ...settings.value, ...changes }
+        settings.value = next
+        void opened.setSettings(next).then(() => setSave(opened.current))
+      }).catch((error: unknown) => debugLog.log('warn', `Update check failed: ${String(error)}`))
     }
     void open()
     return () => {
@@ -215,6 +223,18 @@ export function App({ store }: Props) {
     input.release()
     directorRef.current?.setPaused(false)
   }, [input])
+
+  // Hidden, as in the background on a phone, the game pauses and goes quiet.
+  useEffect(() => {
+    const changed = () => {
+      if (document.visibilityState === 'hidden') {
+        pause()
+        synth.sleep()
+      } else synth.wake()
+    }
+    document.addEventListener('visibilitychange', changed)
+    return () => document.removeEventListener('visibilitychange', changed)
+  }, [pause, synth])
 
   const showTitle = useCallback(() => {
     paused.value = false
@@ -441,6 +461,24 @@ export function App({ store }: Props) {
         },
       ),
     [card, resume, showTitle],
+  )
+
+  // Android's back button: closes what is open, pauses a ride or a walk, goes back to the title,
+  // and on the title leaves the app, as the back button does on other apps' first screen.
+  useEffect(
+    () =>
+      onBackButton(() => {
+        const update = document.querySelector<HTMLElement>('.modal.update .buttons button')
+        if (update) update.click()
+        else if (overlay.value) overlay.value = undefined
+        else if (paused.value) resume()
+        else if (document.querySelector('[role="dialog"]'))
+          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+        else if (screen.value === 'ride' || (screen.value === 'world' && !card)) pause()
+        else if (screen.value === 'title') exitApp()
+        else showTitle()
+      }),
+    [card, pause, resume, showTitle],
   )
 
   // Frames per second for the optional counter.

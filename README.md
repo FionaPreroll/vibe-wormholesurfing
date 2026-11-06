@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/FionaPreroll/vibe-wormholesurfing/actions/workflows/ci.yml/badge.svg)](https://github.com/FionaPreroll/vibe-wormholesurfing/actions/workflows/ci.yml)
 [![Coverage](https://codecov.io/gh/FionaPreroll/vibe-wormholesurfing/branch/main/graph/badge.svg)](https://codecov.io/gh/FionaPreroll/vibe-wormholesurfing)
+[![Android](https://github.com/FionaPreroll/vibe-wormholesurfing/actions/workflows/android.yml/badge.svg)](https://github.com/FionaPreroll/vibe-wormholesurfing/actions/workflows/android.yml)
 
 Ride a cute spaceship through a swirling wormhole, pick a warp hole, and see what waits on the other side. A browser game in 3D: the ride takes the mechanics of a classic warp ride, collect orbs for speed, dodge sparks, and choose a hole before a hole chooses you, and then lets a chibi girl explore the world behind it and open the treasure that waits there.
 
@@ -143,9 +144,27 @@ Two rules keep the layers apart:
 
 ## Offline, installing and Android
 
-- `public/manifest.webmanifest` lets browsers install the game as an app, full screen and in landscape. `pnpm icons` renders the icons from `public/favicon.svg`.
+- `public/manifest.webmanifest` lets browsers install the game as an app, full screen and in landscape. `pnpm icons` renders the icons from `public/favicon.svg`. The about page links the web version and the apps both ways.
 - Production builds get a service worker from `tools/serviceWorker.ts` that keeps every file of the build, so the game starts and plays offline. A new version waits until the player chooses to reload.
-- The build uses relative paths and turns the service worker off when it runs inside a native shell, so it can be wrapped as an Android app with [Capacitor](https://capacitorjs.com/) (`webDir: dist`). Tilt steering works in Android's WebView without asking.
+- The build uses relative paths and turns the service worker off inside the Android app, which brings its files along.
+
+### The Android app
+
+**Play it:** [download `wormhole-surfing.apk`](https://github.com/FionaPreroll/vibe-wormholesurfing/releases/latest/download/wormhole-surfing.apk) on an Android phone or tablet (Android 7 or newer) and open it; Android asks once to allow installing apps from the browser. The [release page](https://github.com/FionaPreroll/vibe-wormholesurfing/releases/tag/android-latest) says which commit it was built from.
+
+- **What it is.** [Capacitor](https://capacitorjs.com/) packs the web build (`dist`) into an app that shows it in Android's WebView (`capacitor.config.ts`, `android/`). The page is the same as the website's; `isApp()` in `src/ui/native.ts` tells the two apart. `MainActivity` fills the screen in landscape, hides the system bars until a swipe from the edge, and keeps the screen on while the game shows. Tilt steering works in the WebView without asking.
+- **Files.** The WebView cannot download, so the app's own plugin `FilesPlugin` saves the save, the debug log and the collection's picture where the player chooses, with Android's file dialog, and hands the picture to Android's share sheet.
+- **The back button** (`@capacitor/app`) closes what is open, pauses a ride or a walk, goes back to the title, and on the title leaves the app. Hidden, the game pauses and goes quiet, in the app and in a browser.
+- **Building.** `.github/workflows/android.yml` builds a release APK on every push and pull request, with `pnpm android:sync` (the web build, copied into `android/` with `cap sync`) and Gradle; from `main` it replaces the release _Wormhole Surfing for Android_ (tag `android-latest`, marked latest) with the APK and a `version.json`. The APK's `versionCode` is the workflow's run number, its `versionName` the version, the build and the commit. To build one yourself, install the Android SDK and Java 21, then run `pnpm android:sync` and `./gradlew assembleRelease` in `android/`.
+- **Signing.** Android installs an update only if it is signed with the same key as the app installed, so every published build is signed with the project's key, which CI takes from the repository's secrets: `ANDROID_KEYSTORE_BASE64` (the keystore file in base64), `ANDROID_KEYSTORE_PASSWORD` (for the keystore and the key) and, if the key is not called `wormholesurfing`, `ANDROID_KEY_ALIAS`. Without them the workflow signs with the runner's own debug key and keeps the APK as an artifact only, publishing nothing. Keep a copy of the keystore: a build signed with another key cannot update the app players have. To make one:
+
+  ```bash
+  keytool -genkeypair -keystore wormhole-surfing.keystore -alias wormholesurfing -keyalg RSA -keysize 2048 -validity 36500 -dname "CN=Wormhole Surfing"
+  ```
+
+  then put `base64 -w0 wormhole-surfing.keystore` and its password into the secrets under Settings → Secrets and variables → Actions.
+- **Updates.** At the first start the app asks whether to look for a new version at every start: off unless the player says yes, and switchable in the settings, which can also look right away. [`@fionapreroll/app-updates`](https://github.com/FionaPreroll/vibe-p2pgame/tree/main/packages/app-updates), installed from the file on its release, does the work (`src/ui/appUpdates.ts`): it compares the release's `version.json` with the app's own build, says how large the download is and warns on mobile data, downloads with pause and resume (also after the app was closed), and hands the APK to Android's installer, which asks the player. Its plugin reads and downloads only from this repository's releases, named in `capacitor.config.ts`, and brings its permissions along. The dialogs are the library's, in the game's texts and styles (`.modal.update`).
+- **Icons.** `pnpm icons` renders the launcher icons into `android/app/src/main/res/` from `public/favicon.svg` too: the adaptive icon's foreground over the night sky of `drawable/ic_launcher_background.xml`, and square and round icons for older launchers.
 
 ## Tests
 

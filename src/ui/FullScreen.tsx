@@ -1,12 +1,14 @@
 import { signal } from '@preact/signals'
 import { useEffect } from 'preact/hooks'
 import { t } from '../i18n'
+import { isApp } from './native'
 import { touchScreen } from './pointer'
 
 const fullScreen = signal(false)
 
+/** The Android app fills the screen by itself (MainActivity.java); browsers do on request. */
 function canGoFullScreen(): boolean {
-  return typeof document !== 'undefined' && document.fullscreenEnabled === true
+  return typeof document !== 'undefined' && document.fullscreenEnabled === true && !isApp()
 }
 
 /** Fills the screen and, where the browser allows, holds it in landscape. */

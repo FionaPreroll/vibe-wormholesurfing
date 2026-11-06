@@ -34,6 +34,16 @@ export class Synth {
     return this.#context !== undefined
   }
 
+  /** Silences everything while the game is hidden, as in the background on a phone. */
+  sleep(): void {
+    void this.#context?.suspend().catch(() => {})
+  }
+
+  /** Lets the sound go on after `sleep`. */
+  wake(): void {
+    if (this.#context?.state === 'suspended') void this.#context.resume().catch(() => {})
+  }
+
   /** Starts audio; call it from a tap, click or key press. */
   unlock(): void {
     if (this.#context) {

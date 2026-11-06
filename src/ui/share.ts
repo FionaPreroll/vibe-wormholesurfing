@@ -2,7 +2,9 @@ import { ITEMS, RARITIES } from '../core/rewards'
 import { WORLD_IDS } from '../core/worlds'
 import { number, t, worldName } from '../i18n'
 import type { Save } from '../persistence/save'
+import { downloadFile } from './download'
 import { WEB_URL } from './links'
+import { isApp, shareInApp } from './native'
 
 const RARITY_CSS = ['#cfd8e6', '#6fe08a', '#4fb0ff', '#c77dff', '#ffcf4a']
 
@@ -139,9 +141,18 @@ export async function shareCollection(
   const text = t('shareText', numbers)
   const title = t('shareTitle')
   const blob = await collectionPicture(save, thumbnail)
-  const file = blob
-    ? new File([blob], 'wormhole-surfing-collection.png', { type: 'image/png' })
-    : undefined
+  const name = 'wormhole-surfing-collection.png'
+  // Android's WebView has no share sheet of its own: the app hands the picture to Android's.
+  if (isApp()) {
+    try {
+      if (!blob) return 'failed'
+      await shareInApp(name, blob, title, `${text} ${WEB_URL}`)
+      return 'shared'
+    } catch {
+      return 'failed'
+    }
+  }
+  const file = blob ? new File([blob], name, { type: 'image/png' }) : undefined
   try {
     if (file && navigator.canShare?.({ files: [file] })) {
       await navigator.share({ files: [file], title, text: `${text} ${WEB_URL}` })
@@ -155,14 +166,7 @@ export async function shareCollection(
     if (error instanceof DOMException && error.name === 'AbortError') return 'cancelled'
   }
   try {
-    if (blob) {
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = 'wormhole-surfing-collection.png'
-      link.click()
-      setTimeout(() => URL.revokeObjectURL(url), 1000)
-    }
+    if (blob) downloadFile(name, blob)
     await navigator.clipboard?.writeText(`${text} ${WEB_URL}`)
     return 'saved'
   } catch {

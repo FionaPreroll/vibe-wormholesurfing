@@ -1,4 +1,5 @@
 import { signal } from '@preact/signals'
+import { isApp } from './native'
 
 /** The browser's offer to install the game, kept until the player asks for it. */
 interface InstallPrompt extends Event {
@@ -11,7 +12,7 @@ export const installPrompt = signal<InstallPrompt | undefined>(undefined)
 /** Whether the game runs as an installed app, or wrapped in a native shell, not in a browser tab. */
 export function runsAsApp(): boolean {
   if (typeof window === 'undefined') return false
-  if ('Capacitor' in window) return true
+  if (isApp()) return true
   const standalone = (navigator as Navigator & { standalone?: boolean }).standalone === true
   return (
     standalone ||

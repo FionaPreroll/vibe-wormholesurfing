@@ -26,6 +26,9 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 - The browser keeps the debug logs of your last three sessions, so a glitch can still be reported after a reload or a crash; each can be exported from the about page and the settings.
 - Report a problem straight from the debug log: on GitHub, with the details filled in, or by email. The log is saved as a file to attach.
 - The about page has a contact address and a link to the issue tracker, and shows how to install the game as an app in the browser, or links to the web version in the installed app.
+- An Android app: [download it](https://github.com/FionaPreroll/vibe-wormholesurfing/releases/latest/download/wormhole-surfing.apk) and open it on your phone. It plays full screen in landscape, offline, keeps the screen on while you steer by tilting, and the back button closes dialogs, pauses and goes back. Saving, exporting and sharing go through Android's own file and share dialogs. The about page of the website links to it.
+- The Android app can update itself: at the first start it asks whether to look for a new version at every start (off unless you say yes; you can change it in the settings, or look right away). A new version shows its size, warns on mobile data, downloads with pause and resume, and installs after Android asks you.
+- The game pauses and goes quiet when you switch to another app or tab.
 - While the 3D engine loads, a bar shows how much has arrived, how fast, how long it took and how long it should still take.
 - On foot, the arrow keys turn the camera; WASD walks.
 - The frame counter in the settings also shows the time per frame, the resolution and the draw calls. It sits in the top left corner, clear of the panels.

@@ -74,4 +74,8 @@ test('keeps the debug logs of earlier sessions and offers ways to report a probl
   await expect(page.getByRole('link', { name: 'Issue tracker on GitHub' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Web and app' })).toBeVisible()
   await expect(page.getByText('You are playing in the browser.')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Download the Android app' })).toHaveAttribute(
+    'href',
+    'https://github.com/FionaPreroll/vibe-wormholesurfing/releases/latest/download/wormhole-surfing.apk',
+  )
 })

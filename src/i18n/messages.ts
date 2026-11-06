@@ -12,7 +12,7 @@ export const en = {
     'The 3D graphics could not start in this browser. Try another browser, or switch on hardware acceleration.',
   storageBlocked:
     'This browser does not let the game save, so treasures last only until the page is closed.',
-  updateReady: 'A new version of the game is ready.',
+  webUpdateReady: 'A new version of the game is ready.',
   updateReload: 'Reload now',
   updateLater: 'Later',
   close: 'Close',
@@ -263,6 +263,48 @@ export const en = {
   savedLogLine: '{date} · {length} · {glitches} glitches · {errors} errors',
   thisSession: 'this session',
   exportLog: 'Export',
+  updatesSection: 'App updates',
+  updatesTitle: 'Updates',
+  updatesAsk:
+    'Should Wormhole Surfing look for a new version on GitHub whenever it starts? That needs internet at the start; without it, the game starts as usual. You can change this in the settings.',
+  updatesYes: 'Yes, look',
+  updatesNo: 'No',
+  updatesSetting: 'Look for a new version when the app starts',
+  updatesNote:
+    'New versions come from the game’s releases on GitHub. Nothing is downloaded until you say so, and Android asks before it installs one.',
+  updatesCheckNow: 'Look for a new version now',
+  updatesChecking: 'Looking…',
+  updatesCurrent: 'This is the newest version (build {build}).',
+  updatesCheckFailed: 'Could not look for a new version. Is there internet?',
+  updateReady: 'A new version of Wormhole Surfing is ready (build {build}).',
+  updateInstall: 'Install',
+  updateDownload: 'Download',
+  updateDownloadAnyway: 'Download anyway',
+  updateSize: 'The download is {size}.',
+  updateContinues: 'An earlier download stopped at {percent} % of {size}: it goes on from there.',
+  updateMobileData:
+    'You are on mobile data, which the download would use. On Wi-Fi it costs nothing.',
+  updateMetered:
+    'This connection is metered, as a phone’s hotspot often is: the download may cost. On another Wi-Fi it may not.',
+  updateProgress: '{done} of {total} · {percent} %',
+  updatePause: 'Pause',
+  updateResume: 'Resume',
+  updatePaused: 'Paused at {percent} %. It goes on from there, also after closing the app.',
+  updateInstalling: 'Opening Android’s installer…',
+  updateConfirm: 'Confirm the update in Android’s dialog.',
+  updateInstalled: 'Installed. The app starts again in its new version.',
+  updateAborted: 'The update was not installed. Tap Install to try again.',
+  updateInstallFailed: 'Android could not install the update: {message}',
+  updateNoInstaller: 'Android’s installer did not open. Tap Install to try again.',
+  updatePermission:
+    'Allow Wormhole Surfing to install apps in the settings that have just opened, then come back: installing goes on by itself.',
+  updateFailed: 'The download stopped. Try again: it goes on where it stopped.',
+  appVersion: 'App version {name}',
+  androidApp: 'Android app',
+  androidAppText:
+    'Wormhole Surfing is also an Android app: full screen, offline, and it can update itself. Android asks once to allow installing apps from your browser.',
+  androidDownload: 'Download the Android app',
+  androidRelease: 'Release page with every build',
   desc_emberPebble:
     'A pebble from the cliff paths that stays warm long after sunset. Nice to hold on a cold ride.',
   desc_windFeather: 'Shed by something that never lands. Let it go, and it drifts upward.',
@@ -344,7 +386,7 @@ export const de: Record<MessageKey, string> = {
     'Die 3D-Grafik startet in diesem Browser nicht. Versuch einen anderen Browser oder schalte die Hardwarebeschleunigung ein.',
   storageBlocked:
     'Dieser Browser lässt das Spiel nicht speichern. Schätze bleiben nur, bis die Seite geschlossen wird.',
-  updateReady: 'Eine neue Version des Spiels ist bereit.',
+  webUpdateReady: 'Eine neue Version des Spiels ist bereit.',
   updateReload: 'Jetzt neu laden',
   updateLater: 'Später',
   close: 'Schließen',
@@ -596,6 +638,52 @@ export const de: Record<MessageKey, string> = {
   savedLogLine: '{date} · {length} · {glitches} Grafikfehler · {errors} Fehler',
   thisSession: 'diese Sitzung',
   exportLog: 'Exportieren',
+  updatesSection: 'App-Aktualisierungen',
+  updatesTitle: 'Aktualisierungen',
+  updatesAsk:
+    'Soll Wormhole Surfing bei jedem Start auf GitHub nach einer neuen Version suchen? Dafür braucht es beim Start Internet; ohne startet das Spiel wie gewohnt. In den Einstellungen lässt sich das ändern.',
+  updatesYes: 'Ja, suchen',
+  updatesNo: 'Nein',
+  updatesSetting: 'Beim Start nach einer neuen Version suchen',
+  updatesNote:
+    'Neue Versionen kommen von den Releases des Spiels auf GitHub. Nichts wird heruntergeladen, bevor du es sagst, und Android fragt, bevor es eine installiert.',
+  updatesCheckNow: 'Jetzt nach einer neuen Version suchen',
+  updatesChecking: 'Suche…',
+  updatesCurrent: 'Das ist die neueste Version (Build {build}).',
+  updatesCheckFailed: 'Konnte nicht nach einer neuen Version suchen. Gibt es Internet?',
+  updateReady: 'Eine neue Version von Wormhole Surfing ist da (Build {build}).',
+  updateInstall: 'Installieren',
+  updateDownload: 'Herunterladen',
+  updateDownloadAnyway: 'Trotzdem herunterladen',
+  updateSize: 'Der Download ist {size} groß.',
+  updateContinues:
+    'Ein früherer Download hielt bei {percent} % von {size} an: Er geht dort weiter.',
+  updateMobileData:
+    'Du bist im Mobilfunknetz, das der Download nutzen würde. Im WLAN kostet er nichts.',
+  updateMetered:
+    'Diese Verbindung wird nach Menge abgerechnet, wie oft beim Hotspot eines Handys: Der Download kann kosten. In einem anderen WLAN vielleicht nicht.',
+  updateProgress: '{done} von {total} · {percent} %',
+  updatePause: 'Pausieren',
+  updateResume: 'Fortsetzen',
+  updatePaused: 'Angehalten bei {percent} %. Es geht dort weiter, auch nach dem Schließen der App.',
+  updateInstalling: 'Androids Installer öffnet sich…',
+  updateConfirm: 'Bestätige die Aktualisierung in Androids Dialog.',
+  updateInstalled: 'Installiert. Die App startet in ihrer neuen Version neu.',
+  updateAborted:
+    'Die Aktualisierung wurde nicht installiert. Tippe auf Installieren, um es noch einmal zu versuchen.',
+  updateInstallFailed: 'Android konnte die Aktualisierung nicht installieren: {message}',
+  updateNoInstaller:
+    'Androids Installer hat sich nicht geöffnet. Tippe auf Installieren, um es noch einmal zu versuchen.',
+  updatePermission:
+    'Erlaube Wormhole Surfing in den eben geöffneten Einstellungen, Apps zu installieren, und komm dann zurück: Die Installation geht von selbst weiter.',
+  updateFailed:
+    'Der Download hat aufgehört. Versuch es noch einmal: Er geht dort weiter, wo er aufhörte.',
+  appVersion: 'App-Version {name}',
+  androidApp: 'Android-App',
+  androidAppText:
+    'Wormhole Surfing gibt es auch als Android-App: im Vollbild, offline, und sie kann sich selbst aktualisieren. Android fragt einmal, ob dein Browser Apps installieren darf.',
+  androidDownload: 'Android-App herunterladen',
+  androidRelease: 'Release-Seite mit jedem Build',
   desc_emberPebble:
     'Ein Kiesel von den Klippenpfaden, der noch lange nach Sonnenuntergang warm bleibt. Schön zum Festhalten auf kalten Flügen.',
   desc_windFeather: 'Verloren von etwas, das nie landet. Lässt man sie los, schwebt sie nach oben.',

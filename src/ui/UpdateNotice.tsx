@@ -9,7 +9,7 @@ export function UpdateNotice() {
   if (apply === undefined || later) return null
   return (
     <p class="notice update" role="status">
-      <span>{t('updateReady')}</span>
+      <span>{t('webUpdateReady')}</span>
       <button type="button" onClick={apply}>
         {t('updateReload')}
       </button>
