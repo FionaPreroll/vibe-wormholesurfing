@@ -101,6 +101,49 @@ describe('Ride', () => {
     expect(ride.phase).toBe('done')
   })
 
+  it('puts the hitbox on the tip of the nose, which leads the way as the ship moves', () => {
+    const ride = new Ride({ seed: 4 })
+    expect(ride.noseHitbox).toBe(true)
+    expect(ride.hitbox).toEqual({ x: 0, y: 0, z: RIDE.noseReach })
+    // Up and to the right: the nose turns right and tips up.
+    for (let index = 0; index < 30; index++) ride.advance(1 / 60, { x: 0.6, y: 0.6 })
+    const { ship, hitbox } = ride
+    expect(ship.yaw).toBeGreaterThan(0)
+    expect(ship.pitch).toBeGreaterThan(0)
+    expect(hitbox.x).toBeGreaterThan(ship.x)
+    expect(hitbox.y).toBeGreaterThan(ship.y + 0.1)
+    expect(hitbox.z).toBeLessThan(RIDE.noseReach)
+    expect(Math.hypot(hitbox.x - ship.x, hitbox.y - ship.y, hitbox.z)).toBeCloseTo(RIDE.noseReach)
+    ride.noseHitbox = false
+    expect(ride.hitbox).toEqual({ x: ship.x, y: ship.y, z: 0 })
+  })
+
+  it('meets orbs and holes with the tip of its nose, or with its middle when asked', () => {
+    for (const noseHitbox of [true, false]) {
+      // Within a step of the nose, but more than an orb's radius before the ship's middle.
+      const orbRide = new Ride({ seed: 9, noseHitbox })
+      orbRide.orbs.push({ id: 900, x: 0, y: 0, z: RIDE.noseReach + 0.5, taken: false })
+      const taken = orbRide.advance(RIDE.step, NO_STEER)
+      expect(taken.some((event) => event.type === 'orb')).toBe(noseHitbox)
+
+      const holeRide = new Ride({ seed: 5, noseHitbox })
+      const hole = { id: 77, x: 0, y: 0, z: RIDE.noseReach + 0.3, color: 'blue' as const }
+      holeRide.holes.push({ ...hole, tier: 1, radius: holeRadius(1) })
+      const entered = holeRide.advance(RIDE.step, NO_STEER)
+      expect(entered.some((event) => event.type === 'enter')).toBe(noseHitbox)
+      // The hole stops where it met the nose, and the warp goes on from there.
+      if (noseHitbox) expect(holeRide.entered?.z).toBeCloseTo(RIDE.noseReach)
+    }
+  })
+
+  it('pilots as well with the hitbox at the nose as at the middle', () => {
+    for (const noseHitbox of [true, false]) {
+      const ride = new Ride({ seed: 13, noseHitbox })
+      fly(ride, (current) => autopilot(current))
+      expect(ride.orbsTaken).toBeGreaterThan(20)
+    }
+  })
+
   it('never enters holes in a demo ride', () => {
     const ride = new Ride({ seed: 5, demo: true })
     fly(ride, () => NO_STEER, 120)

@@ -6,7 +6,11 @@ test.use({ locale: 'en-US' })
 
 interface Debug {
   director: {
-    stage?: { ride?: { demo: boolean }; expedition?: unknown; hitboxesShown?: number }
+    stage?: {
+      ride?: { demo: boolean; noseHitbox: boolean }
+      expedition?: unknown
+      hitboxesShown?: number
+    }
   }
   debugLog: { entries: { kind: string; message: string }[] }
 }
@@ -114,6 +118,10 @@ test('the hitboxes show in a ride when asked, and go when not', async ({ page })
     page.evaluate(
       () => (window as unknown as { wormhole: Debug }).wormhole.director.stage?.hitboxesShown ?? 0,
     )
+  const atNose = () =>
+    page.evaluate(
+      () => (window as unknown as { wormhole: Debug }).wormhole.director.stage?.ride?.noseHitbox,
+    )
   await page.getByRole('button', { name: 'Settings' }).click()
   await page.getByLabel(/Show hitboxes in rides/).check()
   await page.keyboard.press('Escape')
@@ -122,12 +130,16 @@ test('the hitboxes show in a ride when asked, and go when not', async ({ page })
   await stageShows(page, 'ride')
   // The field's edge and the ship at least, and what comes along.
   await expect.poll(shown).toBeGreaterThanOrEqual(2)
+  // The ship's hitbox sits at the tip of its nose unless asked otherwise, even during a ride.
+  expect(await atNose()).toBe(true)
   await page.keyboard.press('Escape')
   await page.getByRole('button', { name: 'Settings' }).click()
   await page.getByLabel(/Show hitboxes in rides/).uncheck()
+  await page.getByLabel(/hitbox at the tip of its nose/).uncheck()
   await page.keyboard.press('Escape')
   await page.getByRole('button', { name: 'Resume' }).click()
   await expect.poll(shown).toBe(0)
+  await expect.poll(atNose).toBe(false)
 })
 
 test('a key bound anew does its new job in a ride', async ({ page }) => {
