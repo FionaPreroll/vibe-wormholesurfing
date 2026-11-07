@@ -64,7 +64,7 @@ test('keeps the debug logs of earlier sessions and offers ways to report a probl
   const report = page.getByRole('link', { name: 'Report a problem on GitHub' })
   await expect(report).toHaveAttribute(
     'href',
-    /^https:\/\/github\.com\/FionaPreroll\/vibe-wormholesurfing\/issues\/new\?/,
+    /^https:\/\/github\.com\/FionaPreroll\/vibe-wormholesurfing\/issues\/new\?template=bug_report\.yml&/,
   )
   await expect(page.getByRole('link', { name: 'Report by email' })).toHaveAttribute(
     'href',

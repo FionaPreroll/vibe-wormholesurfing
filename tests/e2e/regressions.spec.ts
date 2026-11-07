@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test'
+import { CURSOR_IDLE_MS } from '../../src/ui/cursor'
 import { expect, test } from './coverage'
 import { dismissHint, openGame, walkToTreasure, warpInto, watchErrors } from './game'
 
@@ -175,12 +176,16 @@ test('the mouse pointer goes while the mouse rests in a ride, and comes back as 
   await dismissHint(page)
   await stageShows(page, 'ride')
   const cursor = () => page.evaluate(() => document.documentElement.dataset.cursor ?? 'shown')
+  // Chromium hands a mouse move to the page with its next frame, which on a slow machine comes
+  // after the move returns: the pointer is looked at until then, but for less than the rest that
+  // hides it again.
+  const soon = { timeout: CURSOR_IDLE_MS - 500 }
   await page.mouse.move(400, 300)
   await page.mouse.move(420, 310)
-  expect(await cursor()).toBe('shown')
+  await expect.poll(cursor, soon).toBe('shown')
   await expect.poll(cursor, { timeout: 10_000 }).toBe('hidden')
   await page.mouse.move(500, 320)
-  expect(await cursor()).toBe('shown')
+  await expect.poll(cursor, soon).toBe('shown')
 })
 
 // The treasure once lay at the bottom of a slot in the Canyon; the opening camera ran into walls.

@@ -1,18 +1,15 @@
 name: Deploy
 
+# Builds the game and puts it on GitHub Pages. CI (ci.yml) calls it from main once every other
+# job has passed: the checks, the browser tests and the Android build.
+
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
   pages: write
   id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
 
 jobs:
   build:
@@ -34,6 +31,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

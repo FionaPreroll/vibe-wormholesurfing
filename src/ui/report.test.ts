@@ -28,6 +28,11 @@ describe('reports', () => {
       true,
     )
     expect(url.length).toBeLessThanOrEqual(7000)
+    // The bug report form, its details filled in with the device and the latest glitches.
+    const params = new URL(url).searchParams
+    expect(params.get('template')).toBe('bug_report.yml')
+    expect(params.get('details')).toContain('Version: 1.2.3')
+    expect(params.get('body')).toBeNull()
     expect(mailUrl(sample()).startsWith('mailto:fipreroll+app@gmail.com?subject=')).toBe(true)
   })
 })

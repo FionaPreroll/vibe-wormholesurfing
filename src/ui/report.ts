@@ -4,7 +4,7 @@ import { CONTACT_EMAIL, ISSUES_URL } from './links'
 const MAX_URL = 7000
 
 /** The few facts that help most with a report, in Markdown, short enough for an address. */
-export function reportBody(report: DebugReport, lines = 10): string {
+export function reportDetails(report: DebugReport, lines = 10): string {
   const environment = report.environment
   const graphics = (environment.graphics ?? {}) as Record<string, unknown>
   const summary = report.summary
@@ -13,13 +13,6 @@ export function reportBody(report: DebugReport, lines = 10): string {
     .slice(-lines)
     .map((entry) => `- ${(entry.t / 1000).toFixed(1)} s ${entry.kind}: ${entry.message}`)
   return [
-    '**What happened?**',
-    '',
-    '',
-    '**What did you expect?**',
-    '',
-    '',
-    '---',
     `- Version: ${report.version}`,
     `- Browser: ${String(environment.userAgent ?? 'unknown')}`,
     `- Graphics: ${String(environment.gpuRenderer ?? 'unknown')}, quality ${String(graphics.quality ?? '?')}, pixel ratio ${String(graphics.pixelRatio ?? '?')}`,
@@ -31,14 +24,35 @@ export function reportBody(report: DebugReport, lines = 10): string {
   ].join('\n')
 }
 
-/** A new issue on GitHub, filled in with the report. */
+/** A whole report, for an email: the questions first, then the facts. */
+export function reportBody(report: DebugReport, lines = 10): string {
+  return [
+    '**What happened?**',
+    '',
+    '',
+    '**What did you expect?**',
+    '',
+    '',
+    '---',
+    reportDetails(report, lines),
+  ].join('\n')
+}
+
+/**
+ * A new issue on GitHub, in the bug report form (.github/ISSUE_TEMPLATE/bug_report.yml) with its
+ * "Details from the game" filled in, as many of the latest glitches as an address holds.
+ */
 export function issueUrl(report: DebugReport): string {
   for (let lines = 10; lines >= 0; lines--) {
-    const params = new URLSearchParams({ title: 'Problem: ', body: reportBody(report, lines) })
+    const params = new URLSearchParams({
+      template: 'bug_report.yml',
+      title: 'Problem: ',
+      details: reportDetails(report, lines),
+    })
     const url = `${ISSUES_URL}/new?${params}`
     if (url.length <= MAX_URL || lines === 0) return url
   }
-  return `${ISSUES_URL}/new`
+  return `${ISSUES_URL}/new?template=bug_report.yml`
 }
 
 /** An email with the report, for players without a GitHub account. */

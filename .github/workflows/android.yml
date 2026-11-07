@@ -1,16 +1,14 @@
-name: Android
+name: Android APK
 
-# Builds the Android app (Capacitor) as an installable release APK, on every push to main and
-# every pull request, or by hand from the Actions tab. The APK is kept as the run's artifact; from
-# main, it also goes to the release "Wormhole Surfing for Android", at a download link that never
-# changes: https://github.com/FionaPreroll/vibe-wormholesurfing/releases/latest/download/wormhole-surfing.apk
-# Beside it, version.json names the build, for the app's in-app updates.
+# Builds the Android app (Capacitor) as an installable release APK and keeps it as the run's
+# artifact. CI (ci.yml) calls it on every push to main and every pull request, beside its checks;
+# from main, CI's release job publishes the APK once every other job has passed, to the release
+# "Wormhole Surfing for Android", at a download link that never changes:
+# https://github.com/FionaPreroll/vibe-wormholesurfing/releases/latest/download/wormhole-surfing.apk
+# The build number is CI's run number, as the run is CI's.
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-  workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -47,61 +45,3 @@ jobs:
           path: wormhole-surfing.apk
           retention-days: 30
           if-no-files-found: error
-
-  release:
-    # Builds of main only: pull requests and runs on other branches publish nothing.
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: apk
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    concurrency:
-      group: android-release
-      cancel-in-progress: false
-    env:
-      GH_TOKEN: ${{ github.token }}
-      TAG: android-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v4
-        with:
-          name: wormhole-surfing-apk
-      - name: Skip if main has moved on, or a newer build is out
-        id: current
-        run: |
-          head=$(git ls-remote origin refs/heads/main | cut -f1)
-          # The build in the release now: a run started later may have finished first, and an
-          # older build must not replace it.
-          published=$(gh release download "$TAG" --pattern version.json --output - 2>/dev/null |
-            node -e 'let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => {
-              try { console.log(Number(JSON.parse(s).build) || 0) } catch { console.log(0) } })')
-          if [ "$head" != "$GITHUB_SHA" ]; then
-            echo "::notice::main is at $head now; its own run publishes that build instead."
-            echo "publish=false" >> "$GITHUB_OUTPUT"
-          elif [ "${published:-0}" -gt "$GITHUB_RUN_NUMBER" ]; then
-            echo "::notice::Build $published is out already, newer than this build $GITHUB_RUN_NUMBER."
-            echo "publish=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "publish=true" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Publish the release
-        if: steps.current.outputs.publish == 'true'
-        run: |
-          cat > notes.md <<NOTES
-          The newest build of Wormhole Surfing for Android, from commit ${GITHUB_SHA::7} (build ${GITHUB_RUN_NUMBER}). This release is replaced with every change to \`main\`.
-
-          **Installing:** download \`wormhole-surfing.apk\` below and open it on the phone; Android asks once to allow installing apps from that source. A newer APK installs over an older one and keeps your treasures and settings, and the app can look for a newer build and install it itself (Settings → App updates).
-
-          Every build is signed with the project's own key, which is in the repository so that every build signs alike: it proves only that the APK comes from a build of this project. The app is not on the Play Store.
-          NOTES
-          # What the app compares with its own build number to find updates (@fionapreroll/app-updates).
-          printf '{"build":%s,"commit":"%s","size":%s}\n' "$GITHUB_RUN_NUMBER" "$GITHUB_SHA" "$(stat -c %s wormhole-surfing.apk)" > version.json
-          # The tag follows main: it always names the commit of the APK in the release.
-          git tag -f "$TAG" "$GITHUB_SHA"
-          git push -f origin "refs/tags/$TAG"
-          if gh release view "$TAG" > /dev/null 2>&1; then
-            gh release upload "$TAG" wormhole-surfing.apk version.json --clobber
-            gh release edit "$TAG" --title "Wormhole Surfing for Android" --notes-file notes.md --latest
-          else
-            gh release create "$TAG" wormhole-surfing.apk version.json --title "Wormhole Surfing for Android" --notes-file notes.md --latest
-          fi
