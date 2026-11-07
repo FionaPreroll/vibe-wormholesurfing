@@ -162,6 +162,7 @@ export function buildGirl(): GirlRig {
   scarfRing.rotation.x = Math.PI / 2 - 0.12
   scarfRing.position.set(0, 0.245, 0.01)
   const scarfPivot = new THREE.Group()
+  scarfPivot.name = 'scarf'
   scarfPivot.position.set(-0.05, 0.25, -0.09)
   torso.add(scarfPivot)
   part(
@@ -302,6 +303,7 @@ export function buildGirl(): GirlRig {
   const tieStar = geo(starGeometry(0.06, 0.028, 0.016))
   for (const side of [-1, 1]) {
     const pivot = new THREE.Group()
+    pivot.name = 'twin-tail'
     pivot.position.set(side * 0.27, 0.11, -0.12)
     head.add(pivot)
     const tail = part(tailGeometry, hair, pivot, 0.01)
@@ -403,11 +405,12 @@ export function buildGirl(): GirlRig {
       head.rotation.z = -lean * 0.2 + (mode === 'cheer' ? Math.sin(time * 6.5) * 0.08 : 0)
       head.rotation.x = mode === 'sit' ? -0.1 : 0
 
-      // Hair and scarf stream back in the wind and bounce with each step.
+      // Hair and scarf stream back in the wind and bounce with each step. She faces +z, so a
+      // positive turn about x swings what hangs from a pivot back, behind her.
       const flutter = Math.sin(time * 17) * 0.06 * Math.min(1.5, wind)
       for (const [index, pivot] of tails.entries()) {
         const side = index === 0 ? -1 : 1
-        const back = -wind * 0.75 - rise * 0.04 + hop * 2
+        const back = wind * 0.75 - rise * 0.04 + hop * 2
         const bob = mode === 'walk' ? Math.cos(walkPhase * 2) * 0.12 * pace : 0
         pivot.rotation.x =
           (tailSprings[index] as Spring).step(back + bob, dt) + flutter * (1 + index * 0.5)
@@ -415,7 +418,7 @@ export function buildGirl(): GirlRig {
           (tailSide[index] as Spring).step(side * (0.05 + wind * 0.15) - lean * 0.6, dt) +
           Math.sin(time * 1.4 + index) * 0.03
       }
-      scarfPivot.rotation.x = scarfSpring.step(-0.2 - wind * 0.9, dt) + flutter * 2
+      scarfPivot.rotation.x = scarfSpring.step(-0.2 + wind * 0.9, dt) + flutter * 2
       ahoge.rotation.z = Math.sin(time * 3.1) * 0.08
 
       blink -= dt
