@@ -1,7 +1,8 @@
 import { defineConfig } from '@playwright/test'
 import base from './playwright.config'
 
-// The README's screenshots: `pnpm screenshots` writes them to docs/screenshots/.
+// The screenshots of the README and docs/hitboxes.md: `pnpm screenshots` writes them to
+// docs/screenshots/.
 export default defineConfig({
   ...base,
   testDir: 'tests/screenshots',
