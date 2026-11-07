@@ -27,6 +27,26 @@ export interface PerfSample {
   readonly heapMB?: number
 }
 
+/**
+ * One minute of drawing, summed up from its seconds, kept for the whole session: the seconds
+ * themselves are kept for the last quarter of an hour only, which a long session outruns.
+ */
+export interface MinuteSummary {
+  /** Milliseconds since the page opened, at the minute's first second. */
+  readonly t: number
+  /** The screen shown most in the minute. */
+  readonly screen: string
+  /** The median and the lowest frames per second of its seconds. */
+  readonly fps: number
+  readonly fpsLow: number
+  readonly frameMax: number
+  readonly pixelRatio: number
+  /** The most there were during the minute: what a leak would pile up. */
+  readonly geometries: number
+  readonly textures: number
+  readonly heapMB?: number
+}
+
 export interface DebugReport {
   readonly format: 'vibe-wormholesurfing-debug-log'
   readonly version: string
@@ -36,10 +56,35 @@ export interface DebugReport {
   readonly summary: Readonly<Record<string, unknown>>
   readonly entries: readonly LogEntry[]
   readonly samples: readonly PerfSample[]
+  /** Every minute of the session; logs from before it was kept have none. */
+  readonly minutes?: readonly MinuteSummary[]
 }
 
 const MAX_ENTRIES = 600
 const MAX_SAMPLES = 900
+/** A day of minutes. */
+const MAX_MINUTES = 1440
+
+/** Sums a minute of seconds up. */
+export function summarizeMinute(seconds: readonly PerfSample[]): MinuteSummary {
+  const first = seconds[0] as PerfSample
+  const screens = new Map<string, number>()
+  for (const second of seconds) screens.set(second.screen, (screens.get(second.screen) ?? 0) + 1)
+  const screen = [...screens].reduce((best, entry) => (entry[1] > best[1] ? entry : best))[0]
+  const fps = seconds.map((second) => second.fps)
+  const heap = seconds.flatMap((second) => (second.heapMB === undefined ? [] : [second.heapMB]))
+  return {
+    t: first.t,
+    screen,
+    fps: percentile(fps, 0.5),
+    fpsLow: Math.min(...fps),
+    frameMax: Math.max(...seconds.map((second) => second.frameMax)),
+    pixelRatio: Math.min(...seconds.map((second) => second.pixelRatio)),
+    geometries: Math.max(...seconds.map((second) => second.geometries)),
+    textures: Math.max(...seconds.map((second) => second.textures)),
+    ...(heap.length > 0 ? { heapMB: Math.max(...heap) } : {}),
+  }
+}
 
 /** Percentile of a list of numbers, 0 to 1. */
 export function percentile(values: readonly number[], share: number): number {
@@ -56,6 +101,9 @@ export function percentile(values: readonly number[], share: number): number {
 export class DebugLog {
   readonly entries: LogEntry[] = []
   readonly samples: PerfSample[] = []
+  readonly minutes: MinuteSummary[] = []
+  /** The seconds of the minute under way. */
+  #minute: PerfSample[] = []
   readonly environment: Record<string, unknown> = {}
   readonly openedAt = new Date()
   readonly #now: () => number
@@ -91,6 +139,14 @@ export class DebugLog {
   }
 
   sample(sample: PerfSample): void {
+    const minute = this.#minute[0]
+    if (minute && Math.floor(sample.t / 60_000) !== Math.floor(minute.t / 60_000)) {
+      this.minutes.push(summarizeMinute(this.#minute))
+      if (this.minutes.length > MAX_MINUTES)
+        this.minutes.splice(0, this.minutes.length - MAX_MINUTES)
+      this.#minute = []
+    }
+    this.#minute.push(sample)
     this.samples.push(sample)
     if (this.samples.length > MAX_SAMPLES) this.samples.splice(0, this.samples.length - MAX_SAMPLES)
   }
@@ -111,6 +167,7 @@ export class DebugLog {
       fpsMedian: percentile(fps, 0.5),
       fpsLow: percentile(fps, 0.05),
       slowestFrameMs: Math.max(0, ...this.samples.map((sample) => sample.frameMax)),
+      sessionMinutes: this.minutes.length + (this.#minute.length > 0 ? 1 : 0),
     }
   }
 
@@ -124,6 +181,10 @@ export class DebugLog {
       summary: this.summary(),
       entries: [...this.entries],
       samples: [...this.samples],
+      minutes:
+        this.#minute.length > 0
+          ? [...this.minutes, summarizeMinute(this.#minute)]
+          : [...this.minutes],
     }
   }
 }

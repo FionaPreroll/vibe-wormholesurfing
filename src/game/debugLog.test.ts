@@ -41,6 +41,38 @@ describe('DebugLog', () => {
     expect(report.environment).toMatchObject({ quality: 'high' })
   })
 
+  // A two-hour log from Windows held only its last quarter of an hour: the seconds are kept that
+  // long, so the minutes are kept for the whole session.
+  it('sums every minute of a long session up, past the seconds it keeps', () => {
+    const log = new DebugLog(() => 0)
+    const seconds = 2 * 60 * 60
+    for (let second = 0; second < seconds; second++)
+      log.sample({
+        t: second * 1000,
+        screen: second < 3600 ? 'title' : 'ride',
+        fps: second === 90 ? 20 : 144,
+        frameAvg: 6.9,
+        frameP95: 7.1,
+        frameMax: second === 90 ? 83 : 7.1,
+        pixelRatio: 1,
+        drawCalls: 150,
+        triangles: 110_000,
+        // A leak of a geometry a minute would show over the session.
+        geometries: 70 + Math.floor(second / 60),
+        textures: 23,
+        heapMB: 30 + (second % 30),
+      })
+    const report = log.report('1.0.0')
+    expect(report.samples).toHaveLength(900)
+    expect(report.minutes).toHaveLength(120)
+    expect(report.summary.sessionMinutes).toBe(120)
+    const second = report.minutes?.[1]
+    expect(second).toMatchObject({ t: 60_000, screen: 'title', fps: 144, fpsLow: 20, frameMax: 83 })
+    expect(second?.heapMB).toBe(59)
+    expect(report.minutes?.[119]?.screen).toBe('ride')
+    expect(report.minutes?.[119]?.geometries).toBe(70 + 119)
+  })
+
   it('counts quick repeats of a message instead of logging each', () => {
     let now = 0
     const log = new DebugLog(() => now)

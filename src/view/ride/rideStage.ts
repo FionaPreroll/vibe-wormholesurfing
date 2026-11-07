@@ -165,6 +165,8 @@ export class RideStage implements Stage {
     this.look.bloomThreshold = 1.0
     this.look.bloomRadius = 0.35
     this.look.vignette = 0.45
+    // The title screen's logo and menu read better over a darker top and bottom.
+    this.look.shade = options.demo ? 1 : 0
   }
 
   update(dt: number, controls: ControlFrame): void {

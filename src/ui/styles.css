@@ -188,16 +188,9 @@ kbd {
   align-items: center;
   padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
     max(18px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
-  /* Darker at the top and the bottom, behind the logo and the menu; the middle stays bright. */
-  background:
-    linear-gradient(
-      to bottom,
-      rgba(5, 3, 26, 0.55) 0%,
-      rgba(5, 3, 26, 0) 38%,
-      rgba(5, 3, 26, 0) 58%,
-      rgba(5, 3, 26, 0.72) 100%
-    ),
-    radial-gradient(ellipse at 50% 30%, transparent 30%, rgba(5, 3, 26, 0.55) 100%);
+  /* No background of its own: the picture darkens at the top and the bottom itself (`shade` in
+     src/view/post.ts), as a page-wide layer here cost phones a blend of the whole screen every
+     frame. */
   pointer-events: none;
 }
 
@@ -1867,4 +1860,10 @@ button.round svg {
 .modal.update progress {
   width: 100%;
   accent-color: #b07bff;
+}
+
+/* Below high quality, as on phones, the logo holds still: its moving colors made the browser
+   paint it, with its three glows, again for every frame. */
+:root[data-glass="flat"] .logo span {
+  animation: none;
 }

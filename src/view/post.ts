@@ -19,6 +19,12 @@ export interface Look {
   readonly flashColor: THREE.Color
   /** Saturation, 1 as is. */
   saturation: number
+  /**
+   * Darker at the top and the bottom, from 0 to 1: behind the title screen's logo and menu. Done
+   * here, in a pass that runs anyway, as a page-wide layer over the picture cost phones a blend
+   * of the whole screen at full resolution every frame.
+   */
+  shade: number
 }
 
 export function defaultLook(): Look {
@@ -34,6 +40,7 @@ export function defaultLook(): Look {
     flash: 0,
     flashColor: new THREE.Color(1, 1, 1),
     saturation: 1.05,
+    shade: 0,
   }
 }
 
@@ -80,6 +87,7 @@ export function finishPass(radialBlur: boolean): ShaderPass {
       uAberration: { value: 0 },
       uBlur: { value: 0 },
       uVignette: { value: 0.35 },
+      uShade: { value: 0 },
       uGrain: { value: 0.03 },
       uFlash: { value: 0 },
       uFlashColor: { value: new THREE.Color(1, 1, 1) },
@@ -99,6 +107,7 @@ export function finishPass(radialBlur: boolean): ShaderPass {
       uniform float uAberration;
       uniform float uBlur;
       uniform float uVignette;
+      uniform float uShade;
       uniform float uGrain;
       uniform float uFlash;
       uniform vec3 uFlashColor;
@@ -131,6 +140,10 @@ export function finishPass(radialBlur: boolean): ShaderPass {
         float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
         color = mix(vec3(luma), color, uSaturation);
         color *= 1.0 - uVignette * smoothstep(0.08, 0.75, edge * 1.6);
+        // The title screen's shade: down from the top and up from the bottom, the middle bright.
+        float fromTop = 1.0 - vUv.y;
+        float shade = (1.0 - smoothstep(0.0, 0.38, fromTop)) * 0.55 + smoothstep(0.58, 1.0, fromTop) * 0.72;
+        color = mix(color, vec3(0.0015, 0.0009, 0.0103), clamp(shade * uShade, 0.0, 1.0));
         color = mix(color, uFlashColor * 2.2, uFlash);
         float noise = hash12(vUv * 1024.0 + fract(uTime * 7.3) * 517.0) - 0.5;
         color += noise * uGrain * (0.4 + luma);

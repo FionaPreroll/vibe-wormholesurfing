@@ -35,6 +35,7 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 - Change every key and controller button: Settings → Controller and keys gives each action two keys and two buttons. Choose a slot and press the key or button for it; it moves from wherever it was. Back to the defaults is one button away.
 - Tune the controller's sticks: how strongly each answers, how large its dead zone is, and its shape: round, cross (each axis on its own, for straight lines) or square (the slightest push along an axis counts). A picture shows what the stick does as you lean it. The sticks can also be swapped.
 - A Full screen button on the title screen in every browser, not only on touch screens, so a controller can reach it too.
+- The debug log sums up every minute of the session, not only the last quarter of an hour: frames per second, the slowest frame, memory, geometries and textures, so a long session shows whether anything piles up.
 - The mouse pointer goes while you play with a controller or the keys, and when the mouse rests a moment in a ride or a world; it comes back as soon as the mouse moves.
 - A debug setting shows the hitboxes in rides: the circles the ship, orbs, sparks and warp holes are tested with, and the edge of the field the ship stays in.
 - The arrow keys move through the menus and dialogs as the D-pad does: up and down from row to row, left and right along a row and through lists. Sliders keep left and right for themselves.
@@ -52,6 +53,7 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 
 ### Fixed
 
+- On phones, the title screen runs as smoothly as a ride. Its logo's moving colors had the browser paint the logo, with its glows, again for every frame, and a darkening layer over the whole page cost a blend of the whole screen every frame. Below high quality the logo now holds its colors still, and the darkening is part of the 3D picture.
 - On screens that show more frames a second than the ride steps, as 144 Hz monitors do, the ship, the girl and everything flying toward them no longer judder on the title screen and in rides: the ride steps 120 times a second, so every sixth frame nothing moved. What a frame comes before the next step is now drawn ahead.
 - Buttons and other controls light up again when a controller moves the focus, also after a click with the mouse; a click hides the highlight until a controller or a key moves the focus again.
 - In the Controller and keys dialog, trying out the sticks no longer scrolls the dialog or moves the focus: there the D-pad moves the focus.

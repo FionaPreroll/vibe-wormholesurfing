@@ -451,6 +451,7 @@ export class Engine {
     uniform(uniforms, 'uFlash').value = look.flash
     uniform(uniforms, 'uFlashColor').value.copy(look.flashColor)
     uniform(uniforms, 'uSaturation').value = look.saturation
+    uniform(uniforms, 'uShade').value = look.shade
     uniform(uniforms, 'uTime').value = now / 1000
   }
 

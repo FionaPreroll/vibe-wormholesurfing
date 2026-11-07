@@ -80,6 +80,12 @@ test('dialogs fit the screen at twice their size, and the HUD grows from its cor
   await dialog.getByRole('slider', { name: /Menu and dialog size/ }).fill('2')
   await expect(dialog.getByText('Menu and dialog size: 2.0×')).toBeVisible()
   const viewport = page.viewportSize() as { width: number; height: number }
+  // The dialog rises into place as it opens: measured once it is there.
+  await page
+    .locator('.modal')
+    .evaluate((element) =>
+      Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished)),
+    )
   const box = await page.locator('.modal').boundingBox()
   expect(box?.width).toBeGreaterThan(viewport.width * 0.8)
   expect((box?.x ?? -1) >= 0 && (box?.y ?? -1) >= 0).toBe(true)
@@ -177,8 +183,9 @@ test('the treasure opens in view', async ({ page }) => {
   })
   await walkToTreasure(page)
   await page.keyboard.press('KeyE')
-  // Halfway through the opening, nothing stands between the camera and the treasure.
-  await page.waitForTimeout(1500)
+  // Once it has opened, the camera has swung round to its view: nothing stands between it and
+  // the treasure.
+  await expect(page.getByRole('button', { name: 'Fly again' })).toBeVisible({ timeout: 120_000 })
   const clear = await page.evaluate(() => {
     interface Stage {
       camera: { position: { x: number; y: number; z: number } }
@@ -201,4 +208,37 @@ test('the treasure opens in view', async ({ page }) => {
     return true
   })
   expect(clear).toBe(true)
+})
+
+// On phones the title screen ran at 34 frames a second where a ride ran at 50: its logo's moving
+// colors had the browser paint it, with three glows, every frame, and a darkening layer over the
+// whole page cost a blend of the whole screen at full resolution every frame.
+test('below high quality the title screen paints nothing again from frame to frame', async ({
+  page,
+}) => {
+  test.setTimeout(120_000)
+  await openGame(page, 'medium')
+  await stageShows(page, 'title')
+  // The darkening is in the picture now, not a layer over the page.
+  const background = await page
+    .locator('.title-screen')
+    .evaluate((element) => getComputedStyle(element).backgroundImage)
+  expect(background).toBe('none')
+  // Let the title screen's opening animations end, then count the browser's paints.
+  await page.waitForTimeout(2000)
+  const cdp = await page.context().newCDPSession(page)
+  const events: { readonly [key: string]: string }[] = []
+  cdp.on('Tracing.dataCollected', (data) => {
+    events.push(...data.value)
+  })
+  await cdp.send('Tracing.start', {
+    categories: 'devtools.timeline',
+    transferMode: 'ReportEvents',
+  })
+  await page.waitForTimeout(2000)
+  const done = new Promise((resolve) => cdp.once('Tracing.tracingComplete', resolve))
+  await cdp.send('Tracing.end')
+  await done
+  expect(events.filter((event) => event.name === 'Paint').length).toBeLessThanOrEqual(2)
+  await cdp.detach()
 })
