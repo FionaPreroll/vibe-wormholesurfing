@@ -162,10 +162,19 @@ test('keys and controller buttons can be bound anew, named as the controller pri
   await expect(dialog.getByRole('button', { name: /^Jump, open: Controller 1/ })).toHaveText('✕')
 })
 
+// On CI's slow runner the last press came while the page was still in full screen, and no note
+// came: the name 'Full screen' also matched 'Leave full screen', so the wait for the button did
+// not wait for full screen to end. Here leaving it takes two seconds, so the test always meets
+// that case.
 test('the title screen offers full screen in a browser, to a controller too', async ({ page }) => {
+  await page.addInitScript(() => {
+    const exit = document.exitFullscreen.bind(document)
+    document.exitFullscreen = () =>
+      new Promise((resolve) => setTimeout(() => resolve(exit()), 2000))
+  })
   await plugInController(page)
   await openGame(page)
-  const button = page.getByRole('button', { name: 'Full screen' })
+  const button = page.getByRole('button', { name: 'Full screen', exact: true })
   await button.focus()
   await press(page, A)
   const leave = page.getByRole('button', { name: 'Leave full screen' })
