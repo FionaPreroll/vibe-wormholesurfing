@@ -1,0 +1,51 @@
+name: Bug report
+description: Something in the game does not work as it should.
+title: "Problem: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! The quickest way is from the game: **Settings → Report a problem on GitHub** opens this form with your version, device and the latest glitches filled in, and saves the debug log for you to attach below.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How does it happen?
+      description: The steps that lead to it, as far as you know them.
+      placeholder: |
+        1. Fly into a red hole
+        2. Walk to the treasure
+        3. …
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Where did you play?
+      options:
+        - In a browser tab
+        - As the web app the browser installed
+        - In the Android app
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      placeholder: Fairphone 4 with Chrome, MacBook Air with Safari, …
+  - type: textarea
+    id: details
+    attributes:
+      label: Details from the game
+      description: Filled in when you report from the game. Otherwise, the version from the about page.
+      render: markdown
+  - type: textarea
+    id: files
+    attributes:
+      label: Debug log and pictures
+      description: Drag the debug log here (Settings → Export debug log), and screenshots or a video if you have them. For stutters, crashes and anything about the picture, the log helps most.
