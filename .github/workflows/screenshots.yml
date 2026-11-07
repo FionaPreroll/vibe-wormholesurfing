@@ -1,7 +1,7 @@
 name: Screenshots
 
-# Run by hand from the Actions tab: takes the README's screenshots again and opens a pull
-# request with them, for review. Nothing changes on main until that pull request is merged.
+# Run by hand from the Actions tab: takes the screenshots of the README and docs/hitboxes.md
+# again and opens a pull request with them, for review. Nothing changes on main until that pull request is merged.
 on:
   workflow_dispatch:
 
@@ -30,7 +30,9 @@ jobs:
         with:
           branch: chore/update_screenshots
           delete-branch: true
-          add-paths: docs/screenshots/*.png
+          add-paths: |
+            docs/screenshots/*.png
+            docs/screenshots/hitboxes/*.png
           commit-message: Update the README screenshots
           title: Update the README screenshots
           body: |

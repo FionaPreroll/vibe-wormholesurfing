@@ -64,19 +64,19 @@ pnpm dev
 
 ## Scripts
 
-| Script                         | What it does                                                                          |
-| ------------------------------ | ------------------------------------------------------------------------------------- |
-| `pnpm dev`                     | Development server with hot reload                                                    |
-| `pnpm build`                   | Production build into `dist/`                                                         |
-| `pnpm preview`                 | Serves `dist/` locally                                                                |
-| `pnpm check`                   | Type check, lint and unit tests; run it before every push                             |
-| `pnpm typecheck`               | TypeScript for `src/core` (without DOM types), the app, and the config and test files |
-| `pnpm lint`, `pnpm format`     | Biome: check lint and formatting, or fix both                                         |
-| `pnpm test`, `pnpm test:watch` | Vitest unit tests                                                                     |
-| `pnpm test:coverage`           | Unit tests with a coverage report in `coverage/`                                      |
-| `pnpm test:e2e`                | Builds, then runs the Playwright browser tests                                        |
-| `pnpm icons`                   | Renders the app icons in `public/icons/` from `public/favicon.svg` with Chromium      |
-| `pnpm screenshots`             | Builds, then takes the README's screenshots into `docs/screenshots/` with Playwright  |
+| Script                         | What it does                                                                            |
+| ------------------------------ | --------------------------------------------------------------------------------------- |
+| `pnpm dev`                     | Development server with hot reload                                                      |
+| `pnpm build`                   | Production build into `dist/`                                                           |
+| `pnpm preview`                 | Serves `dist/` locally                                                                  |
+| `pnpm check`                   | Type check, lint and unit tests; run it before every push                               |
+| `pnpm typecheck`               | TypeScript for `src/core` (without DOM types), the app, and the config and test files   |
+| `pnpm lint`, `pnpm format`     | Biome: check lint and formatting, or fix both                                           |
+| `pnpm test`, `pnpm test:watch` | Vitest unit tests                                                                       |
+| `pnpm test:coverage`           | Unit tests with a coverage report in `coverage/`                                        |
+| `pnpm test:e2e`                | Builds, then runs the Playwright browser tests                                          |
+| `pnpm icons`                   | Renders the app icons in `public/icons/` from `public/favicon.svg` with Chromium        |
+| `pnpm screenshots`             | Builds, then takes the screenshots of the README and `docs/hitboxes.md` with Playwright |
 
 Playwright needs a Chromium: run `pnpm exec playwright install chromium` once, or set `CHROMIUM_PATH` to an installed Chromium binary.
 
@@ -103,7 +103,7 @@ src/
   main.tsx      entry point
 tools/          Vite plugins for the service worker and the list of lazy files, the icon renderer
 tests/e2e/      Playwright browser tests
-tests/screenshots/  the README's screenshots
+tests/screenshots/  the screenshots of the README and docs/hitboxes.md
 public/         static files, copied as they are
 ```
 
@@ -139,7 +139,7 @@ Two rules keep the layers apart:
 - **Loading.** The 3D view is the big download. `tools/lazyFiles.ts`, a Vite plugin, writes the list of its files and their sizes into the entry chunk when the game is built; `src/ui/loading.ts` fetches them before importing and counts the bytes as they arrive, so the title screen shows a bar, bytes loaded of all (unpacked, in KiB or MiB), speed, time taken and time left. The browser keeps the files, so the import that follows is quick. On the dev server, where sizes are unknown, it shows the time only.
 - **About.** The about page says what the game is and how it is made, names the graphics chip and how the 3D view runs on it, holds the data and debug tools, and shows `CHANGELOG.md`, rendered by `src/ui/changelog.tsx`. It gives the contact address and the issue tracker (`src/ui/links.ts`), and links the web version and the app both ways: in a browser tab it offers the browser's install prompt where there is one (`src/ui/install.ts`) or says how to install; in the Android app it names the app's version, in the web app a browser installed it says how that updates and, on Android, offers the Android app; both link to the web version.
 - **Save files.** "Export save" writes the whole save as `wormhole-surfing-save-<date>.json` (`"format": "vibe-wormholesurfing-save"`); "Import save" reads one back after asking, checking it against the save's schema first. Both are on the about page and in the settings.
-- **Hitboxes.** Settings → Show hitboxes in rides draws the circles the rules test (`src/view/ride/hitboxes.ts`): the ship's for orbs and sparks (at the tip of its nose, or in its middle, as set), a small mark on the ship's middle in the holes' green, the point holes test, every orb's and spark's, the part of a warp hole that takes the ship, and the edge of the field the ship stays in, each where the view draws its thing and at the rules' size (`RIDE` in `src/core/ride.ts`). Issue [#1](https://github.com/FionaPreroll/vibe-wormholesurfing/issues/1) is to document them with screenshots.
+- **Hitboxes.** Settings → Show hitboxes in rides draws the circles the rules test (`src/view/ride/hitboxes.ts`): the ship's for orbs and sparks (at the tip of its nose, or in its middle, as set), a small mark on the ship's middle in the holes' green, the point holes test, every orb's and spark's, the part of a warp hole that takes the ship, and the edge of the field the ship stays in, each where the view draws its thing and at the rules' size (`RIDE` in `src/core/ride.ts`). [`docs/hitboxes.md`](docs/hitboxes.md) explains them with screenshots: how each is tested, how the circles relate to the bent tunnel the view draws, and how large the drawn things are against their hitboxes.
 - **Debug log.** `src/game/debugLog.ts` keeps the last 600 lines of what happened and a summary of every second of the last 15 minutes: frames per second, average, 95th percentile and slowest frame time, pixel ratio, draw calls, triangles, geometries, textures and JavaScript memory. Into it go the device and the graphics chip, the start, loading time and quality of the 3D view, every scene shown and world built with its time, resolution changes, long frames with how long the game's own drawing took and how many shader programs were built meanwhile (and, as information only, pauses of three seconds or more, when the browser stopped drawing, as macOS does for a covered window), lost and restored WebGL contexts, uncaught errors and console warnings. Besides the last 15 minutes second by second, it sums up every minute of the session (`minutes`: median and lowest frames per second, the slowest frame, the smallest pixel ratio, and the most geometries, textures and memory), so a session of hours shows whether anything piles up. Two probes in the chain of passes look at a few pixels now and then: one notes when the scene has pixels that overflow or are not a number, and one notes black frames. "Export debug log" saves it as JSON with the settings and the graphics as they run now; "Copy debug log" puts it on the clipboard. "Report a problem on GitHub" and "Report by email" open the bug report form (with its "Details from the game" filled in) or an email with the version, the device, the summary and the latest warnings filled in (`src/ui/report.ts`, short enough for an address), and save the full log to attach.
 - **Kept logs.** `LogArchive` in `src/persistence/logs.ts` keeps the debug logs of the last three sessions in IndexedDB, next to the save under the key `debugLogs`. The running session replaces its own entry every 30 seconds, when the page is hidden or left, and when a page that lists the logs opens, so a glitch can be reported after a reload or a crash.
 
@@ -203,7 +203,7 @@ CI (`.github/workflows/ci.yml`) runs the type check, Biome, the unit tests with 
 
 ### Updating the screenshots
 
-`pnpm screenshots` plays through a ride and a world with Playwright and saves the pictures in `docs/screenshots/`. It waits in the game's own time, not the clock's: with WebGL in software frames are slow and the game runs slower than the clock, and a wait by the clock would catch the flash of an arrival. The Screenshots workflow (`.github/workflows/screenshots.yml`) does the same on GitHub when started by hand and opens a pull request with the new pictures. It needs "Allow GitHub Actions to create and approve pull requests" under Settings → Actions → General.
+`pnpm screenshots` plays through a ride and a world with Playwright and saves the pictures in `docs/screenshots/`. It waits in the game's own time, not the clock's: with WebGL in software frames are slow and the game runs slower than the clock, and a wait by the clock would catch the flash of an arrival. The pictures of `docs/hitboxes.md` go to `docs/screenshots/hitboxes/` (`tests/screenshots/hitboxes.spec.ts`): with the hitboxes shown, it stops a ride's simulation and puts the ship, orbs, sparks and holes where each picture needs them, while the view goes on drawing. The Screenshots workflow (`.github/workflows/screenshots.yml`) does the same on GitHub when started by hand and opens a pull request with the new pictures. It needs "Allow GitHub Actions to create and approve pull requests" under Settings → Actions → General.
 
 ## Changelog and versions
 
