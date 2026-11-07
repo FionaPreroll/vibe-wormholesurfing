@@ -176,16 +176,37 @@ test('the mouse pointer goes while the mouse rests in a ride, and comes back as 
   await dismissHint(page)
   await stageShows(page, 'ride')
   const cursor = () => page.evaluate(() => document.documentElement.dataset.cursor ?? 'shown')
-  // Chromium hands a mouse move to the page with its next frame, which on a slow machine comes
-  // after the move returns: the pointer is looked at until then, but for less than the rest that
-  // hides it again.
-  const soon = { timeout: CURSOR_IDLE_MS - 500 }
+  // Chromium hands a mouse move to the page with its next frame. With graphics in software a frame
+  // can take seconds on CI, while the test's looks at the page come between frames: a look soon
+  // after a move often came before the page had it, and the test failed on both of its waits. So
+  // the page notes each move as it gets it, with the pointer right after it, once every listener
+  // of the move has run, and the test waits for the page to have had a move before it judges.
+  await page.evaluate(() => {
+    const notes = window as unknown as { lastMove?: string }
+    addEventListener(
+      'pointermove',
+      (event) => {
+        const at = `${event.clientX},${event.clientY}`
+        setTimeout(() => {
+          notes.lastMove = `${at} ${document.documentElement.dataset.cursor ?? 'shown'}`
+        })
+      },
+      true,
+    )
+  })
+  const lastMove = () =>
+    page.evaluate(() => (window as unknown as { lastMove?: string }).lastMove ?? '')
+  /** The pointer right after the page had the mouse moved to x, y. */
+  const pointerAfterMove = async (x: number, y: number) => {
+    await page.mouse.move(x, y)
+    await expect.poll(lastMove, { timeout: 60_000 }).toMatch(new RegExp(`^${x},${y} `))
+    return (await lastMove()).split(' ')[1]
+  }
+  // Moves that come in one frame reach the page as one, at the last place.
   await page.mouse.move(400, 300)
-  await page.mouse.move(420, 310)
-  await expect.poll(cursor, soon).toBe('shown')
-  await expect.poll(cursor, { timeout: 10_000 }).toBe('hidden')
-  await page.mouse.move(500, 320)
-  await expect.poll(cursor, soon).toBe('shown')
+  expect(await pointerAfterMove(420, 310)).toBe('shown')
+  await expect.poll(cursor, { timeout: CURSOR_IDLE_MS + 10_000 }).toBe('hidden')
+  expect(await pointerAfterMove(500, 320)).toBe('shown')
 })
 
 // The treasure once lay at the bottom of a slot in the Canyon; the opening camera ran into walls.
