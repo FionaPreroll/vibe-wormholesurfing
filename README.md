@@ -188,6 +188,13 @@ Bugs that were fixed keep a test that would catch them again, and the features p
 
 `.github/workflows/soak.yml` runs it every Monday and by hand from the Actions tab, for as many minutes as asked (30 by default); the summary goes to the run's page and the report into its artifact.
 
+## Branches and pull requests
+
+- Every feature or fix gets its own branch off `origin/main`, named `feature/<name_in_snake_case>` or `fix/<name_in_snake_case>`, for example `feature/see_through_setting` or `fix/debug_log_export_crash`, and one pull request against `main`. One feature or fix a branch keeps a pull request easy to review and to take back.
+- Contributors never push to `main`: changes reach it by pull request only. To hold to it, a ruleset for `main` requires a pull request, with the repository admin on its bypass list (Settings → Rules → Rulesets), so the owner may still work on `main` directly.
+- A pull request starts from `.github/pull_request_template.md`: what changes and why, how to see it in the game, where it was tried, and a checklist of the project's rules (the checks, tests for fixes and features, the changelog, texts in English and German, `src/core` kept pure, no asset files, the README).
+- CI runs on every pull request (see below); it must pass before the pull request is merged.
+
 ## CI and deployment
 
 CI (`.github/workflows/ci.yml`) runs the type check, Biome, the unit tests with coverage, the build and the Playwright tests on every pull request and push to `main`. Coverage goes to [Codecov](https://codecov.io/gh/FionaPreroll/vibe-wormholesurfing) in two reports with their flags (`codecov.yml`): `unit` from Vitest, and `e2e` from the browser tests, which alone run the 3D view. For those, CI builds with source maps (`COVERAGE=1`), every spec takes `test` from `tests/e2e/coverage.ts`, which records the JavaScript each page runs in Chromium, and `monocart-coverage-reports` maps it back to `src/` as `coverage/e2e/lcov.info`. Uploads sign in with GitHub's OIDC token, so the repository needs no Codecov secret. Every push to `main` deploys `dist/` to GitHub Pages (`.github/workflows/deploy.yml`), with Pages set to GitHub Actions in the repository settings.
