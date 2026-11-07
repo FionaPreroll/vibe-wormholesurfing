@@ -11,7 +11,7 @@ import { holeRadius } from '../core/ride'
 import { type WorldId, worldOf } from '../core/worlds'
 import { type DebugReport, debugLog } from '../game/debugLog'
 import { type GameEvent, onGameEvent } from '../game/events'
-import { type Arrival, rideHud } from '../game/hud'
+import { type Arrival, rideFeel } from '../game/hud'
 import { QUALITIES, type Settings, settings } from '../game/settings'
 import { t } from '../i18n'
 import { buzz, haptics } from '../input/haptics'
@@ -478,7 +478,7 @@ export function App({ store }: Props) {
           onRecenter: () => input.gyro.calibrate(),
           reducedMotion: () => settings.value.reducedMotion,
           onFrame: () => {
-            if (screen.value === 'ride') synth.setRide(rideHud.value.speed, rideHud.value.pull)
+            if (screen.value === 'ride') synth.setRide(rideFeel.speed, rideFeel.pull)
           },
         })
         directorRef.current = created

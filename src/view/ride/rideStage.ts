@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { approach, clamp, damp } from '../../core/math'
 import { autopilot, type Hole, RIDE, Ride, type RideEvent, type RideOutcome } from '../../core/ride'
 import { emit } from '../../game/events'
-import { rideHud } from '../../game/hud'
+import { nextRideHud, rideFeel, rideHud } from '../../game/hud'
 import { settings } from '../../game/settings'
 import type { ControlFrame } from '../../input/input'
 import { applyFov, type Stage } from '../engine'
@@ -90,6 +90,8 @@ export class RideStage implements Stage {
   readonly #lookNow = new THREE.Vector3(0, 0, -20)
   #time = 0
   #travel = 0
+  /** When the HUD last changed, in `performance.now()` time. */
+  #hudShownAt = Number.NEGATIVE_INFINITY
   /** Where the ship is drawn, a fraction of a step past where the simulation has it. */
   #shipX = 0
   #shipY = 0
@@ -504,17 +506,28 @@ export class RideStage implements Stage {
 
   #publishHud(): void {
     const ride = this.ride
-    rideHud.value = {
-      distance: Math.floor(ride.distance),
-      speed: ride.speed,
-      pull: ride.pull,
-      combo: ride.combo,
-      stunned: ride.stun > 0,
-      captured: ride.captured !== undefined,
-      warping: ride.phase !== 'riding',
-      orbs: ride.orbsTaken,
-      sparks: ride.sparksHit,
-      time: ride.time,
+    rideFeel.speed = ride.speed
+    rideFeel.pull = ride.pull
+    const now = performance.now()
+    const next = nextRideHud(
+      rideHud.value,
+      {
+        distance: Math.floor(ride.distance),
+        speed: ride.speed,
+        pull: ride.pull,
+        combo: ride.combo,
+        stunned: ride.stun > 0,
+        captured: ride.captured !== undefined,
+        warping: ride.phase !== 'riding',
+        orbs: ride.orbsTaken,
+        sparks: ride.sparksHit,
+        time: ride.time,
+      },
+      now - this.#hudShownAt,
+    )
+    if (next !== rideHud.value) {
+      rideHud.value = next
+      this.#hudShownAt = now
     }
   }
 
