@@ -1,19 +1,25 @@
 import * as THREE from 'three'
 
-export type HitboxKind = 'ship' | 'orb' | 'spark' | 'hole' | 'field'
+export type HitboxKind = 'ship' | 'middle' | 'orb' | 'spark' | 'hole' | 'field'
 
 const COLORS: Readonly<Record<HitboxKind, number>> = {
   ship: 0x6ff0ff,
+  // The point warp holes take the ship by, in the holes' color.
+  middle: 0x9dff8a,
   orb: 0xffd36b,
   spark: 0xff5a7a,
   hole: 0x9dff8a,
   field: 0x8a7cff,
 }
 
+/** How large the mark of the ship's middle draws: holes test a point, not a circle. */
+export const MIDDLE_MARK = 0.12
+
 /**
  * The circles the ride's rules test, drawn over the ride for debugging (Settings → Show
- * hitboxes): the ship's, every orb's and spark's, the part of each warp hole that takes the
- * ship, and the edge of the field the ship's middle stays in. The rules test them across the
+ * hitboxes): the ship's for orbs and sparks, a small mark on the ship's middle, which warp holes
+ * test, every orb's and spark's, the part of each warp hole that takes the ship, and the edge of
+ * the field the ship's middle stays in. The rules test them across the
  * tunnel, so each is a circle facing along it, where the view draws its thing, bent with the
  * tunnel, and at its own size, not the drawn thing's.
  */

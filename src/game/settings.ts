@@ -25,7 +25,10 @@ export interface Settings {
   readonly gyroRange: number
   /** Up and down swapped while flying. */
   readonly invertY: boolean
-  /** The ship meets orbs, sparks and holes with the tip of its nose, else with its middle. */
+  /**
+   * The ship meets orbs and sparks with the tip of its nose, else with its middle. Holes always
+   * take it by its middle.
+   */
   readonly noseHitbox: boolean
   /** Up and down swapped for the camera. */
   readonly invertLookY: boolean

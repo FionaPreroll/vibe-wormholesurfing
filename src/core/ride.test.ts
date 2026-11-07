@@ -118,22 +118,62 @@ describe('Ride', () => {
     expect(ride.hitbox).toEqual({ x: ship.x, y: ship.y, z: 0 })
   })
 
-  it('meets orbs and holes with the tip of its nose, or with its middle when asked', () => {
+  it('meets orbs and sparks with the tip of its nose, or with its middle when asked', () => {
     for (const noseHitbox of [true, false]) {
-      // Within a step of the nose, but more than an orb's radius before the ship's middle.
-      const orbRide = new Ride({ seed: 9, noseHitbox })
-      orbRide.orbs.push({ id: 900, x: 0, y: 0, z: RIDE.noseReach + 0.5, taken: false })
-      const taken = orbRide.advance(RIDE.step, NO_STEER)
+      // Within a step of the nose, but more than their radius before the ship's middle.
+      const ride = new Ride({ seed: 9, noseHitbox })
+      ride.orbs.push({ id: 900, x: 0, y: 0, z: RIDE.noseReach + 0.5, taken: false })
+      const taken = ride.advance(RIDE.step, NO_STEER)
       expect(taken.some((event) => event.type === 'orb')).toBe(noseHitbox)
 
-      const holeRide = new Ride({ seed: 5, noseHitbox })
-      const hole = { id: 77, x: 0, y: 0, z: RIDE.noseReach + 0.3, color: 'blue' as const }
-      holeRide.holes.push({ ...hole, tier: 1, radius: holeRadius(1) })
-      const entered = holeRide.advance(RIDE.step, NO_STEER)
-      expect(entered.some((event) => event.type === 'enter')).toBe(noseHitbox)
-      // The hole stops where it met the nose, and the warp goes on from there.
-      if (noseHitbox) expect(holeRide.entered?.z).toBeCloseTo(RIDE.noseReach)
+      const sparked = new Ride({ seed: 9, noseHitbox })
+      sparked.sparks.push({
+        id: 901,
+        x: 0,
+        y: 0,
+        z: RIDE.noseReach + 0.5,
+        cx: 0,
+        cy: 0,
+        orbit: 0,
+        phase: 0,
+        spin: 0,
+        hit: false,
+      })
+      const hit = sparked.advance(RIDE.step, NO_STEER)
+      expect(hit.some((event) => event.type === 'spark')).toBe(noseHitbox)
     }
+  })
+
+  // Holes test the ship's middle even with the hitbox at the nose, so that they are a little
+  // easier to steer clear of: the nose leads the way.
+  it('takes the ship into a hole by its middle, wherever its hitbox for orbs is', () => {
+    for (const noseHitbox of [true, false]) {
+      const ride = new Ride({ seed: 5, noseHitbox })
+      const hole = { id: 77, x: 0, y: 0, z: RIDE.noseReach + 0.3, color: 'blue' as const }
+      ride.holes.push({ ...hole, tier: 1, radius: holeRadius(1) })
+      // Past the nose, not yet at the middle.
+      expect(ride.advance(RIDE.step, NO_STEER).some((event) => event.type === 'enter')).toBe(false)
+      const later = ride.advance(RIDE.step * 3, NO_STEER)
+      expect(later.some((event) => event.type === 'enter')).toBe(true)
+      expect(ride.entered?.z).toBe(0)
+    }
+
+    // Climbing, the nose is tipped up into a hole above that the middle passes under.
+    const ride = new Ride({ seed: 5 })
+    ride.ship.vy = RIDE.maxLateral
+    ride.ship.pitch = RIDE.maxTip
+    const radius = holeRadius(1)
+    const reach = radius * RIDE.holeInside
+    ride.holes.push({ id: 78, x: 0, y: reach + 0.3, z: 0.3, color: 'red', tier: 1, radius })
+    const events = ride.advance(RIDE.step, { x: 0, y: 1 })
+    const above = ride.holes[0]
+    expect(above).toBeDefined()
+    if (!above) return
+    const { hitbox, ship } = ride
+    expect(Math.hypot(above.x - hitbox.x, above.y - hitbox.y)).toBeLessThan(reach)
+    expect(Math.hypot(above.x - ship.x, above.y - ship.y)).toBeGreaterThan(reach)
+    expect(above.z).toBeLessThanOrEqual(0)
+    expect(events.some((event) => event.type === 'enter')).toBe(false)
   })
 
   it('pilots as well with the hitbox at the nose as at the middle', () => {

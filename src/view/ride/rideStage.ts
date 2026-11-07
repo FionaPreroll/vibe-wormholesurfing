@@ -24,7 +24,7 @@ import type { QualityLevel } from '../quality'
 import { uniform } from '../uniforms'
 import { bendAt, bendFor } from './bend'
 import { Ghost, LIGHT_ORDER } from './ghost'
-import { Hitboxes } from './hitboxes'
+import { Hitboxes, MIDDLE_MARK } from './hitboxes'
 import { Bursts, buildDust, buildStreaks } from './particles'
 import { Shards } from './shards'
 import { HOLE_LIGHT, HoleView, ThingKit } from './things'
@@ -363,9 +363,11 @@ export class RideStage implements Stage {
       boxes.circle(kind, x + this.#offset.x, y + this.#offset.y, -z, radius)
     }
     circle('field', 0, 0, 0, RIDE.fieldRadius)
-    // At the tip of the nose as drawn, or at the ship's middle.
+    // For orbs and sparks: at the tip of the nose as drawn, or at the ship's middle.
     const nose = ride.noseHitbox ? noseOffset(ride.ship.yaw, this.#pitch) : { x: 0, y: 0, z: 0 }
     circle('ship', this.#shipX + nose.x, this.#shipY + nose.y, nose.z, RIDE.shipRadius)
+    // For holes: the ship's middle, a point.
+    circle('middle', this.#shipX, this.#shipY, 0, MIDDLE_MARK)
     const ahead = this.#ahead
     for (const orb of ride.orbs)
       if (!orb.taken) circle('orb', orb.x, orb.y, orb.z - ahead, RIDE.orbRadius)
