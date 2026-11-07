@@ -1,6 +1,15 @@
 import * as THREE from 'three'
 import { approach, clamp, damp } from '../../core/math'
-import { autopilot, type Hole, RIDE, Ride, type RideEvent, type RideOutcome } from '../../core/ride'
+import {
+  autopilot,
+  type Hole,
+  noseOffset,
+  pitchFor,
+  RIDE,
+  Ride,
+  type RideEvent,
+  type RideOutcome,
+} from '../../core/ride'
 import { emit } from '../../game/events'
 import { nextRideHud, rideFeel, rideHud } from '../../game/hud'
 import { settings } from '../../game/settings'
@@ -100,10 +109,11 @@ export class RideStage implements Stage {
   /** Where the ship is drawn, a fraction of a step past where the simulation has it. */
   #shipX = 0
   #shipY = 0
+  /** How its nose is tipped as drawn, for the same reason. */
+  #pitch = 0
   /** How much nearer things are drawn than the simulation has them, for the same reason. */
   #ahead = 0
   #bank = 0
-  #pitch = 0
   #shake = 0
   #flash = 0
   #kick = 0
@@ -112,7 +122,11 @@ export class RideStage implements Stage {
 
   constructor(renderer: THREE.WebGLRenderer, options: RideStageOptions) {
     this.#options = options
-    this.ride = new Ride({ seed: options.seed, demo: options.demo })
+    this.ride = new Ride({
+      seed: options.seed,
+      demo: options.demo,
+      noseHitbox: settings.value.noseHitbox,
+    })
     this.#uniforms = rideUniforms()
     const level = options.level
     const scene = this.scene
@@ -185,6 +199,7 @@ export class RideStage implements Stage {
       if (controls.pause) options.onPause?.()
       if (controls.recenter) options.onRecenter?.()
     }
+    ride.noseHitbox = settings.value.noseHitbox
     const steer = options.demo ? autopilot(ride) : controls.move
     const events = ride.advance(dt, ride.phase === 'riding' ? steer : { x: 0, y: 0 })
     const forward = ride.phase === 'warping' ? ride.forward * 0.25 : ride.forward
@@ -194,6 +209,7 @@ export class RideStage implements Stage {
     const lag = ride.lag
     this.#shipX = ride.ship.x + ride.ship.vx * lag
     this.#shipY = ride.ship.y + ride.ship.vy * lag
+    this.#pitch = approach(ride.ship.pitch, pitchFor(ride.ship.vy), RIDE.tipResponse, lag)
     this.#ahead = ride.forward * lag
     for (const event of events) this.#handle(event)
 
@@ -294,10 +310,10 @@ export class RideStage implements Stage {
       group.rotation.z = 0
     }
     const bankTarget = clamp(-ship.vx * 0.05, -0.75, 0.75)
-    const pitchTarget = clamp(ship.vy * 0.025, -0.35, 0.35)
     this.#bank = approach(this.#bank, bankTarget, 6, dt)
-    this.#pitch = approach(this.#pitch, pitchTarget, 6, dt)
-    group.rotation.y = -ship.vx * 0.012
+    // The nose turns and tips as the rules have it, since the hitbox may sit on its tip. Turning
+    // right is negative about three.js's y.
+    group.rotation.y = -ship.yaw
     // In a ride the ship sits where the player looks ahead: it lets the way show through. The
     // title screen's camera circles it, and shows it whole.
     const choice = settings.value.seeThrough
@@ -347,7 +363,9 @@ export class RideStage implements Stage {
       boxes.circle(kind, x + this.#offset.x, y + this.#offset.y, -z, radius)
     }
     circle('field', 0, 0, 0, RIDE.fieldRadius)
-    circle('ship', this.#shipX, this.#shipY, 0, RIDE.shipRadius)
+    // At the tip of the nose as drawn, or at the ship's middle.
+    const nose = ride.noseHitbox ? noseOffset(ride.ship.yaw, this.#pitch) : { x: 0, y: 0, z: 0 }
+    circle('ship', this.#shipX + nose.x, this.#shipY + nose.y, nose.z, RIDE.shipRadius)
     const ahead = this.#ahead
     for (const orb of ride.orbs)
       if (!orb.taken) circle('orb', orb.x, orb.y, orb.z - ahead, RIDE.orbRadius)

@@ -47,6 +47,7 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 
 ### Changed
 
+- The ship meets orbs, sparks and warp holes with the tip of its nose, where you see it touch them, instead of with its middle. The hitbox moves with the nose as the ship turns and climbs. To have it in the ship's middle again, switch off "Ship's hitbox at the tip of its nose" under Controls in the settings.
 - The about page tells the Android app apart from the web app a browser installed: the app names its version and how it looks for updates, the web app says how it updates and, on Android, offers the Android app too.
 - In a ride, the ship and the girl are a little see-through, so what comes toward you shows through them where they sit in the middle of the screen. On the title screen they show whole.
 - On low and medium graphics, as phones and tablets use, buttons and panels are a little darker instead of frosted glass. Blurring the moving 3D view behind them cost phones more frames than the 3D view itself.

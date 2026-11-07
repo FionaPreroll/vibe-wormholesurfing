@@ -25,6 +25,8 @@ export interface Settings {
   readonly gyroRange: number
   /** Up and down swapped while flying. */
   readonly invertY: boolean
+  /** The ship meets orbs, sparks and holes with the tip of its nose, else with its middle. */
+  readonly noseHitbox: boolean
   /** Up and down swapped for the camera. */
   readonly invertLookY: boolean
   /** The mouse pointer steers the ship. */
@@ -64,6 +66,7 @@ export const DEFAULT_SETTINGS: Settings = {
   gyro: false,
   gyroRange: 24,
   invertY: false,
+  noseHitbox: true,
   invertLookY: false,
   mouseSteer: true,
   lookSpeed: 1,
