@@ -1,6 +1,12 @@
 import { useState } from 'preact/hooks'
 import type { DebugReport } from '../game/debugLog'
-import { QUALITIES, type Quality, type Settings } from '../game/settings'
+import {
+  QUALITIES,
+  type Quality,
+  SEE_THROUGH,
+  type SeeThrough,
+  type Settings,
+} from '../game/settings'
 import { type MessageKey, t } from '../i18n'
 import { PAD, type PadStyle } from '../input/gamepad'
 import type { GyroState } from '../input/gyro'
@@ -9,10 +15,16 @@ import type { Save } from '../persistence/save'
 import { checkForUpdate, offer } from './appUpdates'
 import { padButtonName } from './controlNames'
 import { DebugTools, SaveTools } from './DataTools'
-import { Slider, Toggle } from './fields'
+import { Choice, Slider, Toggle } from './fields'
 import { LanguageSwitch } from './LanguageSwitch'
 import { Modal } from './Modal'
 import { isApp } from './native'
+
+const SEE_THROUGH_NAMES: Readonly<Record<SeeThrough, MessageKey>> = {
+  auto: 'seeThroughAuto',
+  on: 'seeThroughOn',
+  off: 'seeThroughOff',
+}
 
 const QUALITY_NAMES: Readonly<Record<Quality, MessageKey>> = {
   auto: 'qualityAuto',
@@ -145,6 +157,15 @@ export function SettingsDialog({
         </label>
         <LanguageSwitch />
         <h3>{t('displaySection')}</h3>
+        <Choice
+          label={t('seeThrough')}
+          value={settings.seeThrough}
+          options={SEE_THROUGH.map((choice) => ({
+            value: choice,
+            label: t(SEE_THROUGH_NAMES[choice]),
+          }))}
+          onChange={(seeThrough) => set({ seeThrough })}
+        />
         <Slider
           label={t('hudScale', { value: settings.hudScale.toFixed(1) })}
           value={settings.hudScale}

@@ -2,7 +2,7 @@ import { ITEMS, RARITIES } from '../core/rewards'
 import { WORLD_IDS } from '../core/worlds'
 import { number, t, worldName } from '../i18n'
 import type { Save } from '../persistence/save'
-import { downloadFile } from './download'
+import { downloadFile, stamp } from './download'
 import { DISPLAY_FONT, TEXT_FONT } from './fonts'
 import { WEB_URL } from './links'
 import { isApp, shareInApp } from './native'
@@ -182,7 +182,7 @@ export async function shareCollection(
   const text = t('shareText', numbers)
   const title = t('shareTitle')
   const blob = await collectionPicture(save, thumbnail)
-  const name = 'wormhole-surfing-collection.png'
+  const name = `wormhole-surfing-collection-${stamp()}.png`
   // Android's WebView has no share sheet of its own: the app hands the picture to Android's.
   if (isApp()) {
     try {

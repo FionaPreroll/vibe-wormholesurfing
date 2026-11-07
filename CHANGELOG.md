@@ -39,6 +39,8 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 - The mouse pointer goes while you play with a controller or the keys, and when the mouse rests a moment in a ride or a world; it comes back as soon as the mouse moves.
 - A debug setting shows the hitboxes in rides: the circles the ship, orbs, sparks and warp holes are tested with, and the edge of the field the ship stays in.
 - The arrow keys move through the menus and dialogs as the D-pad does: up and down from row to row, left and right along a row and through lists. Sliders keep left and right for themselves.
+- A setting for the see-through ship in rides: automatic (see-through at High and Ultra), on or off.
+- Exported files carry the date and the time to the second in their names, so exports of one day no longer pile up under the same name.
 - Make the HUD smaller or larger, from a fifth of its size to four times, and the menus, dialogs and the treasure card from half to twice their size, under Display in the settings. Each panel of the HUD grows from its own corner.
 - Invert the camera's up and down, for the stick, the keys, the mouse and fingers alike, apart from inverting the ship's.
 - The game names the buttons as your controller prints them: ✕ ○ □ △, L1 and R2 on a PlayStation controller, the swapped letters of a Nintendo one, and the letters of others. Keys are named as your keyboard's layout prints them, where the browser tells. The hints in a ride and in a world, and the help, name the keys and buttons as you bound them.
@@ -54,7 +56,8 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 ### Fixed
 
 - The Android app no longer closes when you export the debug log. While Android's save dialog was open, the whole log went into the app's saved state, which Android limits to about a megabyte; now the file waits in the app's cache until you have chosen where it goes.
-- Rides run more smoothly on phones: the cockpit was drawn again for every frame, whether its numbers had changed or not. It now changes only when a number or the gauge it shows does, and the light-years count at most twenty times a second.
+- Rides run more smoothly on phones: the cockpit was drawn again for every frame, whether its numbers had changed or not. It now changes only when a number or the gauge it shows does, and the light-years count at most twenty times a second. Below high quality the cockpit's digits and gauge also do without their glow, and the gauge no longer animates between its values, which had it painted again every frame anyway.
+- At medium and low quality, as phones use, the ship is whole in rides by default: being see-through cost a fifth more of a phone's drawing.
 - On phones, the title screen runs as smoothly as a ride. Its logo's moving colors had the browser paint the logo, with its glows, again for every frame, and a darkening layer over the whole page cost a blend of the whole screen every frame. Below high quality the logo now holds its colors still, and the darkening is part of the 3D picture.
 - On screens that show more frames a second than the ride steps, as 144 Hz monitors do, the ship, the girl and everything flying toward them no longer judder on the title screen and in rides: the ride steps 120 times a second, so every sixth frame nothing moved. What a frame comes before the next step is now drawn ahead.
 - Buttons and other controls light up again when a controller moves the focus, also after a click with the mouse; a click hides the highlight until a controller or a key moves the focus again.

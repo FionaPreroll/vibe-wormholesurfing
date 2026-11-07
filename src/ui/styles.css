@@ -1438,7 +1438,6 @@ select {
   stroke-width: 8;
   stroke-linecap: round;
   filter: drop-shadow(0 0 4px rgba(255, 209, 102, 0.8));
-  transition: stroke-dasharray 0.12s linear;
 }
 
 .gauge-pull {
@@ -1866,4 +1865,10 @@ button.round svg {
    paint it, with its three glows, again for every frame. */
 :root[data-glass="flat"] .logo span {
   animation: none;
+}
+
+/* Below high quality the cockpit's digits and gauge do without their glow: a filter is worked out
+   again whenever a digit changes, which phones felt in every ride. */
+:root[data-glass="flat"] :is(.lcd, .gauge-fill, .gauge-pull) {
+  filter: none;
 }

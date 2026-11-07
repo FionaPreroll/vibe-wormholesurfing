@@ -9,6 +9,10 @@ import {
 export const QUALITIES = ['auto', 'low', 'medium', 'high', 'ultra'] as const
 export type Quality = (typeof QUALITIES)[number]
 
+/** Whether the ship is see-through in rides: automatic is at high and ultra quality only. */
+export const SEE_THROUGH = ['auto', 'on', 'off'] as const
+export type SeeThrough = (typeof SEE_THROUGH)[number]
+
 /** What players can change, kept with their save. */
 export interface Settings {
   /** Volumes from 0 to 1. */
@@ -31,6 +35,8 @@ export interface Settings {
   readonly sticks: StickSettings
   /** Which keys and controller buttons do what. */
   readonly bindings: Bindings
+  /** The ship and the girl see-through in rides, so the way ahead shows. */
+  readonly seeThrough: SeeThrough
   /** How large the HUD draws, 0.2 to 4 times. */
   readonly hudScale: number
   /** How large dialogs and the treasure card draw, 0.5 to 2 times. */
@@ -63,6 +69,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lookSpeed: 1,
   sticks: DEFAULT_STICKS,
   bindings: DEFAULT_BINDINGS,
+  seeThrough: 'auto',
   hudScale: 1,
   menuScale: 1,
   reducedMotion: prefersLessMotion(),

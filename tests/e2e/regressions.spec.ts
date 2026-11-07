@@ -242,3 +242,42 @@ test('below high quality the title screen paints nothing again from frame to fra
   expect(events.filter((event) => event.name === 'Paint').length).toBeLessThanOrEqual(2)
   await cdp.detach()
 })
+
+// On a phone a ride stayed below 50 frames a second: the see-through ship's depth pass cost a
+// fifth more draw calls, and the cockpit's gauge, animated on every change, was painted again
+// with its glow every frame.
+test('below high quality the ship is whole in a ride unless asked, and the cockpit holds still', async ({
+  page,
+}) => {
+  test.setTimeout(120_000)
+  await openGame(page, 'medium')
+  const depthPasses = () =>
+    page.evaluate(() => {
+      let shown = 0
+      const stage = (
+        window as unknown as {
+          wormhole: { director: { stage: { scene: { traverse(f: (o: unknown) => void): void } } } }
+        }
+      ).wormhole.director.stage
+      stage.scene.traverse((object) => {
+        const mesh = object as { name: string; visible: boolean }
+        if (mesh.name === 'ghost-depth' && mesh.visible) shown++
+      })
+      return shown
+    })
+  await page.getByRole('button', { name: 'Fly!' }).click()
+  await dismissHint(page)
+  await stageShows(page, 'ride')
+  await expect.poll(depthPasses).toBe(0)
+  const gauge = page.locator('.gauge-fill')
+  expect(await gauge.evaluate((element) => getComputedStyle(element).transitionDuration)).toBe('0s')
+  expect(await gauge.evaluate((element) => getComputedStyle(element).filter)).toBe('none')
+
+  // Asked for, the ship turns see-through.
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await page.getByLabel('See-through ship in rides').selectOption('on')
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: 'Resume' }).click()
+  await expect.poll(depthPasses).toBeGreaterThan(10)
+})

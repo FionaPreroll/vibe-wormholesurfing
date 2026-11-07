@@ -3,14 +3,9 @@ import type { DebugReport } from '../game/debugLog'
 import { dateTime, t } from '../i18n'
 import type { StoredLog } from '../persistence/logs'
 import { exportSave, importSave, type Save } from '../persistence/save'
-import { downloadFile } from './download'
+import { downloadFile, stamp } from './download'
 import { FileButton } from './FileButton'
 import { issueUrl, mailUrl } from './report'
-
-/** The date for file names, as 2026-11-06. */
-function today(): string {
-  return new Date().toISOString().slice(0, 10)
-}
 
 interface SaveToolsProps {
   readonly save: Save
@@ -25,7 +20,7 @@ export function SaveTools({ save, onImport }: SaveToolsProps) {
       <div class="tool-buttons">
         <button
           type="button"
-          onClick={() => downloadFile(`wormhole-surfing-save-${today()}.json`, exportSave(save))}
+          onClick={() => downloadFile(`wormhole-surfing-save-${stamp()}.json`, exportSave(save))}
         >
           {t('exportSave')}
         </button>
@@ -78,8 +73,8 @@ export function sessionLength(log: StoredLog): string {
 export function DebugTools({ report, summary, saved, session }: DebugToolsProps) {
   const [copied, setCopied] = useState(false)
   const [reported, setReported] = useState(false)
-  const save = (current: DebugReport, date = today()) =>
-    downloadFile(`wormhole-surfing-debug-${date}.json`, asFile(current))
+  const save = (current: DebugReport, when = stamp()) =>
+    downloadFile(`wormhole-surfing-debug-${when}.json`, asFile(current))
   return (
     <div class="tools">
       <p class="note">{summary}</p>
@@ -146,7 +141,7 @@ export function DebugTools({ report, summary, saved, session }: DebugToolsProps)
                 <button
                   type="button"
                   class="small"
-                  onClick={() => save(log.report, log.id.slice(0, 10))}
+                  onClick={() => save(log.report, stamp(new Date(log.report.openedAt)))}
                 >
                   {t('exportLog')}
                 </button>

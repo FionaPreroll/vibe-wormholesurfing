@@ -27,3 +27,15 @@ export function downloadFile(name: string, content: string | Blob): void {
 export function fileName(title: string): string {
   return title.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '') || 'vibe-wormholesurfing'
 }
+
+/**
+ * The local date and time to the second for file names, as 2026-11-07_04-06-27: each export
+ * gets a name of its own, and no colons, which Windows does not allow in names.
+ */
+export function stamp(date = new Date()): string {
+  const two = (value: number) => String(value).padStart(2, '0')
+  return (
+    `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}_` +
+    `${two(date.getHours())}-${two(date.getMinutes())}-${two(date.getSeconds())}`
+  )
+}

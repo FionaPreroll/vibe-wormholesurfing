@@ -2,7 +2,7 @@ import { z } from 'zod'
 import type { HoleTier } from '../core/holes'
 import type { Reward } from '../core/rewards'
 import type { WorldId } from '../core/worlds'
-import { DEFAULT_SETTINGS, QUALITIES, type Settings } from '../game/settings'
+import { DEFAULT_SETTINGS, QUALITIES, SEE_THROUGH, type Settings } from '../game/settings'
 import { ACTIONS, type Action, KEY_SLOTS, PAD_SLOTS } from '../input/bindings'
 import { DEAD_ZONE_SHAPES } from '../input/stick'
 import { SaveQueue } from './queue'
@@ -61,6 +61,7 @@ const settingsSchema = z.object({
   lookSpeed: z.number().min(0.3).max(2.5).catch(DEFAULT_SETTINGS.lookSpeed),
   sticks: sticksSchema,
   bindings: bindingsSchema,
+  seeThrough: z.enum(SEE_THROUGH).catch(DEFAULT_SETTINGS.seeThrough),
   hudScale: z.number().min(0.2).max(4).catch(DEFAULT_SETTINGS.hudScale),
   menuScale: z.number().min(0.5).max(2).catch(DEFAULT_SETTINGS.menuScale),
   reducedMotion: z.boolean().catch(DEFAULT_SETTINGS.reducedMotion),

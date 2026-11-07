@@ -46,6 +46,11 @@ const SPARK_COLOR = new THREE.Color(0.55, 0.75, 1.0)
 
 /** How much of the ship shows in a ride: enough to steer by, little enough to see ahead. */
 const SHIP_OPACITY = 0.62
+/**
+ * Where an automatic choice makes the ship see-through: its depth pass and blending cost a phone
+ * about a fifth of the draw calls of a ride (Settings → See-through ship).
+ */
+const SEE_THROUGH_LEVELS: ReadonlySet<string> = new Set(['high', 'ultra'])
 
 /**
  * The ride through the wormhole: the simulation from `src/core/ride.ts`, drawn as a swirling
@@ -295,7 +300,13 @@ export class RideStage implements Stage {
     group.rotation.y = -ship.vx * 0.012
     // In a ride the ship sits where the player looks ahead: it lets the way show through. The
     // title screen's camera circles it, and shows it whole.
-    this.#see = approach(this.#see, this.#options.demo ? 1 : SHIP_OPACITY, 3, dt)
+    const choice = settings.value.seeThrough
+    const seeThrough =
+      !this.#options.demo &&
+      (choice === 'on' || (choice === 'auto' && SEE_THROUGH_LEVELS.has(this.#options.level.name)))
+    this.#see = approach(this.#see, seeThrough ? SHIP_OPACITY : 1, 3, dt)
+    // Whole again: drawn as an opaque model, without the depth pass, as cheap as on the title.
+    if (!seeThrough && this.#see > 0.99) this.#see = 1
     this.#ghost.opacity = this.#see
     this.#hurt = Math.max(0, this.#hurt - dt * 1.6)
     const flicker = this.#hurt > 0 ? (Math.sin(this.#time * 60) > 0 ? this.#hurt : 0) : 0
