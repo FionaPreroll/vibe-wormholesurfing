@@ -1,5 +1,5 @@
 import { DISTANCE_CAP, type HoleColor, type HoleTier, rollHole } from './holes'
-import { clamp, clamp01, damp, length2 } from './math'
+import { approach, clamp, clamp01, damp, length2 } from './math'
 import { between, inDisc, type Random, seededRandom } from './random'
 
 /**
@@ -48,9 +48,20 @@ export const RIDE = {
   maxLateral: 13,
   response: 7.5,
   shipRadius: 0.85,
+  /**
+   * How far ahead of the ship's middle the tip of its nose is, as the model draws it
+   * (`src/view/models/ship.ts`). With the hitbox at the nose, things count as they touch it.
+   */
+  noseReach: 1.26,
+  /** How far the nose turns toward the sideways speed, in radians per unit per second. */
+  noseTurn: 0.012,
+  /** How far it tips toward the speed up and down, at most `maxTip`, and how fast it follows. */
+  noseTip: 0.025,
+  maxTip: 0.35,
+  tipResponse: 6,
   orbRadius: 0.8,
   sparkRadius: 0.75,
-  /** The share of a hole's radius that takes the ship: its middle must be inside it. */
+  /** The share of a hole's radius that takes the ship: its hitbox's middle must be inside it. */
   holeInside: 0.8,
   /**
    * Holes pull at the ship below `safeSpeed`, harder the slower it is. Below `captureSpeed` the
@@ -78,6 +89,17 @@ export interface Ship {
   y: number
   vx: number
   vy: number
+  /** Where the nose points, in radians: turned right (positive) toward the sideways speed. */
+  yaw: number
+  /** Tipped up (positive) toward the speed up and down, a little behind it. */
+  pitch: number
+}
+
+/** A point of the ride's space: x to the right, y up, z ahead of the ship's middle. */
+export interface Point {
+  readonly x: number
+  readonly y: number
+  readonly z: number
 }
 
 export interface Orb {
@@ -135,11 +157,31 @@ export interface RideOptions {
    * ride goes on for as long as it is shown.
    */
   readonly demo?: boolean
+  /** The ship's hitbox at the tip of its nose (the default), or else at its middle. */
+  readonly noseHitbox?: boolean
 }
 
 /** A hole's size grows with its tier. */
 export function holeRadius(tier: HoleTier): number {
   return 2.4 + tier * 0.3
+}
+
+/** The pitch the nose tips toward at a speed up and down. */
+export function pitchFor(vy: number): number {
+  return clamp(vy * RIDE.noseTip, -RIDE.maxTip, RIDE.maxTip)
+}
+
+/**
+ * Where the tip of the nose is from the ship's middle, turned by `yaw` and tipped by `pitch`,
+ * as the view turns the model.
+ */
+export function noseOffset(yaw: number, pitch: number): Point {
+  const along = RIDE.noseReach * Math.cos(pitch)
+  return {
+    x: along * Math.sin(yaw),
+    y: RIDE.noseReach * Math.sin(pitch),
+    z: along * Math.cos(yaw),
+  }
 }
 
 /** How hard holes pull at a speed: 0 when safe, 1 at the capture speed and below. */
@@ -154,7 +196,12 @@ export function pullAt(speed: number): number {
 export class Ride {
   readonly seed: number
   readonly demo: boolean
-  readonly ship: Ship = { x: 0, y: 0, vx: 0, vy: 0 }
+  readonly ship: Ship = { x: 0, y: 0, vx: 0, vy: 0, yaw: 0, pitch: 0 }
+  /**
+   * The ship's hitbox at the tip of its nose, where the player sees it touch things, or at its
+   * middle. A setting, so it may change during a ride.
+   */
+  noseHitbox: boolean
   readonly orbs: Orb[] = []
   readonly sparks: Spark[] = []
   readonly holes: Hole[] = []
@@ -186,9 +233,10 @@ export class Ride {
   #nextHole: number = RIDE.firstHole
   #events: RideEvent[] = []
 
-  constructor({ seed, demo = false }: RideOptions) {
+  constructor({ seed, demo = false, noseHitbox = true }: RideOptions) {
     this.seed = seed
     this.demo = demo
+    this.noseHitbox = noseHitbox
     this.#random = seededRandom(seed)
     if (demo) this.speed = 1.3
   }
@@ -201,6 +249,17 @@ export class Ride {
   /** How hard holes pull at the ship now, from 0 to 1. */
   get pull(): number {
     return this.demo ? 0 : pullAt(this.speed)
+  }
+
+  /**
+   * The middle of the ship's hitbox: the tip of its nose, which turns and tips as the ship moves,
+   * or the ship's middle. Orbs, sparks and holes count where they cross it.
+   */
+  get hitbox(): Point {
+    const ship = this.ship
+    if (!this.noseHitbox) return { x: ship.x, y: ship.y, z: 0 }
+    const nose = noseOffset(ship.yaw, ship.pitch)
+    return { x: ship.x + nose.x, y: ship.y + nose.y, z: nose.z }
   }
 
   /** Where the ride led, once the ship has entered a hole. */
@@ -239,11 +298,13 @@ export class Ride {
     this.time += dt
     if (this.phase === 'warping') {
       this.#warpStep(dt)
+      this.#aimShip(dt)
       return
     }
 
     this.#updateSpeed(dt)
     this.#steerShip(steer, dt)
+    this.#aimShip(dt)
     this.#moveWorld(dt)
     this.#collide()
     if (this.phase !== 'riding') return
@@ -279,8 +340,8 @@ export class Ride {
     const hole = this.captured
     if (hole) {
       // In a hole's grip the controls do nothing: the ship falls toward the middle of the hole,
-      // arriving there as the hole reaches it.
-      const timeLeft = Math.max(0.12, hole.z / Math.max(1, this.forward))
+      // arriving there as the hole reaches its hitbox.
+      const timeLeft = Math.max(0.12, (hole.z - this.hitbox.z) / Math.max(1, this.forward))
       const wantX = (hole.x - ship.x) / timeLeft
       const wantY = (hole.y - ship.y) / timeLeft
       const grip = damp(9, dt)
@@ -320,6 +381,13 @@ export class Ride {
     }
   }
 
+  /** The nose turns toward the sideways speed at once, and tips up and down a little behind. */
+  #aimShip(dt: number): void {
+    const ship = this.ship
+    ship.yaw = ship.vx * RIDE.noseTurn
+    ship.pitch = approach(ship.pitch, pitchFor(ship.vy), RIDE.tipResponse, dt)
+  }
+
   #moveWorld(dt: number): void {
     const travel = this.forward * dt
     this.distance += this.speed * RIDE.lightYearsPerSpeed * dt
@@ -338,13 +406,13 @@ export class Ride {
   }
 
   #collide(): void {
-    const ship = this.ship
+    const hit = this.hitbox
     const travel = this.forward * RIDE.step
     // Things move several units per step at speed, so each test covers the whole step's path.
-    const crossed = (z: number, reach: number) => z <= reach && z + travel >= -reach
+    const crossed = (z: number, reach: number) => z - hit.z <= reach && z - hit.z + travel >= -reach
     for (const orb of this.orbs) {
       if (orb.taken || !crossed(orb.z, RIDE.orbRadius)) continue
-      if (length2(orb.x - ship.x, orb.y - ship.y) > RIDE.shipRadius + RIDE.orbRadius) continue
+      if (length2(orb.x - hit.x, orb.y - hit.y) > RIDE.shipRadius + RIDE.orbRadius) continue
       orb.taken = true
       this.orbsTaken++
       this.combo = Math.min(RIDE.maxCombo, this.combo + 1)
@@ -357,7 +425,7 @@ export class Ride {
     }
     for (const spark of this.sparks) {
       if (spark.hit || this.shield > 0 || !crossed(spark.z, RIDE.sparkRadius)) continue
-      if (length2(spark.x - ship.x, spark.y - ship.y) > RIDE.shipRadius + RIDE.sparkRadius) continue
+      if (length2(spark.x - hit.x, spark.y - hit.y) > RIDE.shipRadius + RIDE.sparkRadius) continue
       spark.hit = true
       this.sparksHit++
       this.stun = RIDE.stunTime
@@ -368,21 +436,23 @@ export class Ride {
     }
     if (this.demo) return
     for (const hole of this.holes) {
-      if (hole.z > 0 || hole.z + travel < 0) continue
-      const inside = length2(hole.x - ship.x, hole.y - ship.y) < hole.radius * RIDE.holeInside
+      const z = hole.z - hit.z
+      if (z > 0 || z + travel < 0) continue
+      const inside = length2(hole.x - hit.x, hole.y - hit.y) < hole.radius * RIDE.holeInside
       if (inside || hole === this.captured) {
-        this.#enter(hole)
+        this.#enter(hole, hit.z)
         return
       }
     }
   }
 
-  #enter(hole: Hole): void {
+  /** Into `hole`, which stops where it met the hitbox, `z` ahead of the ship's middle. */
+  #enter(hole: Hole, z: number): void {
     this.phase = 'warping'
     this.entered = hole
     this.captured = undefined
     this.warp = 0
-    hole.z = 0
+    hole.z = z
     this.#emit({ type: 'enter', hole })
   }
 
@@ -557,20 +627,21 @@ export interface AutopilotOptions {
  * fly real rides.
  */
 export function autopilot(ride: Ride, { avoidHoles = true, seek }: AutopilotOptions = {}): Steer {
-  const ship = ride.ship
+  // It steers what meets things: the ship's hitbox, and distances ahead are counted from there.
+  const ship = ride.hitbox
   const forward = Math.max(1, ride.forward)
   let wantX = 0
   let wantY = 0
-  if (seek && seek.z > 0) {
-    const time = Math.max(0.2, seek.z / forward)
+  if (seek && seek.z > ship.z) {
+    const time = Math.max(0.2, (seek.z - ship.z) / forward)
     wantX = (seek.x - ship.x) / time
     wantY = (seek.y - ship.y) / time
   } else {
     let best: Orb | undefined
     let bestScore = Number.POSITIVE_INFINITY
     for (const orb of ride.orbs) {
-      if (orb.taken || orb.z < 2 || orb.z > 160) continue
-      const time = orb.z / forward
+      if (orb.taken || orb.z - ship.z < 2 || orb.z > 160) continue
+      const time = (orb.z - ship.z) / forward
       const reach = length2(orb.x - ship.x, orb.y - ship.y) / (RIDE.maxLateral * 0.8)
       if (reach > time) continue
       const score = orb.z + reach * 30
@@ -580,15 +651,16 @@ export function autopilot(ride: Ride, { avoidHoles = true, seek }: AutopilotOpti
       }
     }
     if (best) {
-      const time = Math.max(0.15, best.z / forward)
+      const time = Math.max(0.15, (best.z - ship.z) / forward)
       wantX = (best.x - ship.x) / time
       wantY = (best.y - ship.y) / time
     } else {
-      wantX = -ship.x * 0.5
-      wantY = -ship.y * 0.5
+      wantX = -ride.ship.x * 0.5
+      wantY = -ride.ship.y * 0.5
     }
   }
-  const dodge = (x: number, y: number, z: number, room: number, push: number) => {
+  const dodge = (x: number, y: number, ahead: number, room: number, push: number) => {
+    const z = ahead - ship.z
     if (z < -1 || z > 70) return
     const dx = ship.x - x
     const dy = ship.y - y

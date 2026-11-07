@@ -56,6 +56,7 @@ const settingsSchema = z.object({
   gyro: z.boolean().catch(DEFAULT_SETTINGS.gyro),
   gyroRange: z.number().min(8).max(45).catch(DEFAULT_SETTINGS.gyroRange),
   invertY: z.boolean().catch(DEFAULT_SETTINGS.invertY),
+  noseHitbox: z.boolean().catch(DEFAULT_SETTINGS.noseHitbox),
   invertLookY: z.boolean().catch(DEFAULT_SETTINGS.invertLookY),
   mouseSteer: z.boolean().catch(DEFAULT_SETTINGS.mouseSteer),
   lookSpeed: z.number().min(0.3).max(2.5).catch(DEFAULT_SETTINGS.lookSpeed),

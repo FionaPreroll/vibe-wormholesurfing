@@ -207,6 +207,11 @@ export function SettingsDialog({
           onChange={(invertY) => set({ invertY })}
         />
         <Toggle
+          label={t('noseHitbox')}
+          checked={settings.noseHitbox}
+          onChange={(noseHitbox) => set({ noseHitbox })}
+        />
+        <Toggle
           label={t('invertLookY')}
           checked={settings.invertLookY}
           onChange={(invertLookY) => set({ invertLookY })}
