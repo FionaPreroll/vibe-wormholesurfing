@@ -13,7 +13,9 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
@@ -27,10 +29,26 @@ public class FilesPlugin extends Plugin {
     /** The largest file the game hands over: a save or a log is far smaller. */
     private static final int MAX_BYTES = 32 * 1024 * 1024;
 
+    /** The cache folder where files wait while the player chooses where to save them. */
+    private static final String OUTGOING = "outgoing";
+
     @PluginMethod
     public void save(PluginCall call) {
         byte[] bytes = bytesOf(call);
         if (bytes == null) return;
+        File staged;
+        try {
+            staged = stage(call.getCallbackId(), bytes);
+        } catch (Exception error) {
+            call.reject("Could not keep the file", error);
+            return;
+        }
+        // Capacitor keeps the data of a call that opens another screen, twice, in the state Android
+        // saves for the app when that screen covers it; Android allows that state about a
+        // megabyte and stops the app beyond it, as a debug log's bytes made it do. The bytes wait
+        // in a file instead, and the call keeps only that file's name.
+        call.getData().remove("data");
+        call.getData().put("staged", staged.getName());
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType(call.getString("mime", "application/octet-stream"));
@@ -41,24 +59,60 @@ public class FilesPlugin extends Plugin {
     @ActivityCallback
     private void saved(PluginCall call, ActivityResult result) {
         if (call == null) return;
-        JSObject answer = new JSObject();
-        Intent data = result.getData();
-        if (result.getResultCode() != Activity.RESULT_OK || data == null || data.getData() == null) {
-            answer.put("saved", false);
+        File staged = stagedFile(call);
+        try {
+            JSObject answer = new JSObject();
+            Intent data = result.getData();
+            if (result.getResultCode() != Activity.RESULT_OK || data == null || data.getData() == null) {
+                answer.put("saved", false);
+                call.resolve(answer);
+                return;
+            }
+            if (staged == null || !staged.isFile()) {
+                call.reject("The file to save is gone");
+                return;
+            }
+            try (
+                InputStream in = new FileInputStream(staged);
+                OutputStream out = getContext().getContentResolver().openOutputStream(data.getData())
+            ) {
+                if (out == null) throw new IllegalStateException("No file to write to");
+                byte[] buffer = new byte[64 * 1024];
+                int read;
+                while ((read = in.read(buffer)) != -1) out.write(buffer, 0, read);
+            } catch (Exception error) {
+                call.reject("Could not write the file", error);
+                return;
+            }
+            answer.put("saved", true);
             call.resolve(answer);
-            return;
+        } finally {
+            if (staged != null && staged.exists() && !staged.delete()) staged.deleteOnExit();
         }
-        byte[] bytes = bytesOf(call);
-        if (bytes == null) return;
-        try (OutputStream out = getContext().getContentResolver().openOutputStream(data.getData())) {
-            if (out == null) throw new IllegalStateException("No file to write to");
+    }
+
+    /**
+     * Keeps a file's bytes in the app's cache until the player has chosen where it goes. Files
+     * left over from a save that never finished, as when the app was closed meanwhile, go.
+     */
+    private File stage(String id, byte[] bytes) throws Exception {
+        File folder = new File(getContext().getCacheDir(), OUTGOING);
+        if (!folder.isDirectory() && !folder.mkdirs()) throw new IllegalStateException("No folder");
+        File[] old = folder.listFiles();
+        long dayAgo = System.currentTimeMillis() - 24L * 60 * 60 * 1000;
+        if (old != null) for (File file : old) if (file.lastModified() < dayAgo) file.delete();
+        File file = new File(folder, "file-" + id.replaceAll("[^A-Za-z0-9]", ""));
+        try (FileOutputStream out = new FileOutputStream(file)) {
             out.write(bytes);
-        } catch (Exception error) {
-            call.reject("Could not write the file", error);
-            return;
         }
-        answer.put("saved", true);
-        call.resolve(answer);
+        return file;
+    }
+
+    /** The file a save keeps its bytes in, or null. */
+    private File stagedFile(PluginCall call) {
+        String name = call.getString("staged");
+        if (name == null) return null;
+        return new File(new File(getContext().getCacheDir(), OUTGOING), new File(name).getName());
     }
 
     @PluginMethod

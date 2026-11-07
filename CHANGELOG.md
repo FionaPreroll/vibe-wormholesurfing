@@ -53,6 +53,7 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 
 ### Fixed
 
+- The Android app no longer closes when you export the debug log. While Android's save dialog was open, the whole log went into the app's saved state, which Android limits to about a megabyte; now the file waits in the app's cache until you have chosen where it goes.
 - On phones, the title screen runs as smoothly as a ride. Its logo's moving colors had the browser paint the logo, with its glows, again for every frame, and a darkening layer over the whole page cost a blend of the whole screen every frame. Below high quality the logo now holds its colors still, and the darkening is part of the 3D picture.
 - On screens that show more frames a second than the ride steps, as 144 Hz monitors do, the ship, the girl and everything flying toward them no longer judder on the title screen and in rides: the ride steps 120 times a second, so every sixth frame nothing moved. What a frame comes before the next step is now drawn ahead.
 - Buttons and other controls light up again when a controller moves the focus, also after a click with the mouse; a click hides the highlight until a controller or a key moves the focus again.
