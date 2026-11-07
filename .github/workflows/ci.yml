@@ -1,7 +1,8 @@
 name: CI
 
 # The checks and the Android build run side by side; from main, the web version goes live and the
-# APK is released only once all of them have passed.
+# APK is released only once all of them have passed. The browser tests take most of the time, so
+# they run in shards, each on a runner of its own, beside the quick checks.
 on:
   pull_request:
   push:
@@ -14,7 +15,8 @@ permissions:
   id-token: write
 
 jobs:
-  check:
+  # Types, lint and the unit tests: done within a minute, so a mistake there shows at once.
+  static:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -28,7 +30,7 @@ jobs:
       - run: pnpm exec biome ci
       - run: pnpm test:coverage
       # Two reports go to Codecov, each with its flag: the unit tests (here) and the browser
-      # tests (below).
+      # tests (in every shard below; Codecov merges the uploads of a commit).
       - uses: codecov/codecov-action@v5
         with:
           use_oidc: true
@@ -36,12 +38,32 @@ jobs:
           flags: unit
           # Only the files named: a search would add the other report to this flag.
           disable_search: true
+
+  # The browser tests in shards, each on a runner of its own: two tests at once on one runner
+  # starve each other, as each draws 3D in software. Playwright splits them by their number,
+  # test by test (`fullyParallel` in playwright.config.ts).
+  e2e:
+    name: e2e (${{ matrix.shard }}/${{ strategy.job-total }})
+    runs-on: ubuntu-latest
+    strategy:
+      # Every shard reports its failures, not only the first to fail.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       # With source maps and coverage: see tests/e2e/coverage.ts.
       - run: pnpm build
         env:
           COVERAGE: "1"
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm exec playwright test
+      - run: pnpm exec playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }}
         env:
           COVERAGE: "1"
       - uses: codecov/codecov-action@v5
@@ -53,9 +75,22 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: playwright-report
           retention-days: 7
+
+  # One result for all the checks, under the name the ruleset for main requires and the jobs
+  # below wait for. It runs even when one failed, so a failure turns it red, not skipped.
+  check:
+    if: always()
+    needs: [static, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every check passed
+        run: |
+          echo "static: ${{ needs.static.result }}, e2e: ${{ needs.e2e.result }}"
+          test "${{ needs.static.result }}" = success
+          test "${{ needs.e2e.result }}" = success
 
   # The Android APK, built beside the checks (android.yml).
   apk:
