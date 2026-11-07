@@ -1,0 +1,6 @@
+# Every issue starts from a form; the game's own report opens the bug form filled in.
+blank_issues_enabled: false
+contact_links:
+  - name: Play Wormhole Surfing
+    url: https://fionapreroll.github.io/vibe-wormholesurfing/
+    about: The game in the browser. Settings → Report a problem on GitHub fills in a bug report for you.

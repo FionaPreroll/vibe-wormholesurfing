@@ -1,0 +1,36 @@
+name: Feature idea
+description: Something the game could do, or do better.
+title: "Idea: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: The idea, as you would tell a friend.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: What would it make better?
+      description: When you would use it, and what it would give you, or what bothers you now.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of the game?
+      multiple: true
+      options:
+        - The ride
+        - Worlds and treasures
+        - The collection
+        - Controls
+        - Settings and menus
+        - Sound and music
+        - The Android app
+        - Something else
+  - type: textarea
+    id: looks
+    attributes:
+      label: How could it look or work?
+      description: A sketch, a picture or a game that does something like it, if you have one in mind.
