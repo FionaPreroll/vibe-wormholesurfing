@@ -1,0 +1,75 @@
+name: Desktop app
+
+# Builds the desktop app (Electron, desktop/main.cts) for Windows, macOS and Linux, each on its
+# own system, starts what it built with the smoke test (tests/desktop/), and keeps the installers
+# and archives as the run's artifacts, desktop-windows, desktop-macos and desktop-linux. CI
+# (ci.yml) calls it on every push to main and every pull request, beside its checks; from main,
+# CI's desktop-release job publishes them once every other job has passed, to the release
+# "Wormhole Surfing for desktop" (tag desktop-latest), and its itch job pushes them to itch.io
+# once that is set up.
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.system }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      # Every system reports its own failures, not only the first to fail.
+      fail-fast: false
+      matrix:
+        include:
+          - system: windows
+            runner: windows-latest
+          - system: macos
+            runner: macos-latest
+          - system: linux
+            runner: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build and pack
+        run: pnpm desktop:dist
+        env:
+          # The build number is CI's run number, as the APK's: electron-builder makes it the
+          # version's fourth part on Windows and the bundle version on macOS.
+          BUILD_NUMBER: ${{ github.run_number }}
+          # The app is not signed with a certificate (electron-builder.yml): none is looked for.
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - name: Smoke test, without a screen
+        if: runner.os == 'Linux'
+        run: |
+          command -v xvfb-run > /dev/null || sudo apt-get install -y xvfb
+          xvfb-run -a pnpm exec playwright test -c playwright.desktop.config.ts
+      - name: Smoke test
+        if: runner.os != 'Linux'
+        run: pnpm exec playwright test -c playwright.desktop.config.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.system }}
+          # The installers and archives, and what an updater would read: no unpacked folders.
+          path: |
+            desktop/release/*.exe
+            desktop/release/*.zip
+            desktop/release/*.dmg
+            desktop/release/*.AppImage
+            desktop/release/*.tar.gz
+            desktop/release/*.blockmap
+            desktop/release/latest*.yml
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: desktop-test-results-${{ matrix.system }}
+          path: test-results/desktop
+          retention-days: 7

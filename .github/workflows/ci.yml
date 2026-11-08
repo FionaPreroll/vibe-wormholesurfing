@@ -83,14 +83,20 @@ jobs:
   # below wait for. It runs even when one failed, so a failure turns it red, not skipped.
   check:
     if: always()
-    needs: [static, e2e]
+    needs: [static, e2e, desktop]
     runs-on: ubuntu-latest
     steps:
       - name: Every check passed
         run: |
-          echo "static: ${{ needs.static.result }}, e2e: ${{ needs.e2e.result }}"
+          echo "static: ${{ needs.static.result }}, e2e: ${{ needs.e2e.result }}, desktop: ${{ needs.desktop.result }}"
           test "${{ needs.static.result }}" = success
           test "${{ needs.e2e.result }}" = success
+          test "${{ needs.desktop.result }}" = success
+
+  # The desktop app for Windows, macOS and Linux, each built and smoke-tested on its own system
+  # (desktop.yml).
+  desktop:
+    uses: ./.github/workflows/desktop.yml
 
   # The Android APK, built beside the checks (android.yml).
   apk:
@@ -164,3 +170,105 @@ jobs:
           else
             gh release create "$TAG" wormhole-surfing.apk version.json --title "Wormhole Surfing for Android" --notes-file notes.md --latest
           fi
+
+  # The desktop app's installers and archives go to their own release from main, once every other
+  # job has passed. It is never marked latest: the APK's link names the latest release.
+  desktop-release:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: [check, apk]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: desktop-release
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: desktop-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          merge-multiple: true
+          path: release
+      - name: Skip if main has moved on
+        id: current
+        run: |
+          head=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [ "$head" != "$GITHUB_SHA" ]; then
+            echo "::notice::main is at $head now; its own run publishes that build instead."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish the release
+        if: steps.current.outputs.publish == 'true'
+        run: |
+          ls -l release
+          link="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
+          cat > notes.md <<NOTES
+          The newest build of Wormhole Surfing for Windows, macOS and Linux, from commit ${GITHUB_SHA::7} (build ${GITHUB_RUN_NUMBER}). This release is replaced with every change to \`main\`.
+
+          **Windows:** [the installer](${link}/wormhole-surfing-win-x64.exe), or [a zip](${link}/wormhole-surfing-win-x64.zip) to unpack anywhere. **macOS:** [for Apple silicon](${link}/wormhole-surfing-mac-arm64.dmg) or [for Intel](${link}/wormhole-surfing-mac-x64.dmg). **Linux:** [an AppImage](${link}/wormhole-surfing-linux-x86_64.AppImage) to make executable and start, or [a .tar.gz](${link}/wormhole-surfing-linux-x64.tar.gz).
+
+          **The app is not signed** with a certificate from Microsoft or Apple. On Windows, SmartScreen warns of an unknown publisher: choose More info, then Run anyway. On macOS, open the app once, then allow it under System Settings → Privacy & Security → Open Anyway. Your treasures and settings stay where they are when you install a newer build.
+          NOTES
+          # The tag follows main: it always names the commit of the builds in the release.
+          git tag -f "$TAG" "$GITHUB_SHA"
+          git push -f origin "refs/tags/$TAG"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" release/* --clobber
+            gh release edit "$TAG" --title "Wormhole Surfing for desktop" --notes-file notes.md --latest=false
+          else
+            gh release create "$TAG" release/* --title "Wormhole Surfing for desktop" --notes-file notes.md --latest=false
+          fi
+
+  # The desktop builds go to itch.io too, from main, once it is set up: the repository secret
+  # BUTLER_API_KEY (an API key from itch.io's settings) and the repository variable ITCH_GAME (the
+  # game's page, as user/game). Until both are set, this job says so and pushes nothing.
+  itch:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: [check, apk]
+    runs-on: ubuntu-latest
+    concurrency:
+      group: itch
+      cancel-in-progress: false
+    env:
+      BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+      ITCH_GAME: ${{ vars.ITCH_GAME }}
+    steps:
+      - name: Skip until itch.io is set up
+        id: setup
+        run: |
+          if [ -z "$BUTLER_API_KEY" ] || [ -z "$ITCH_GAME" ]; then
+            echo "::notice::itch.io is not set up (secret BUTLER_API_KEY, variable ITCH_GAME): nothing pushed."
+            echo "push=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "push=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v5
+        if: steps.setup.outputs.push == 'true'
+      - uses: actions/download-artifact@v4
+        if: steps.setup.outputs.push == 'true'
+        with:
+          pattern: desktop-*
+          merge-multiple: true
+          path: release
+      - name: Push to itch.io
+        if: steps.setup.outputs.push == 'true'
+        run: |
+          curl -sSfL -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip -d butler
+          chmod +x butler/butler
+          version="$(node -p "require('./package.json').version").${GITHUB_RUN_NUMBER}"
+          # One channel a system, each from the unpacked archive; itch.io's app tells the systems
+          # apart by the channels' names.
+          mkdir -p itch/windows itch/osx-arm64 itch/osx-x64 itch/linux
+          unzip -q release/wormhole-surfing-win-x64.zip -d itch/windows
+          unzip -q release/wormhole-surfing-mac-arm64.zip -d itch/osx-arm64
+          unzip -q release/wormhole-surfing-mac-x64.zip -d itch/osx-x64
+          tar -xzf release/wormhole-surfing-linux-x64.tar.gz -C itch/linux
+          for channel in windows osx-arm64 osx-x64 linux; do
+            butler/butler push "itch/$channel" "$ITCH_GAME:$channel" --userversion "$version"
+          done

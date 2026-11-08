@@ -3,7 +3,8 @@
 appId: io.github.fionapreroll.wormholesurfing
 productName: Wormhole Surfing
 executableName: wormhole-surfing
-artifactName: wormhole-surfing-${version}-${os}-${arch}.${ext}
+# Without the version, so the release's download links never change, as the APK's do not.
+artifactName: wormhole-surfing-${os}-${arch}.${ext}
 directories:
   output: desktop/release
   # icon.png, rendered by `pnpm icons`; electron-builder makes the .icns and .ico from it.
@@ -22,7 +23,11 @@ extraMetadata:
 mac:
   category: public.app-category.games
   # Not signed with a Developer ID, so not notarized: macOS asks the player to allow it once.
-  identity: null
+  # Signed ad hoc ("-") instead: Apple silicon runs nothing unsigned, and an app whose signature
+  # broke when it was packed is called damaged, with no way to allow it. The hardened runtime is
+  # for notarized apps; with an ad-hoc signature it would keep Electron's libraries from loading.
+  identity: "-"
+  hardenedRuntime: false
   target:
     - target: dmg
       arch: [arm64, x64]
