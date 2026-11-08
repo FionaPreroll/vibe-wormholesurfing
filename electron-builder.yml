@@ -1,0 +1,48 @@
+# The desktop app for Windows, macOS and Linux (desktop/main.ts): `pnpm desktop:dist` packs it for
+# the system it runs on, `pnpm desktop:pack` only unpacked, into desktop/release/.
+appId: io.github.fionapreroll.wormholesurfing
+productName: Wormhole Surfing
+executableName: wormhole-surfing
+artifactName: wormhole-surfing-${version}-${os}-${arch}.${ext}
+directories:
+  output: desktop/release
+  # icon.png, rendered by `pnpm icons`; electron-builder makes the .icns and .ico from it.
+  buildResources: desktop/icons
+# The main process and the web build: the game is bundled, and the app needs none of the
+# packages it was built from.
+files:
+  - desktop/build/**
+  - dist/**
+  - package.json
+  - "!node_modules/**"
+npmRebuild: false
+# Only in the packed app's package.json: Electron names the window after it on Linux.
+extraMetadata:
+  desktopName: wormhole-surfing.desktop
+mac:
+  category: public.app-category.games
+  # Not signed with a Developer ID, so not notarized: macOS asks the player to allow it once.
+  identity: null
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: zip
+      arch: [x64]
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+linux:
+  category: Game
+  # The name of the .desktop entry, which the window carries as its WM_CLASS, so desktops show the
+  # running game under its launcher.
+  syncDesktopName: true
+  target:
+    - AppImage
+    - tar.gz

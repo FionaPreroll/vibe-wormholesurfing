@@ -64,25 +64,28 @@ pnpm dev
 
 ## Scripts
 
-| Script                         | What it does                                                                            |
-| ------------------------------ | --------------------------------------------------------------------------------------- |
-| `pnpm dev`                     | Development server with hot reload                                                      |
-| `pnpm build`                   | Production build into `dist/`                                                           |
-| `pnpm preview`                 | Serves `dist/` locally                                                                  |
-| `pnpm check`                   | Type check, lint and unit tests; run it before every push                               |
-| `pnpm typecheck`               | TypeScript for `src/core` (without DOM types), the app, and the config and test files   |
-| `pnpm lint`, `pnpm format`     | Biome: check lint and formatting, or fix both                                           |
-| `pnpm test`, `pnpm test:watch` | Vitest unit tests                                                                       |
-| `pnpm test:coverage`           | Unit tests with a coverage report in `coverage/`                                        |
-| `pnpm test:e2e`                | Builds, then runs the Playwright browser tests                                          |
-| `pnpm icons`                   | Renders the app icons in `public/icons/` from `public/favicon.svg` with Chromium        |
-| `pnpm screenshots`             | Builds, then takes the screenshots of the README and `docs/hitboxes.md` with Playwright |
+| Script                                   | What it does                                                                                                        |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `pnpm dev`                               | Development server with hot reload                                                                                  |
+| `pnpm build`                             | Production build into `dist/`                                                                                       |
+| `pnpm preview`                           | Serves `dist/` locally                                                                                              |
+| `pnpm check`                             | Type check, lint and unit tests; run it before every push                                                           |
+| `pnpm typecheck`                         | TypeScript for `src/core` (without DOM types), the app, and the config and test files                               |
+| `pnpm lint`, `pnpm format`               | Biome: check lint and formatting, or fix both                                                                       |
+| `pnpm test`, `pnpm test:watch`           | Vitest unit tests                                                                                                   |
+| `pnpm test:coverage`                     | Unit tests with a coverage report in `coverage/`                                                                    |
+| `pnpm test:e2e`                          | Builds, then runs the Playwright browser tests                                                                      |
+| `pnpm icons`                             | Renders the app icons in `public/icons/` from `public/favicon.svg` with Chromium                                    |
+| `pnpm screenshots`                       | Builds, then takes the screenshots of the README and `docs/hitboxes.md` with Playwright                             |
+| `pnpm desktop`                           | Builds, then starts the desktop app from the project                                                                |
+| `pnpm desktop:pack`, `pnpm desktop:dist` | Builds, then packs the desktop app for this system into `desktop/release/`: unpacked, or as installers and archives |
+| `pnpm test:desktop`                      | Packs the desktop app unpacked, then runs its smoke test with Playwright                                            |
 
 Playwright needs a Chromium: run `pnpm exec playwright install chromium` once, or set `CHROMIUM_PATH` to an installed Chromium binary.
 
 ## Stack
 
-TypeScript 7, three.js for the 3D view, Preact with Signals for the interface around it, Vite 8, Vitest 5, Playwright, Biome 2 and Zod. It is the stack of [Vibe Laser](https://github.com/FionaPreroll/vibe-laser), with three.js in place of PixiJS, since this game is 3D.
+TypeScript 7, three.js for the 3D view, Preact with Signals for the interface around it, Vite 8, Vitest 5, Playwright, Biome 2 and Zod; Capacitor for the Android app and Electron for the desktop app. It is the stack of [Vibe Laser](https://github.com/FionaPreroll/vibe-laser), with three.js in place of PixiJS, since this game is 3D.
 
 The fonts are [Unbounded](https://github.com/googlefonts/unbounded), wide and bold, for the logo and headings, and [Fredoka](https://github.com/hafontia/Fredoka-One), rounded and easy to read, for everything else, both under the SIL Open Font License and installed from [Fontsource](https://fontsource.org/). `src/ui/fonts.ts` loads only their Latin letters, which German needs too (about 80 KB), and the collection's share picture draws with them. They are the only files the game brings that code did not make.
 
@@ -101,8 +104,10 @@ src/
   i18n/         English and German texts, t() and the language setting
   ui/           Preact screens, HUD and dialogs over the 3D view
   main.tsx      entry point
+desktop/        the desktop app: Electron's main process and the page's preload, and its icon
 tools/          Vite plugins for the service worker and the list of lazy files, the icon renderer
 tests/e2e/      Playwright browser tests
+tests/desktop/  the desktop app's smoke test
 tests/screenshots/  the screenshots of the README and docs/hitboxes.md
 public/         static files, copied as they are
 ```
@@ -151,11 +156,11 @@ Two rules keep the layers apart:
 
 `SaveBook` in `src/persistence/save.ts` keeps one record in IndexedDB (database `vibe-wormholesurfing`, store `saves`): the settings, the collection, records of rides and which hints were seen. Zod checks it when it loads; settings that cannot be read fall back to their defaults one by one, and a record that cannot be read starts afresh. Where the browser blocks IndexedDB, progress lasts until the page closes, and the game says so. The language is a setting of the browser and stays in `localStorage`.
 
-## Offline, installing and Android
+## Offline, installing, Android and desktop
 
 - `public/manifest.webmanifest` lets browsers install the game as an app, full screen and in landscape. `pnpm icons` renders the icons from `public/favicon.svg`. The about page links the web version and the apps both ways. In a browser, the title screen's **Full screen** button hides the browser's bars and holds landscape where it can (`src/ui/FullScreen.tsx`); a controller reaches it like every button, and Chrome and Firefox take a controller's press as the player's own action, as they do a click. Where a browser refuses, as Safari does for controllers, a note asks for a click, a tap or a key.
 - Production builds get a service worker from `tools/serviceWorker.ts` that keeps every file of the build, so the game starts and plays offline. A new version waits until the player chooses to reload.
-- The build uses relative paths and turns the service worker off inside the Android app, which brings its files along.
+- The build uses relative paths and turns the service worker off inside the Android app and the desktop app, which bring their files along.
 
 ### The Android app
 
@@ -170,6 +175,18 @@ Two rules keep the layers apart:
 - **Updates.** At the first start the app asks whether to look for a new version at every start: off unless the player says yes, and switchable in the settings, which can also look right away. [`@fionapreroll/app-updates`](https://github.com/FionaPreroll/vibe-p2pgame/tree/main/packages/app-updates), installed from the file on its release, does the work (`src/ui/appUpdates.ts`): it compares the release's `version.json` with the app's own build, says how large the download is and warns on mobile data, downloads with pause and resume (also after the app was closed), and hands the APK to Android's installer, which asks the player. Its plugin reads and downloads only from this repository's releases, named in `capacitor.config.ts`, and brings its permissions along. The dialogs are the library's, in the game's texts and styles (`.modal.update`).
 - **Icons.** `pnpm icons` renders the launcher icons into `android/app/src/main/res/` from `public/favicon.svg` too: the adaptive icon's foreground over the night sky of `drawable/ic_launcher_background.xml`, and square and round icons for older launchers.
 
+### The desktop app
+
+A desktop app for Windows, macOS and Linux, not released yet: so far it is built by hand.
+
+- **What it is.** [Electron](https://www.electronjs.org/) shows the web build (`dist`) in a window of its own, with a Chromium of its own, so the game draws, sounds and reads controllers as in Chrome, on all three systems alike (`desktop/main.cts`). The page is the website's; `isDesktop()` in `src/ui/desktop.ts` tells it apart, by what `desktop/preload.cts` hands it: the system's name, and nothing else.
+- **Serving.** The game comes from `app://wormhole/`, a protocol of the app's own, not from `file://`: a fixed origin for the save in IndexedDB and the language in localStorage, which `fetch()` reaches too, as the loading bar needs. It serves files of `dist/` only. There is no service worker, as the app's files are its own; `app://` could not have one anyway, so the game does not try to start one.
+- **Safety.** The page runs isolated and in Chromium's sandbox, without Node. Links to the issue tracker or the web version and emails open in the system's browser or mail program, never in the game's window, and the page may ask only for full screen and for writing to the clipboard (the debug log). F11 fills the screen, as the title screen's button does. On macOS the app keeps the menus a Mac app has, with Quit and Hide.
+- **Saves and files.** The save and the settings live in the user's app data, in a folder `Wormhole Surfing` (on Windows `%APPDATA%\Wormhole Surfing`, on macOS `~/Library/Application Support/Wormhole Surfing`, on Linux `~/.config/Wormhole Surfing`). Exports download, and Electron asks where to save them. Sharing the collection does as in browsers without a share sheet: it saves the picture and copies the text. A second start brings the open game to the front.
+- **Packing.** `electron-builder.yml` packs an NSIS installer and a zip for Windows, a DMG and a zip for macOS (Apple Silicon and Intel), and an AppImage and a `.tar.gz` for Linux, into `desktop/release/`. `pnpm desktop:dist` packs for the system it runs on, `pnpm desktop:pack` only unpacked. Beside Electron, the packed app holds the main process and `dist/` (`app.asar`, about 1.5 MB), none of the packages the game is built from; Linux's AppImage and `.tar.gz` come to about 120 MB. `pnpm icons` renders `desktop/icons/icon.png`, from which electron-builder makes each system's icons. The main process is CommonJS, compiled with `tsconfig.desktop.json`: Playwright does not get an app started whose main module is ES and waits at the top level.
+- **Not signed.** The app has no code signature from Apple or Microsoft. On Windows, SmartScreen warns of an unknown publisher (More info → Run anyway); on macOS the app opens once it is allowed under System Settings → Privacy & Security → Open Anyway. On Linux, electron-builder starts AppImages with `--no-sandbox`, as Ubuntu's AppArmor rules keep Chromium's sandbox from starting; the `.tar.gz` needs `--no-sandbox` there too, or Chromium's `chrome-sandbox` set up by root.
+- **Running it.** `pnpm desktop` builds the game and starts the app from the project. Without a graphics chip, as in a virtual machine, add `--use-angle=swiftshader --enable-unsafe-swiftshader` to draw in software.
+
 ## Tests
 
 Unit tests sit next to the code as `*.test.ts`. The rules are tested directly: rides end for every seed, are the same for the same seed, pilots who collect orbs fly much farther, holes capture slow ships, every world's treasure can be walked to, rewards follow their odds. Input math is tested too: dead zones, the floating stick, and tilt steering against device orientations in portrait and landscape.
@@ -182,6 +199,8 @@ Bugs that were fixed keep a test that would catch them again, and the features p
 - **Shaders** (`shaders.spec.ts`, with parallel shader compiling switched on, as real browsers have it): going from the title to a ride and into a world builds no shader program inside a frame. Built in a frame, they stalled a ride's start for a tenth of a second on Windows; the test counts the programs linked during the game's frames.
 - **Regressions and features** (`regressions.spec.ts`): switching the graphics quality keeps the picture, dialogs fit the screen at twice their size and the HUD grows from its corners, the hitboxes show when asked, a key bound anew does its new job in a ride, the mouse pointer goes while the mouse rests, and the treasure opens in view. `guard.spec.ts` checks the broken-pixel test against NaN and infinity in WebGL.
 - **Units**: the see-through ship draws in the order that keeps its flames and trails over it (`ghost.test.ts`), hints go by themselves or at a press, browser pauses are told from stalls, capsules stand on open ground that the camera can watch (`framing.test.ts`, `expedition.test.ts`), and the cursor, the bindings, the sticks' dead zones and the save's settings each have their own.
+
+The desktop app's smoke test (`tests/desktop/`, `pnpm test:desktop`; on Linux without a screen under `xvfb-run`) starts the packed app with Playwright: it shows the title screen from `app://wormhole/` with no warning or error in the game's debug log, so with no try at a service worker, hands the page nothing of Node, keeps the settings when it starts again, and opens links in the system's browser, never in its own window. `WORMHOLE_DESKTOP_APP` points it at another build, such as the AppImage.
 
 ### Soak test
 
