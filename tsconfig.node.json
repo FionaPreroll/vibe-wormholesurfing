@@ -17,6 +17,7 @@
     "capacitor.config.ts",
     "playwright.config.ts",
     "playwright.screenshots.config.ts",
+    "playwright.desktop.config.ts",
     "tests",
     "tools"
   ]

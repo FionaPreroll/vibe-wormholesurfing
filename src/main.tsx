@@ -4,6 +4,7 @@ import { version } from '../package.json'
 import { captureErrors, debugLog } from './game/debugLog'
 import { locale } from './i18n'
 import { App } from './ui/App'
+import { desktopApp, isDesktop } from './ui/desktop'
 import { loadFonts } from './ui/fonts'
 import { watchInstallPrompt } from './ui/install'
 import { isApp } from './ui/native'
@@ -24,6 +25,7 @@ debugLog.setEnvironment({
   touch: navigator.maxTouchPoints,
   installed: matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches,
   androidApp: isApp(),
+  desktopApp: desktopApp()?.platform,
 })
 debugLog.log('info', `Wormhole Surfing ${version} started`)
 
@@ -35,9 +37,9 @@ const root = document.getElementById('app')
 if (!root) throw new Error('index.html has no #app element')
 render(<App />, root)
 
-// Only web builds have a service worker; the dev server, and the app wrapped for Android with
-// Capacitor, serve their files as they are. (Capacitor's script defines window.Capacitor in
-// browsers too: only isApp() tells the app.)
-if (import.meta.env.PROD && !isApp()) {
+// Only web builds have a service worker; the dev server, the app wrapped for Android with
+// Capacitor and the desktop app serve their files as they are. (Capacitor's script defines
+// window.Capacitor in browsers too: only isApp() tells the app.)
+if (import.meta.env.PROD && !isApp() && !isDesktop()) {
   window.addEventListener('load', () => void registerServiceWorker())
 }

@@ -1,6 +1,7 @@
 /*
  * Renders the app icons from public/favicon.svg with Chromium: `pnpm icons`. They are the
- * website's, in public/icons/, and the Android app's launcher icons in android/app/src/main/res/.
+ * website's, in public/icons/, the Android app's launcher icons in android/app/src/main/res/, and
+ * the desktop app's in desktop/icons/.
  * Run it again after changing the favicon. CHROMIUM_PATH points it at an installed Chromium, as
  * for the Playwright tests.
  */
@@ -59,6 +60,12 @@ const ANDROID: Icon[] = Object.entries(DENSITIES).flatMap(([density, scale]) => 
   },
 ])
 
+/**
+ * The desktop app's, from which electron-builder makes the icons of Windows, macOS and Linux:
+ * 1024 pixels, as macOS wants, with the margin its icons keep around their shape.
+ */
+const DESKTOP: Icon[] = [{ file: 'desktop/icons/icon.png', size: 1024, fill: 0.82 }]
+
 const favicon = await readFile('public/favicon.svg', 'utf8')
 const source = (svg: string) => `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`
 const full = source(favicon)
@@ -83,7 +90,7 @@ async function render(page: Page, icon: Icon): Promise<void> {
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH })
 try {
   const page = await browser.newPage()
-  for (const icon of [...WEB, ...ANDROID]) await render(page, icon)
+  for (const icon of [...WEB, ...ANDROID, ...DESKTOP]) await render(page, icon)
 } finally {
   await browser.close()
 }
