@@ -53,6 +53,24 @@ async function brightness(page: Page): Promise<number> {
   )
 }
 
+// A log from Windows counted the start as three glitches: frames of 910, 333 and 292 ms while the
+// title was built and drawn for the first time, with nothing on the screen yet that could stutter.
+test('the start, before the first picture, counts as no glitch in the debug log', async ({
+  page,
+}) => {
+  await openGame(page)
+  await stageShows(page, 'title')
+  const handle = await page.waitForFunction(() => {
+    const entries = (window as unknown as { wormhole: Debug }).wormhole.debugLog.entries
+    return entries.some((entry) => entry.message === 'First picture')
+      ? entries.map(({ kind, message }) => ({ kind, message }))
+      : undefined
+  })
+  const entries = (await handle.jsonValue()) as { kind: string; message: string }[]
+  const first = entries.findIndex((entry) => entry.message === 'First picture')
+  expect(entries.slice(0, first).filter((entry) => entry.kind === 'glitch')).toEqual([])
+})
+
 // Switching to Ultra once left the picture black, and changing the resolution flashed it black.
 test('switching the graphics quality keeps the picture', async ({ page }) => {
   test.setTimeout(120_000)

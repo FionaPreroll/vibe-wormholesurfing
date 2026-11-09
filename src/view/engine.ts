@@ -374,12 +374,15 @@ export class Engine {
     if (this.#frame) return
     this.#last = performance.now()
     this.#secondStart = this.#last
+    this.#startedAt = this.#last
     const loop = (now: number) => {
       this.#frame = requestAnimationFrame(loop)
       const raw = (now - this.#last) / 1000
       this.#last = now
-      const kind = frameKind(raw, document.visibilityState === 'visible')
+      const kind = frameKind(raw, document.visibilityState === 'visible', this.#shownBefore)
       const resumed = kind === 'paused'
+      // A frame before the first picture counts as neither a stall nor a frame: nothing moved.
+      const starting = kind === 'starting'
       if (resumed) {
         // The browser stopped drawing for a while, as it does for a window that is covered or on
         // another desktop: not a stall of the game. The second being counted starts afresh.
@@ -394,9 +397,16 @@ export class Engine {
           drawMs: Math.round(this.#drawMs),
           newPrograms: this.#programs() - this.#programsBefore,
         })
+      else if (starting)
+        this.#log.log('info', `Long frame before the first picture: ${Math.round(raw * 1000)} ms`, {
+          screen: this.label,
+          drawMs: Math.round(this.#drawMs),
+          newPrograms: this.#programs() - this.#programsBefore,
+        })
       this.#programsBefore = this.#programs()
+      this.#shownBefore = this.#shown
       const drawing = performance.now()
-      this.#tick(Math.min(0.1, Math.max(0, raw)), now, resumed ? undefined : raw)
+      this.#tick(Math.min(0.1, Math.max(0, raw)), now, resumed || starting ? undefined : raw)
       this.#drawMs = performance.now() - drawing
     }
     this.#frame = requestAnimationFrame(loop)
@@ -404,6 +414,11 @@ export class Engine {
 
   #drawMs = 0
   #programsBefore = 0
+  /** When the frames began, for how long the first picture took. */
+  #startedAt = 0
+  /** Whether a picture has been drawn, and whether one had been as the last frame began. */
+  #shown = false
+  #shownBefore = false
 
   /** How many shader programs the renderer holds. */
   #programs(): number {
@@ -433,6 +448,15 @@ export class Engine {
     }
     this.renderer.info.reset()
     this.#composer.render(dt)
+    if (!this.#shown) {
+      this.#shown = true
+      // From the frames' start to the first picture drawn: building and compiling the first
+      // scene, and its first drawing, which uploads it and, on some drivers, builds pipelines.
+      this.#log.log('info', 'First picture', {
+        ms: Math.round(performance.now() - this.#startedAt),
+        screen: this.label,
+      })
+    }
     if (raw !== undefined) this.#measure(raw, now)
     this.#adapt(dt)
   }
