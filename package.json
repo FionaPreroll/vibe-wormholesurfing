@@ -28,7 +28,7 @@
     "android:sync": "pnpm build && cap sync android",
     "desktop": "pnpm build && tsc -p tsconfig.desktop.json && electron .",
     "desktop:pack": "pnpm build && tsc -p tsconfig.desktop.json && electron-builder --dir",
-    "desktop:dist": "pnpm build && tsc -p tsconfig.desktop.json && electron-builder",
+    "desktop:dist": "pnpm build && tsc -p tsconfig.desktop.json && electron-builder --publish never",
     "test:desktop": "pnpm desktop:pack && playwright test -c playwright.desktop.config.ts"
   },
   "dependencies": {

@@ -6,6 +6,7 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 
 ### Added
 
+- A desktop app for Windows, macOS and Linux: [download it](https://github.com/FionaPreroll/vibe-wormholesurfing/releases/tag/desktop-latest) as an installer or a zip for Windows, a disk image for Macs with Apple silicon or Intel, or an AppImage or archive for Linux. It plays as the website does, draws and sounds the same on all three, takes controllers, keeps your treasures in its own folder, and opens links in your browser. It is not signed yet: on Windows choose More info, then Run anyway; on a Mac, allow it once under System Settings → Privacy & Security → Open Anyway.
 - The first version of Wormhole Surfing: ride a cute spaceship through a swirling wormhole with a chibi girl in the cockpit. Golden orbs speed you up, blue sparks slow you down, and the farther you fly, the rarer the warp holes: plain ones, ones with one or two golden halos, and the rarest with a flower-shaped aura.
 - Slow down too much and the holes start to pull; too slow, and the next hole takes you in whatever you do.
 - Eight 3D worlds behind the holes: the Cliffs, the Lagoon, the Canyon and the Caverns behind red, blue, green and yellow holes, and four strange worlds behind white ones: the Crystal Sea, the Star Dunes, the Floating Gardens and the Aurora Void.
