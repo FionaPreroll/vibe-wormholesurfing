@@ -49,7 +49,7 @@ jobs:
       # Every shard reports its failures, not only the first to fail.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
