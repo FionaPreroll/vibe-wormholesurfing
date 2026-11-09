@@ -41,7 +41,8 @@ jobs:
         run: pnpm desktop:dist
         env:
           # The build number is CI's run number, as the APK's: electron-builder makes it the
-          # version's fourth part on Windows and the bundle version on macOS.
+          # version's fourth part on Windows and the bundle version on macOS, and the game keeps
+          # it to compare with the newest release's (vite.config.ts).
           BUILD_NUMBER: ${{ github.run_number }}
           # The app is not signed with a certificate (electron-builder.yml): none is looked for.
           CSC_IDENTITY_AUTO_DISCOVERY: "false"

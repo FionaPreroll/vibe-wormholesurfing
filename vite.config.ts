@@ -7,6 +7,11 @@ export default defineConfig({
   // Relative asset URLs, so the build runs under any path, such as GitHub Pages' /vibe-wormholesurfing/.
   base: './',
   plugins: [preact(), lazyFiles(), serviceWorker()],
+  // CI's run number for the builds CI makes, which the desktop app compares with the newest
+  // release's (src/ui/desktopUpdates.ts); empty for builds made by hand.
+  define: {
+    'import.meta.env.BUILD_NUMBER': JSON.stringify(process.env.BUILD_NUMBER ?? ''),
+  },
   build: {
     // three.js is one large chunk of its own, loaded once the first scene starts.
     chunkSizeWarningLimit: 1000,
