@@ -41,8 +41,10 @@ async function start(): Promise<{ app: ElectronApplication; page: Page }> {
     executablePath: packedApp(),
     args: [
       '--lang=en-US',
-      // As the browser tests: WebGL in software where there is no graphics chip, as on CI.
-      '--use-angle=swiftshader',
+      // As the browser tests: WebGL in software where there is no graphics chip, as on CI. Not on
+      // macOS, where Chromium draws no WebGL in software on Apple silicon; the runners there have a
+      // virtual graphics chip that Metal draws with.
+      ...(process.platform === 'darwin' ? [] : ['--use-angle=swiftshader']),
       '--enable-unsafe-swiftshader',
       // Linux runners, and containers running as root, cannot set up Chromium's sandbox.
       ...(process.platform === 'linux' ? ['--no-sandbox'] : []),
@@ -50,8 +52,31 @@ async function start(): Promise<{ app: ElectronApplication; page: Page }> {
     env: { ...process.env, WORMHOLE_USER_DATA: userData },
   })
   const page = await app.firstWindow()
-  // Enabled once the 3D view has loaded, which fetches its files through the app's own origin.
-  await expect(page.getByRole('button', { name: 'Fly!' })).toBeEnabled({ timeout: 90_000 })
+  const problems: string[] = []
+  page.on('console', (message) => {
+    if (message.type() === 'error' || message.type() === 'warning') problems.push(message.text())
+  })
+  page.on('pageerror', (error) => problems.push(error.message))
+  try {
+    // Enabled once the 3D view has loaded, which fetches its files through the app's own origin.
+    await expect(page.getByRole('button', { name: 'Fly!' })).toBeEnabled({ timeout: 90_000 })
+  } catch (error) {
+    // Why there is no game, in the log, where CI shows it: most often the graphics.
+    const shown =
+      (await page
+        .locator('body')
+        .textContent()
+        .catch(() => null)) ?? ''
+    const graphics = await app.evaluate(({ app }) => app.getGPUFeatureStatus())
+    throw new Error(
+      [
+        `The title screen has no "Fly!" button. ${String(error)}`,
+        `The page shows: ${shown.replace(/\s+/g, ' ').trim()}`,
+        `It warned: ${problems.join(' | ') || 'nothing'}`,
+        `Graphics: ${JSON.stringify(graphics)}`,
+      ].join('\n'),
+    )
+  }
   return { app, page }
 }
 
