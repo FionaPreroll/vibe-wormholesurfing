@@ -386,6 +386,30 @@ export const en = {
     'Wormhole Surfing is also an Android app: full screen, offline, and it can update itself. Android asks once to allow installing apps from your browser.',
   androidDownload: 'Download the Android app',
   androidRelease: 'Release page with every build',
+  playingDesktopApp:
+    'You are playing the desktop app for {system}. It plays offline, and looks for a new version at every start if you let it in the settings.',
+  desktopBuild: 'Build {build}',
+  desktopOwnBuild: 'A build made by hand, not by CI',
+  desktopApp: 'Desktop app',
+  desktopAppText:
+    'Wormhole Surfing is also an app for Windows, macOS and Linux: a window of its own, offline, and it tells you when a new version is out.',
+  desktopAppInstead:
+    'For {system}, there is also an app of its own, which plays offline and tells you when a new version is out:',
+  desktopDownloadWindows: 'Download for Windows',
+  desktopDownloadMacArm: 'Download for Mac with Apple silicon',
+  desktopDownloadMacIntel: 'Download for Mac with Intel',
+  desktopDownloadLinux: 'Download the AppImage for Linux',
+  desktopRelease: 'Release page with every file',
+  desktopUnsignedWindows:
+    'The app is not signed with a certificate from Microsoft, so Windows warns of an unknown publisher: choose More info, then Run anyway.',
+  desktopUnsignedMac:
+    'The app is not signed by Apple: open it once, then allow it under System Settings → Privacy & Security → Open Anyway. Which Mac you have, the Apple menu says under About This Mac.',
+  desktopUnsignedLinux:
+    'Make the AppImage executable, in its properties or with chmod +x, then start it. The release page has it as a .tar.gz too.',
+  desktopUpdatesNote:
+    'New versions come from the game’s releases on GitHub. The app does not install them itself: Download opens the new version in your browser, and it installs over this one, keeping your treasures and settings.',
+  desktopUpdateStarted:
+    'The download opens in your browser. Install it over this app and start it again: your treasures and settings stay.',
   desc_emberPebble:
     'A pebble from the cliff paths that stays warm long after sunset. Nice to hold on a cold ride.',
   desc_windFeather: 'Shed by something that never lands. Let it go, and it drifts upward.',
@@ -847,6 +871,30 @@ export const de: Record<MessageKey, string> = {
     'Wormhole Surfing gibt es auch als Android-App: im Vollbild, offline, und sie kann sich selbst aktualisieren. Android fragt einmal, ob dein Browser Apps installieren darf.',
   androidDownload: 'Android-App herunterladen',
   androidRelease: 'Release-Seite mit jedem Build',
+  playingDesktopApp:
+    'Du spielst die Desktop-App für {system}. Sie spielt offline und sucht bei jedem Start nach einer neuen Version, wenn du es in den Einstellungen erlaubst.',
+  desktopBuild: 'Build {build}',
+  desktopOwnBuild: 'Ein von Hand gebauter Build, nicht von CI',
+  desktopApp: 'Desktop-App',
+  desktopAppText:
+    'Wormhole Surfing gibt es auch als App für Windows, macOS und Linux: ein eigenes Fenster, offline, und sie sagt dir, wenn eine neue Version da ist.',
+  desktopAppInstead:
+    'Für {system} gibt es auch eine eigene App, die offline spielt und dir sagt, wenn eine neue Version da ist:',
+  desktopDownloadWindows: 'Für Windows herunterladen',
+  desktopDownloadMacArm: 'Für Mac mit Apple Chip herunterladen',
+  desktopDownloadMacIntel: 'Für Mac mit Intel-Prozessor herunterladen',
+  desktopDownloadLinux: 'AppImage für Linux herunterladen',
+  desktopRelease: 'Release-Seite mit allen Dateien',
+  desktopUnsignedWindows:
+    'Die App ist nicht mit einem Zertifikat von Microsoft signiert, daher warnt Windows vor einem unbekannten Herausgeber: Wähle „Weitere Informationen“, dann „Trotzdem ausführen“.',
+  desktopUnsignedMac:
+    'Die App ist nicht von Apple signiert: Öffne sie einmal und erlaube sie dann unter Systemeinstellungen → Datenschutz & Sicherheit → „Dennoch öffnen“. Welchen Mac du hast, steht im Apple-Menü unter „Über diesen Mac“.',
+  desktopUnsignedLinux:
+    'Mach das AppImage ausführbar, in seinen Eigenschaften oder mit chmod +x, und starte es dann. Die Release-Seite hat es auch als .tar.gz.',
+  desktopUpdatesNote:
+    'Neue Versionen kommen aus den Releases des Spiels auf GitHub. Die App installiert sie nicht selbst: „Herunterladen“ öffnet die neue Version in deinem Browser, und sie installiert sich über diese, mit deinen Schätzen und Einstellungen.',
+  desktopUpdateStarted:
+    'Der Download öffnet sich in deinem Browser. Installiere ihn über diese App und starte sie neu: Deine Schätze und Einstellungen bleiben.',
   desc_emberPebble:
     'Ein Kiesel von den Klippenpfaden, der noch lange nach Sonnenuntergang warm bleibt. Schön zum Festhalten auf kalten Flügen.',
   desc_windFeather: 'Verloren von etwas, das nie landet. Lässt man sie los, schwebt sie nach oben.',

@@ -15,6 +15,8 @@ import type { Save } from '../persistence/save'
 import { checkForUpdate, offer } from './appUpdates'
 import { padButtonName } from './controlNames'
 import { DebugTools, SaveTools } from './DataTools'
+import { isDesktop } from './desktop'
+import { checkDesktopUpdate, desktopUpdate, downloadDesktopUpdate } from './desktopUpdates'
 import { Choice, Slider, Toggle } from './fields'
 import { LanguageSwitch } from './LanguageSwitch'
 import { Modal } from './Modal'
@@ -59,48 +61,95 @@ interface SettingsProps {
   readonly onClose: () => void
 }
 
+/** What looking for a new version now found: a line for the player, and what to download. */
+interface Looked {
+  readonly status?: string
+  readonly download?: () => void
+}
+
+/** The Android app: a newer build opens the library's dialog, which downloads and installs it. */
+async function lookInAndroidApp(): Promise<Looked> {
+  const check = await checkForUpdate()
+  if (check.kind === 'newer') {
+    offer(check.release)
+    return {}
+  }
+  return {
+    status:
+      check.kind === 'current'
+        ? t('updatesCurrent', { build: check.installed })
+        : t('updatesCheckFailed'),
+  }
+}
+
+/** The desktop app: a newer build is said, with its download, which the browser opens. */
+async function lookInDesktopApp(): Promise<Looked> {
+  const check = await checkDesktopUpdate()
+  if (check.kind === 'newer') {
+    desktopUpdate.value = check.build
+    return {
+      status: t('updateReady', { build: check.build }),
+      download: () => downloadDesktopUpdate(),
+    }
+  }
+  return {
+    status:
+      check.kind === 'current'
+        ? t('updatesCurrent', { build: check.installed })
+        : t('updatesCheckFailed'),
+  }
+}
+
 /**
- * The Android app's updates: whether to look at every start, and looking now, which offers what
- * it finds whatever the switch says.
+ * The app's updates, in the Android app and the desktop app: whether to look at every start, and
+ * looking now, which offers what it finds whatever the switch says.
  */
 function AppUpdateSettings({
   checked,
   onChange,
+  note,
+  look,
 }: {
   readonly checked: boolean
   readonly onChange: (on: boolean) => void
+  /** Where new versions come from, and how they install. */
+  readonly note: string
+  readonly look: () => Promise<Looked>
 }) {
-  const [status, setStatus] = useState<string>()
+  const [found, setFound] = useState<Looked>({})
   const [looking, setLooking] = useState(false)
-  const look = async () => {
+  const lookNow = async () => {
     setLooking(true)
-    setStatus(t('updatesChecking'))
-    const check = await checkForUpdate()
+    setFound({ status: t('updatesChecking') })
+    setFound(await look())
     setLooking(false)
-    if (check.kind === 'newer') {
-      setStatus(undefined)
-      offer(check.release)
-    } else {
-      setStatus(
-        check.kind === 'current'
-          ? t('updatesCurrent', { build: check.installed })
-          : t('updatesCheckFailed'),
-      )
-    }
   }
+  const download = found.download
   return (
     <>
       <h3>{t('updatesSection')}</h3>
       <Toggle label={t('updatesSetting')} checked={checked} onChange={onChange} />
-      <p class="note">{t('updatesNote')}</p>
+      <p class="note">{note}</p>
       <div class="tool-buttons">
-        <button type="button" disabled={looking} onClick={() => void look()}>
+        <button type="button" disabled={looking} onClick={() => void lookNow()}>
           {t('updatesCheckNow')}
         </button>
+        {download && (
+          <button
+            type="button"
+            class="primary"
+            onClick={() => {
+              download()
+              setFound({ status: t('desktopUpdateStarted') })
+            }}
+          >
+            {t('updateDownload')}
+          </button>
+        )}
       </div>
-      {status && (
+      {found.status && (
         <p class="note" role="status">
-          {status}
+          {found.status}
         </p>
       )}
     </>
@@ -246,6 +295,16 @@ export function SettingsDialog({
           <AppUpdateSettings
             checked={settings.checkUpdates}
             onChange={(checkUpdates) => set({ checkUpdates, updatesAsked: true })}
+            note={t('updatesNote')}
+            look={lookInAndroidApp}
+          />
+        )}
+        {isDesktop() && (
+          <AppUpdateSettings
+            checked={settings.checkUpdates}
+            onChange={(checkUpdates) => set({ checkUpdates, updatesAsked: true })}
+            note={t('desktopUpdatesNote')}
+            look={lookInDesktopApp}
           />
         )}
         <h3>{t('backupSection')}</h3>

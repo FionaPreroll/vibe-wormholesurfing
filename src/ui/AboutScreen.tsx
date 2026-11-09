@@ -2,12 +2,24 @@ import { useEffect, useState } from 'preact/hooks'
 import changelog from '../../CHANGELOG.md?raw'
 import { version } from '../../package.json'
 import type { DebugReport } from '../game/debugLog'
-import { t } from '../i18n'
+import { type MessageKey, t } from '../i18n'
 import type { StoredLog } from '../persistence/logs'
 import type { Save } from '../persistence/save'
 import { appBuild } from './appUpdates'
 import { renderChangelog } from './changelog'
 import { DebugTools, SaveTools } from './DataTools'
+import {
+  browserSystem,
+  DESKTOP_RELEASE,
+  type DesktopApp,
+  type DesktopDownload,
+  type DesktopSystem,
+  desktopApp,
+  desktopDownloads,
+  SYSTEM_NAMES,
+  systemOfPlatform,
+} from './desktop'
+import { DESKTOP_BUILD } from './desktopUpdates'
 import { install, installPrompt, runsAsApp } from './install'
 import { ANDROID_RELEASE, APK_URL, CONTACT_EMAIL, ISSUES_URL, SOURCE_URL, WEB_URL } from './links'
 import { isApp } from './native'
@@ -54,10 +66,68 @@ function AndroidLinks() {
   )
 }
 
+const DOWNLOAD_NAMES: Readonly<Record<DesktopDownload['kind'], MessageKey>> = {
+  windows: 'desktopDownloadWindows',
+  macArm: 'desktopDownloadMacArm',
+  macIntel: 'desktopDownloadMacIntel',
+  linux: 'desktopDownloadLinux',
+}
+
+/** How to open the app, which is not signed, on each system. */
+const UNSIGNED: Readonly<Record<DesktopSystem, MessageKey>> = {
+  windows: 'desktopUnsignedWindows',
+  mac: 'desktopUnsignedMac',
+  linux: 'desktopUnsignedLinux',
+}
+
+/** The desktop app's downloads for one system, its release page, and how to open it. */
+function DesktopLinks({ system }: { readonly system: DesktopSystem }) {
+  return (
+    <>
+      <div class="tool-buttons">
+        {desktopDownloads(system).map((download) => (
+          <a key={download.kind} class="link-button" href={download.url}>
+            {t(DOWNLOAD_NAMES[download.kind])}
+          </a>
+        ))}
+        <a class="link-button" href={DESKTOP_RELEASE} target="_blank" rel="noreferrer">
+          {t('desktopRelease')}
+        </a>
+      </div>
+      <p class="note">{t(UNSIGNED[system])}</p>
+    </>
+  )
+}
+
+/** The desktop app, as it says of itself: its system and build, and where its builds are. */
+function InDesktopApp({
+  app,
+  web,
+}: {
+  readonly app: DesktopApp
+  readonly web: preact.JSX.Element
+}) {
+  const system = systemOfPlatform(app.platform)
+  return (
+    <>
+      <p>{t('playingDesktopApp', { system: system ? SYSTEM_NAMES[system] : app.platform })}</p>
+      <p class="note">
+        {DESKTOP_BUILD > 0 ? t('desktopBuild', { build: DESKTOP_BUILD }) : t('desktopOwnBuild')}
+      </p>
+      {web}
+      <p>
+        <a class="link-button" href={DESKTOP_RELEASE} target="_blank" rel="noreferrer">
+          {t('desktopRelease')}
+        </a>
+      </p>
+    </>
+  )
+}
+
 /**
- * How the game runs here, and the other ways: the Android app names its version, the web app the
- * browser installed says how it updates and offers the Android app on Android, and a browser tab
- * offers both.
+ * How the game runs here, and the other ways: the Android app and the desktop app name their
+ * version, the web app the browser installed says how it updates and offers the app for the
+ * system it runs on, and a browser tab offers the apps and installing.
  */
 export function WebAndApp() {
   const web = (
@@ -67,6 +137,9 @@ export function WebAndApp() {
       </a>
     </p>
   )
+  const desktop = desktopApp()
+  if (desktop) return <InDesktopApp app={desktop} web={web} />
+  const system = browserSystem()
   if (isApp()) {
     return (
       <>
@@ -86,6 +159,12 @@ export function WebAndApp() {
             <AndroidLinks />
           </>
         )}
+        {system && (
+          <>
+            <p>{t('desktopAppInstead', { system: SYSTEM_NAMES[system] })}</p>
+            <DesktopLinks system={system} />
+          </>
+        )}
         {web}
       </>
     )
@@ -93,6 +172,13 @@ export function WebAndApp() {
   return (
     <>
       <p>{t('playingInBrowser')}</p>
+      {system && (
+        <>
+          <h3>{t('desktopApp')}</h3>
+          <p>{t('desktopAppText')}</p>
+          <DesktopLinks system={system} />
+        </>
+      )}
       <h3>{t('androidApp')}</h3>
       <p>{t('androidAppText')}</p>
       <AndroidLinks />

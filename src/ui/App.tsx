@@ -27,6 +27,7 @@ import { CollectionScreen, type Flight } from './CollectionScreen'
 import { ControlsDialog } from './ControlsDialog'
 import { learnKeyboardLayout } from './controlNames'
 import { watchCursor } from './cursor'
+import { offerDesktopUpdatesOnStart } from './desktopUpdates'
 import { HelpDialog, PauseMenu, SettingsDialog } from './dialogs'
 import { enterFullScreen } from './FullScreen'
 import {
@@ -47,7 +48,7 @@ import { touchScreen } from './pointer'
 import { RewardCard } from './RewardCard'
 import { shareCollection } from './share'
 import { TitleScreen } from './TitleScreen'
-import { UpdateNotice } from './UpdateNotice'
+import { DesktopUpdateNotice, UpdateNotice } from './UpdateNotice'
 
 const AMBIENCE: Readonly<Record<WorldId, Ambience>> = {
   cliffs: 'wind',
@@ -169,12 +170,17 @@ export function App({ store }: Props) {
       settings.value = quality ? { ...opened.current.settings, quality } : opened.current.settings
       setBook(opened)
       setSave(opened.current)
-      // In the Android app: ask once whether to look for updates, then look if the player wants.
-      void offerUpdatesOnStart((changes) => {
+      // In the Android and the desktop app: ask once whether to look for updates, then look if
+      // the player wants. Each does nothing outside its app.
+      const saveSettings = (changes: Partial<Settings>) => {
         const next = { ...settings.value, ...changes }
         settings.value = next
         void opened.setSettings(next).then(() => setSave(opened.current))
-      }).catch((error: unknown) => debugLog.log('warn', `Update check failed: ${String(error)}`))
+      }
+      const failed = (error: unknown) =>
+        debugLog.log('warn', `Update check failed: ${String(error)}`)
+      void offerUpdatesOnStart(saveSettings).catch(failed)
+      void offerDesktopUpdatesOnStart(saveSettings).catch(failed)
     }
     void open()
     return () => {
@@ -748,6 +754,7 @@ export function App({ store }: Props) {
       )}
       <div class="notices">
         <UpdateNotice />
+        <DesktopUpdateNotice />
         {blocked && <p class="notice">{t('storageBlocked')}</p>}
       </div>
       {save?.settings.showFps && <div class="fps">{fps}</div>}
