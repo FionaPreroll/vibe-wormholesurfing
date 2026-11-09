@@ -9,7 +9,7 @@ import path = require('node:path')
 import url = require('node:url')
 import electron = require('electron')
 
-const { app, BrowserWindow, Menu, net, protocol, session, shell } = electron
+const { app, BrowserWindow, ipcMain, Menu, net, protocol, session, shell } = electron
 const { join, normalize, sep } = path
 
 /**
@@ -26,6 +26,14 @@ const root = join(__dirname, '..', '..', 'dist')
 
 /** Where pages may send the player: to the browser, never inside the game's window. */
 const OUTSIDE = /^(https?|mailto):/
+
+/**
+ * The newest desktop build's number and commit, in the release CI replaces with every build of
+ * main. Tests point it at a server of their own.
+ */
+const LATEST_BUILD =
+  process.env.WORMHOLE_UPDATES_URL ??
+  'https://github.com/FionaPreroll/vibe-wormholesurfing/releases/download/desktop-latest/version.json'
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -48,6 +56,20 @@ async function serve(request: Request): Promise<Response> {
   const file = normalize(join(root, decodeURIComponent(address.pathname)))
   if (!file.startsWith(root + sep)) return new Response(null, { status: 403 })
   return net.fetch(url.pathToFileURL(file).toString())
+}
+
+/**
+ * Fetches the newest build's version.json for the game's page, which cannot itself: GitHub's
+ * downloads do not allow other origins. Only for the game's own origin, and only this file.
+ */
+async function latestBuild(event: electron.IpcMainInvokeEvent): Promise<unknown> {
+  if (!event.senderFrame?.url.startsWith(`${ORIGIN}/`)) throw new Error('Not the game')
+  const response = await net.fetch(LATEST_BUILD, {
+    cache: 'no-store',
+    signal: AbortSignal.timeout(15_000),
+  })
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  return response.json()
 }
 
 function openWindow(): electron.BrowserWindow {
@@ -98,6 +120,7 @@ let gameWindow: electron.BrowserWindow | undefined
 /** Once Electron is ready: the game's origin, what it may ask for, the menus and the window. */
 function start(): void {
   protocol.handle(SCHEME, serve)
+  ipcMain.handle('wormhole:latest-build', latestBuild)
   // Full screen and copying the debug log are all the game asks for.
   const allowed = new Set(['fullscreen', 'clipboard-sanitized-write'])
   session.defaultSession.setPermissionRequestHandler((_contents, permission, grant) =>

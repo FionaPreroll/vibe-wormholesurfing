@@ -214,6 +214,8 @@ jobs:
 
           **The app is not signed** with a certificate from Microsoft or Apple. On Windows, SmartScreen warns of an unknown publisher: choose More info, then Run anyway. On macOS, open the app once, then allow it under System Settings → Privacy & Security → Open Anyway. Your treasures and settings stay where they are when you install a newer build.
           NOTES
+          # What the desktop app compares its own build with (src/ui/desktopUpdates.ts).
+          printf '{"build":%s,"commit":"%s"}\n' "$GITHUB_RUN_NUMBER" "$GITHUB_SHA" > release/version.json
           # The tag follows main: it always names the commit of the builds in the release.
           git tag -f "$TAG" "$GITHUB_SHA"
           git push -f origin "refs/tags/$TAG"
