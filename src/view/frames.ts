@@ -13,10 +13,18 @@ export const PAUSE_S = 3
 export const LONG_FRAME_S = 0.25
 
 /**
- * What a frame's lateness says: the browser paused drawing, the game stalled (only while the
- * page shows, as a hidden page draws seldom by design), or nothing.
+ * What a frame's lateness says: the game is still starting, the browser paused drawing, the game
+ * stalled (only while the page shows, as a hidden page draws seldom by design), or nothing.
+ * `shown` says whether the game had put a picture on the screen when the frame began: before its
+ * first picture nothing on the screen moves, so a late frame then is the game starting, building
+ * its first scene and drawing it, not a stall a player sees.
  */
-export function frameKind(seconds: number, visible: boolean): 'paused' | 'long' | 'fine' {
+export function frameKind(
+  seconds: number,
+  visible: boolean,
+  shown = true,
+): 'starting' | 'paused' | 'long' | 'fine' {
+  if (!shown) return seconds > LONG_FRAME_S && visible ? 'starting' : 'fine'
   if (seconds > PAUSE_S) return 'paused'
   return seconds > LONG_FRAME_S && visible ? 'long' : 'fine'
 }

@@ -59,6 +59,7 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 
 ### Fixed
 
+- The debug log no longer counts the game's start as glitches: until the 3D view shows its first picture, nothing on the screen moves that could stutter. It notes how long the start took to the first picture instead, and long frames before it as information, so its glitches, slowest frame and lowest frame rate show only stutters you can see.
 - The girl's twin tails and scarf stream back in the wind behind her, instead of flying forward in front of her face.
 - The Android app no longer closes when you export the debug log. While Android's save dialog was open, the whole log went into the app's saved state, which Android limits to about a megabyte; now the file waits in the app's cache until you have chosen where it goes.
 - Rides run more smoothly on phones: the cockpit was drawn again for every frame, whether its numbers had changed or not. It now changes only when a number or the gauge it shows does, and the light-years count at most twenty times a second. Below high quality the cockpit's digits and gauge also do without their glow, and the gauge no longer animates between its values, which had it painted again every frame anyway.
