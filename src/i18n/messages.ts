@@ -23,6 +23,7 @@ export const en = {
   settings: 'Settings',
   help: 'How to play',
   about: 'About',
+  exitGame: 'Exit game',
   fullScreen: 'Full screen',
   leaveFullScreen: 'Leave full screen',
   fullScreenRefused: 'This browser goes full screen only at a click, a tap or a key: try Enter.',
@@ -502,6 +503,7 @@ export const de: Record<MessageKey, string> = {
   settings: 'Einstellungen',
   help: 'Spielanleitung',
   about: 'Über das Spiel',
+  exitGame: 'Spiel beenden',
   fullScreen: 'Vollbild',
   leaveFullScreen: 'Vollbild beenden',
   fullScreenRefused:

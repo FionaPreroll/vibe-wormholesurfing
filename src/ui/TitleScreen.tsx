@@ -3,6 +3,7 @@ import { number, t } from '../i18n'
 import type { Save } from '../persistence/save'
 import { FullScreenButton } from './FullScreen'
 import { LoadingIndicator } from './LoadingIndicator'
+import { quitGame, quitMethod } from './quit'
 
 interface Props {
   readonly save: Save
@@ -55,6 +56,11 @@ export function TitleScreen({
         <button type="button" onClick={onSettings}>
           {t('settings')}
         </button>
+        {quitMethod() !== undefined && (
+          <button type="button" onClick={quitGame}>
+            {t('exitGame')}
+          </button>
+        )}
       </nav>
       <footer class="title-footer">
         <span>{t('foundCount', { found, total: ITEMS.length })}</span>

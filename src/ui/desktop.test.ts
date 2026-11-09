@@ -14,7 +14,7 @@ const page = globalThis as { wormholeDesktop?: unknown }
 
 /** The desktop app on a system, for a processor. */
 function app(platform: string, arch = 'x64'): DesktopApp {
-  return { platform, arch, latestBuild: async () => ({ build: 1 }) }
+  return { platform, arch, latestBuild: async () => ({ build: 1 }), quit: () => {} }
 }
 
 const FILES =
