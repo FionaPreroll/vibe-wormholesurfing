@@ -24,4 +24,19 @@ describe('frameKind', () => {
     // Once a picture shows, a late frame is a stall again.
     expect(frameKind(0.292, true, true)).toBe('long')
   })
+
+  it('notes stalls from a tenth of a second, measured against the frames the device draws', () => {
+    // From a Windows log at 144 frames a second: 194 ms in the Caverns as the treasure's card came
+    // up, which went by without a line under the old quarter of a second.
+    expect(frameKind(0.194, true, true, 0.0069)).toBe('long')
+    expect(frameKind(0.09, true, true, 0.0069)).toBe('fine')
+    // At 30 frames a second, a hitch of 120 ms is four frames: no stall worth a line yet.
+    expect(frameKind(0.12, true, true, 1 / 30)).toBe('fine')
+    expect(frameKind(0.15, true, true, 1 / 30)).toBe('long')
+    // A device that draws eight frames a second all along is slow, not stalling at every frame.
+    expect(frameKind(0.13, true, true, 0.125)).toBe('fine')
+    expect(frameKind(0.6, true, true, 0.125)).toBe('long')
+    // Before a second has been counted, a tenth of a second is the measure.
+    expect(frameKind(0.11, true)).toBe('long')
+  })
 })

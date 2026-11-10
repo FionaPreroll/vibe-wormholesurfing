@@ -60,6 +60,7 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 
 ### Fixed
 
+- The debug log notes stutters from a tenth of a second, no longer only from a quarter of a second, with how long the game's drawing took and how many shaders were built meanwhile, so the stutters you can see on fast screens are in it. A frame counts only when it is also four times as long as the frames before it, so a slow device does not fill the log with every frame.
 - Opening a treasure no longer stutters as its card comes up. The card's picture of the treasure, lit by lights of its own, was drawn at once and built its shaders while the world stood still, for a fifth of a second on Windows; it is now made alongside the frames while the treasure opens.
 - The debug log no longer counts the game's start as glitches: until the 3D view shows its first picture, nothing on the screen moves that could stutter. It notes how long the start took to the first picture instead, and long frames before it as information, so its glitches, slowest frame and lowest frame rate show only stutters you can see.
 - The girl's twin tails and scarf stream back in the wind behind her, instead of flying forward in front of her face.
