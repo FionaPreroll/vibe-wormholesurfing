@@ -188,7 +188,14 @@ test('starts at the title screen, served from its own origin, without a service 
 test('Exit game on the title screen quits the app', async () => {
   const { app, page } = await start()
   const closed = new Promise<void>((done) => app.once('close', () => done()))
-  await page.getByRole('button', { name: 'Exit game' }).click()
+  // The click closes the window it lands in: the page may be gone before it can tell Playwright
+  // that the click arrived, and the click then fails with the page closed. Quitting is what counts.
+  await page
+    .getByRole('button', { name: 'Exit game' })
+    .click()
+    .catch((error: unknown) => {
+      if (!String(error).includes('has been closed')) throw error
+    })
   await closed
 })
 
