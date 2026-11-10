@@ -47,6 +47,7 @@ All changes players can notice are listed here. The format follows [Keep a Chang
 - Make the HUD smaller or larger, from a fifth of its size to four times, and the menus, dialogs and the treasure card from half to twice their size, under Display in the settings. Each panel of the HUD grows from its own corner.
 - Invert the camera's up and down, for the stick, the keys, the mouse and fingers alike, apart from inverting the ship's.
 - The game names the buttons as your controller prints them: ✕ ○ □ △, L1 and R2 on a PlayStation controller, the swapped letters of a Nintendo one, and the letters of others. Keys are named as your keyboard's layout prints them, where the browser tells. The hints in a ride and in a world, and the help, name the keys and buttons as you bound them.
+- An Exit game button on the title screen of the desktop app, and of the game installed as an app on a computer, where it closes the window. Browser tabs and phones leave the game their own way.
 
 ### Changed
 

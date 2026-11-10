@@ -141,15 +141,29 @@ async function catchOpened(app: ElectronApplication): Promise<() => Promise<stri
 test('starts at the title screen, served from its own origin, without a service worker', async () => {
   const { app, page } = await start()
   expect(page.url()).toBe('app://wormhole/index.html')
-  // What the preload hands the page: the system, the processor, and asking for the newest build.
+  // What the preload hands the page: the system, the processor, asking for the newest build, and
+  // quitting.
   expect(
     await page.evaluate(() => {
       const desktop = (
-        window as { wormholeDesktop?: { platform: string; arch: string; latestBuild: unknown } }
+        window as {
+          wormholeDesktop?: { platform: string; arch: string; latestBuild: unknown; quit: unknown }
+        }
       ).wormholeDesktop
-      return desktop && { ...desktop, latestBuild: typeof desktop.latestBuild }
+      return (
+        desktop && {
+          ...desktop,
+          latestBuild: typeof desktop.latestBuild,
+          quit: typeof desktop.quit,
+        }
+      )
     }),
-  ).toEqual({ platform: process.platform, arch: process.arch, latestBuild: 'function' })
+  ).toEqual({
+    platform: process.platform,
+    arch: process.arch,
+    latestBuild: 'function',
+    quit: 'function',
+  })
   // Nothing of Node reaches the page.
   expect(await page.evaluate(() => typeof (window as { require?: unknown }).require)).toBe(
     'undefined',
@@ -169,6 +183,13 @@ test('starts at the title screen, served from its own origin, without a service 
   expect(problems).toEqual([])
   expect(await page.evaluate(() => navigator.serviceWorker.controller)).toBeNull()
   await app.close()
+})
+
+test('Exit game on the title screen quits the app', async () => {
+  const { app, page } = await start()
+  const closed = new Promise<void>((done) => app.once('close', () => done()))
+  await page.getByRole('button', { name: 'Exit game' }).click()
+  await closed
 })
 
 test('keeps the settings when it starts again', async () => {

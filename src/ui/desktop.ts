@@ -8,6 +8,8 @@ export interface DesktopApp {
   readonly arch: string
   /** The newest desktop build's `version.json`, which the main process fetches from GitHub. */
   readonly latestBuild: () => Promise<unknown>
+  /** Closes the game's window, which quits the app (desktop/main.cts). */
+  readonly quit: () => void
 }
 
 /** The desktop app, when the page runs in it; in a browser and the Android app, nothing. */

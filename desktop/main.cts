@@ -72,6 +72,15 @@ async function latestBuild(event: electron.IpcMainInvokeEvent): Promise<unknown>
   return response.json()
 }
 
+/**
+ * Closes the game's window for the title screen's Exit game button, as its own close button does:
+ * the page saves what it keeps as it goes, and the app quits with its last window.
+ */
+function quit(event: electron.IpcMainEvent): void {
+  if (!event.senderFrame?.url.startsWith(`${ORIGIN}/`)) return
+  BrowserWindow.fromWebContents(event.sender)?.close()
+}
+
 function openWindow(): electron.BrowserWindow {
   const window = new BrowserWindow({
     width: 1280,
@@ -121,6 +130,7 @@ let gameWindow: electron.BrowserWindow | undefined
 function start(): void {
   protocol.handle(SCHEME, serve)
   ipcMain.handle('wormhole:latest-build', latestBuild)
+  ipcMain.on('wormhole:quit', quit)
   // Full screen and copying the debug log are all the game asks for.
   const allowed = new Set(['fullscreen', 'clipboard-sanitized-write'])
   session.defaultSession.setPermissionRequestHandler((_contents, permission, grant) =>

@@ -11,7 +11,7 @@ import {
 
 /** The desktop app, with the newest build's version.json as the main process would fetch it. */
 function app(latest: () => Promise<unknown>, platform = 'win32', arch = 'x64'): DesktopApp {
-  return { platform, arch, latestBuild: latest }
+  return { platform, arch, latestBuild: latest, quit: () => {} }
 }
 
 afterEach(() => {
