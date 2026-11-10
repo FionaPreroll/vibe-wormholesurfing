@@ -379,7 +379,12 @@ export class Engine {
       this.#frame = requestAnimationFrame(loop)
       const raw = (now - this.#last) / 1000
       this.#last = now
-      const kind = frameKind(raw, document.visibilityState === 'visible', this.#shownBefore)
+      const kind = frameKind(
+        raw,
+        document.visibilityState === 'visible',
+        this.#shownBefore,
+        this.stats.frameMs / 1000,
+      )
       const resumed = kind === 'paused'
       // A frame before the first picture counts as neither a stall nor a frame: nothing moved.
       const starting = kind === 'starting'
