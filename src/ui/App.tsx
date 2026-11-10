@@ -461,10 +461,19 @@ export function App({ store }: Props) {
           if (fresh) setUnseen((before) => [...before, reward.item.id])
           refresh()
         })
-      setTimeout(() => {
-        setPicture(directorRef.current?.thumbnail(reward.item.id, reward.shiny, 200))
+      // The card's picture is made while the treasure opens, without stalling the world, which
+      // plays on behind the card. Made at once instead, it built a shader inside a frame.
+      const director = directorRef.current
+      const picture =
+        director
+          ?.prepareThumbnail(reward.item.id, reward.shiny, 200)
+          .catch(() => director.thumbnail(reward.item.id, reward.shiny, 200)) ??
+        Promise.resolve(undefined)
+      const opened = new Promise((done) => setTimeout(done, 1500))
+      void Promise.all([picture, opened]).then(([url]) => {
+        setPicture(url)
         setCard(true)
-      }, 1500)
+      })
     },
     [refresh],
   )
