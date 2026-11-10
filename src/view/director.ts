@@ -47,6 +47,12 @@ export interface Director {
   setQuality(quality: Quality): void
   /** A picture of a treasure, as an image address, for the collection. */
   thumbnail(itemId: string, shiny: boolean, size?: number): string
+  /**
+   * The same picture, made without stalling a frame, for the treasure's card, which shows over
+   * the world as it plays on: its shaders compile alongside the frames, and its pixels come back
+   * once the graphics chip has drawn them.
+   */
+  prepareThumbnail(itemId: string, shiny: boolean, size?: number): Promise<string>
   /** The graphics as they run now, for the debug log. */
   diagnostics(): Record<string, unknown>
   /** The current ride or world, for tests that drive the game. */
@@ -65,6 +71,59 @@ export function createDirector(
   engine.start()
   let current: RideStage | WorldStage | undefined
   const thumbnails = new Map<string, string>()
+  /** Pictures being made ahead, by the same key. */
+  const drawing = new Map<string, Promise<string>>()
+
+  /** A treasure alone, turned a little and lit as in the collection, and its camera. */
+  const pictureScene = (item: NonNullable<ReturnType<typeof itemById>>, shiny: boolean) => {
+    const scene = new THREE.Scene()
+    scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x403060, 1.6))
+    const key = new THREE.DirectionalLight(0xffffff, 2.4)
+    key.position.set(2, 3, 4)
+    scene.add(key)
+    const rim = new THREE.DirectionalLight(RARITY_COLORS[item.rarity], 3)
+    rim.position.set(-3, 1, -3)
+    scene.add(rim)
+    const mesh = buildItem(item, shiny)
+    mesh.rotation.set(0.35, -0.6, 0)
+    scene.add(mesh)
+    const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 20)
+    camera.position.set(0, 0.2, 2.6)
+    camera.lookAt(0, 0, 0)
+    return { scene, camera, mesh }
+  }
+
+  /** Draws a picture into a target of its own, smoothed, on a clear background. */
+  const drawPicture = (scene: THREE.Scene, camera: THREE.Camera, size: number) => {
+    const renderer = engine.renderer
+    const target = new THREE.WebGLRenderTarget(size, size, { samples: 4 })
+    const before = renderer.getRenderTarget()
+    renderer.setRenderTarget(target)
+    renderer.setClearColor(0x000000, 0)
+    renderer.clear()
+    renderer.render(scene, camera)
+    renderer.setRenderTarget(before)
+    return target
+  }
+
+  /** A picture's pixels as an image address. */
+  const pictureUrl = (pixels: Uint8Array, size: number): string => {
+    const canvas2d = document.createElement('canvas')
+    canvas2d.width = size
+    canvas2d.height = size
+    const context = canvas2d.getContext('2d')
+    if (context) {
+      const image = context.createImageData(size, size)
+      // Render targets read bottom-up.
+      for (let row = 0; row < size; row++)
+        image.data.set(
+          pixels.subarray((size - 1 - row) * size * 4, (size - row) * size * 4),
+          row * size * 4,
+        )
+      context.putImageData(image, 0, 0)
+    }
+    return canvas2d.toDataURL('image/png')
+  }
   /** The world being made ready for the ride under way, by the seed of its arrival. */
   let prepared: { seed: number; ready: Promise<WorldStage> } | undefined
   /** Counts new rides and title screens: a world made for an earlier one is not shown. */
@@ -264,51 +323,49 @@ export function createDirector(
       if (cached) return cached
       const item = itemById(itemId)
       if (!item) return ''
-      const renderer = engine.renderer
-      const scene = new THREE.Scene()
-      scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x403060, 1.6))
-      const key1 = new THREE.DirectionalLight(0xffffff, 2.4)
-      key1.position.set(2, 3, 4)
-      scene.add(key1)
-      const rim = new THREE.DirectionalLight(RARITY_COLORS[item.rarity], 3)
-      rim.position.set(-3, 1, -3)
-      scene.add(rim)
-      const mesh = buildItem(item, shiny)
-      mesh.rotation.set(0.35, -0.6, 0)
-      scene.add(mesh)
-      const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 20)
-      camera.position.set(0, 0.2, 2.6)
-      camera.lookAt(0, 0, 0)
-      const target = new THREE.WebGLRenderTarget(size, size, { samples: 4 })
-      const before = renderer.getRenderTarget()
-      const tone = renderer.toneMapping
-      renderer.setRenderTarget(target)
-      renderer.setClearColor(0x000000, 0)
-      renderer.clear()
-      renderer.render(scene, camera)
+      const { scene, camera, mesh } = pictureScene(item, shiny)
+      const target = drawPicture(scene, camera, size)
       const pixels = new Uint8Array(size * size * 4)
-      renderer.readRenderTargetPixels(target, 0, 0, size, size, pixels)
-      renderer.setRenderTarget(before)
-      renderer.toneMapping = tone
-      const canvas2d = document.createElement('canvas')
-      canvas2d.width = size
-      canvas2d.height = size
-      const context = canvas2d.getContext('2d')
-      if (context) {
-        const image = context.createImageData(size, size)
-        // Render targets read bottom-up.
-        for (let row = 0; row < size; row++)
-          image.data.set(
-            pixels.subarray((size - 1 - row) * size * 4, (size - row) * size * 4),
-            row * size * 4,
-          )
-        context.putImageData(image, 0, 0)
-      }
-      const url = canvas2d.toDataURL('image/png')
+      engine.renderer.readRenderTargetPixels(target, 0, 0, size, size, pixels)
+      const url = pictureUrl(pixels, size)
       thumbnails.set(key, url)
       target.dispose()
       disposeItem(mesh)
       return url
+    },
+    prepareThumbnail(itemId, shiny, size = 160) {
+      const key = `${itemId}:${shiny}:${size}`
+      const cached = thumbnails.get(key)
+      if (cached) return Promise.resolve(cached)
+      const under = drawing.get(key)
+      if (under) return under
+      const item = itemById(itemId)
+      if (!item) return Promise.resolve('')
+      const made = (async () => {
+        // Not in the frame that asked, as the treasure opens in one: that frame goes on as it was.
+        await afterNextFrame()
+        const { scene, camera, mesh } = pictureScene(item, shiny)
+        try {
+          // Its lights are its own, so its shaders are too: they compile alongside the frames.
+          await engine.compile(scene, camera)
+          const target = drawPicture(scene, camera, size)
+          try {
+            const pixels = new Uint8Array(size * size * 4)
+            // Read back once the graphics chip has drawn it, without waiting for it meanwhile.
+            await engine.renderer.readRenderTargetPixelsAsync(target, 0, 0, size, size, pixels)
+            const url = pictureUrl(pixels, size)
+            thumbnails.set(key, url)
+            return url
+          } finally {
+            target.dispose()
+          }
+        } finally {
+          disposeItem(mesh)
+          drawing.delete(key)
+        }
+      })()
+      drawing.set(key, made)
+      return made
     },
     dispose() {
       engine.dispose()
